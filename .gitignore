@@ -1,0 +1,22 @@
+# === IDE ===
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+
+# === Environment ===
+.env
+.env.*
+!.env.example
+
+# === OS ===
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# === Kubernetes / GitOps ===
+*.decoded
+secrets/
+!secrets/.gitkeep
