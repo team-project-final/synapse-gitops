@@ -1,0 +1,50 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: synapse-apps
+  namespace: argocd
+spec:
+  generators:
+    - matrix:
+        generators:
+          - list:
+              elements:
+                - service: platform-svc
+                - service: engagement-svc
+                - service: knowledge-svc
+                - service: learning-card
+                - service: learning-ai
+          - list:
+              elements:
+                - env: dev
+                - env: staging
+                - env: prod
+  template:
+    metadata:
+      name: "synapse-{{service}}-{{env}}"
+      namespace: argocd
+      labels:
+        app.kubernetes.io/part-of: synapse
+        app.kubernetes.io/component: "{{service}}"
+        environment: "{{env}}"
+    spec:
+      project: synapse
+      source:
+        repoURL: https://github.com/team-project-final/synapse-gitops.git
+        targetRevision: main
+        path: "apps/{{service}}/overlays/{{env}}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "synapse-{{env}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+  templatePatch: |
+    {{- if ne env "dev" }}
+    spec:
+      syncPolicy:
+        automated: null
+    {{- end }}
