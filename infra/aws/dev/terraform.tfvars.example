@@ -1,0 +1,7 @@
+aws_region = "ap-northeast-2"
+
+# Keep admin CIDRs narrow. Prefer VPN, SSM, or a bastion path.
+admin_cidr_blocks = []
+
+database_password = "<RDS_ADMIN_PASSWORD>"
+redis_auth_token  = "<REDIS_AUTH_TOKEN>"
