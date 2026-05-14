@@ -1,0 +1,348 @@
+version: "3.9"
+
+# ─── Synapse Local Development Environment ─────────────────────────────────
+# Usage: docker compose up -d
+# Docs:  docs/docker-compose-workflow-guide.md
+
+x-common-env: &common-env
+  SPRING_PROFILES_ACTIVE: local
+  SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-synapse}
+  SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-synapse}
+  SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-synapse_local}
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+  SPRING_DATA_REDIS_HOST: redis
+  SPRING_DATA_REDIS_PORT: 6379
+  SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_local}
+  SCHEMA_REGISTRY_URL: http://schema-registry:8081
+
+networks:
+  synapse-net:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+  kafka-data:
+  zookeeper-data:
+  elasticsearch-data:
+
+services:
+
+  # ─── Infrastructure Services ────────────────────────────────────────────────
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: synapse-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-synapse}
+      POSTGRES_USER: ${POSTGRES_USER:-synapse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-synapse_local}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - synapse-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-synapse}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  redis:
+    image: redis:7-alpine
+    container_name: synapse-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD:-redis_local} --maxmemory 128mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - synapse-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_local}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 192M
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    container_name: synapse-zookeeper
+    platform: linux/amd64
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+    networks:
+      - synapse-net
+    healthcheck:
+      test: ["CMD", "echo", "ruok", "|", "nc", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: synapse-kafka
+    platform: linux/amd64
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_LOG_RETENTION_HOURS: 168
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    networks:
+      - synapse-net
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.6.1
+    container_name: synapse-schema-registry
+    platform: linux/amd64
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:9092
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    ports:
+      - "8081:8081"
+    networks:
+      - synapse-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/subjects"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
+    container_name: synapse-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+      - ES_JAVA_OPTS=-Xms256m -Xmx256m
+      - cluster.name=synapse-local
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - synapse-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # ─── Application Services ───────────────────────────────────────────────────
+
+  platform-svc:
+    image: ${ECR_REGISTRY:-ghcr.io/team-project-final}/synapse-platform-svc:${IMAGE_TAG:-latest}
+    container_name: synapse-platform-svc
+    build:
+      context: ../synapse-platform-svc
+      dockerfile: Dockerfile
+    environment:
+      <<: *common-env
+      SERVER_PORT: 8080
+      OAUTH_GOOGLE_CLIENT_ID: ${OAUTH_GOOGLE_CLIENT_ID:-mock}
+      OAUTH_GOOGLE_CLIENT_SECRET: ${OAUTH_GOOGLE_CLIENT_SECRET:-mock}
+      STRIPE_API_KEY: ${STRIPE_API_KEY:-sk_test_mock}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-whsec_mock}
+      FCM_PROJECT_ID: ${FCM_PROJECT_ID:-synapse-local}
+      JWT_SECRET: ${JWT_SECRET:-local-jwt-secret-key-must-be-at-least-256-bits}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - synapse-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  engagement-svc:
+    image: ${ECR_REGISTRY:-ghcr.io/team-project-final}/synapse-engagement-svc:${IMAGE_TAG:-latest}
+    container_name: synapse-engagement-svc
+    build:
+      context: ../synapse-engagement-svc
+      dockerfile: Dockerfile
+    environment:
+      <<: *common-env
+      SERVER_PORT: 8081
+      INTERNAL_LEARNING_SVC_URL: http://learning-card:8083
+    ports:
+      - "8082:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - synapse-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  knowledge-svc:
+    image: ${ECR_REGISTRY:-ghcr.io/team-project-final}/synapse-knowledge-svc:${IMAGE_TAG:-latest}
+    container_name: synapse-knowledge-svc
+    build:
+      context: ../synapse-knowledge-svc
+      dockerfile: Dockerfile
+    environment:
+      <<: *common-env
+      SERVER_PORT: 8082
+      SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200
+      AWS_S3_ENDPOINT_URL: ${AWS_S3_ENDPOINT_URL:-http://localhost:4566}
+      AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME:-synapse-attachments-local}
+      INTERNAL_LEARNING_AI_URL: http://learning-ai:8000
+    ports:
+      - "8083:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - synapse-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  learning-card:
+    image: ${ECR_REGISTRY:-ghcr.io/team-project-final}/synapse-learning-card:${IMAGE_TAG:-latest}
+    container_name: synapse-learning-card
+    build:
+      context: ../synapse-learning-svc/learning-card
+      dockerfile: Dockerfile
+    environment:
+      <<: *common-env
+      SERVER_PORT: 8083
+    ports:
+      - "8084:8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - synapse-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  learning-ai:
+    image: ${ECR_REGISTRY:-ghcr.io/team-project-final}/synapse-learning-ai:${IMAGE_TAG:-latest}
+    container_name: synapse-learning-ai
+    build:
+      context: ../synapse-learning-svc/learning-ai
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-synapse}:${POSTGRES_PASSWORD:-synapse_local}@postgres:5432/${POSTGRES_DB:-synapse}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_local}@redis:6379/0
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-sk-mock-key}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-sk-ant-mock-key}
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - synapse-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 512M
