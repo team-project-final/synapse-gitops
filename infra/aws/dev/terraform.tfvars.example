@@ -1,0 +1,7 @@
+# Copy to terraform.tfvars and fill in actual values
+# DO NOT commit terraform.tfvars to git
+
+aws_region       = "ap-northeast-2"
+environment      = "dev"
+rds_password     = "<CHANGE_ME>"
+redis_auth_token = "<CHANGE_ME>"
