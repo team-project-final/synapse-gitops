@@ -1,0 +1,82 @@
+# ─── VPC ────────────────────────────────────────────────────────────────────
+
+output "vpc_id" {
+  description = "VPC ID"
+  value       = aws_vpc.main.id
+}
+
+output "private_subnet_ids" {
+  description = "Private subnet IDs"
+  value       = aws_subnet.private[*].id
+}
+
+# ─── EKS ────────────────────────────────────────────────────────────────────
+
+output "eks_cluster_name" {
+  description = "EKS cluster name"
+  value       = aws_eks_cluster.main.name
+}
+
+output "eks_cluster_endpoint" {
+  description = "EKS cluster API endpoint"
+  value       = aws_eks_cluster.main.endpoint
+}
+
+output "eks_cluster_ca_cert" {
+  description = "EKS cluster CA certificate (base64)"
+  value       = aws_eks_cluster.main.certificate_authority[0].data
+  sensitive   = true
+}
+
+output "eks_oidc_provider_arn" {
+  description = "EKS OIDC provider ARN (for IRSA)"
+  value       = aws_iam_openid_connect_provider.eks.arn
+}
+
+# ─── RDS ────────────────────────────────────────────────────────────────────
+
+output "rds_endpoint" {
+  description = "RDS PostgreSQL endpoint"
+  value       = aws_db_instance.main.endpoint
+}
+
+output "rds_port" {
+  description = "RDS PostgreSQL port"
+  value       = aws_db_instance.main.port
+}
+
+# ─── MSK ────────────────────────────────────────────────────────────────────
+
+output "msk_bootstrap_brokers_tls" {
+  description = "MSK bootstrap brokers (TLS)"
+  value       = aws_msk_cluster.main.bootstrap_brokers_tls
+}
+
+output "msk_zookeeper_connect" {
+  description = "MSK Zookeeper connection string"
+  value       = aws_msk_cluster.main.zookeeper_connect_string
+}
+
+# ─── Redis ──────────────────────────────────────────────────────────────────
+
+output "redis_endpoint" {
+  description = "Redis primary endpoint"
+  value       = aws_elasticache_replication_group.main.primary_endpoint_address
+}
+
+output "redis_port" {
+  description = "Redis port"
+  value       = aws_elasticache_replication_group.main.port
+}
+
+# ─── OpenSearch ─────────────────────────────────────────────────────────────
+
+output "opensearch_endpoint" {
+  description = "OpenSearch domain endpoint"
+  value       = aws_opensearch_domain.main.endpoint
+}
+
+output "opensearch_dashboard_endpoint" {
+  description = "OpenSearch Dashboard endpoint"
+  value       = aws_opensearch_domain.main.dashboard_endpoint
+}
