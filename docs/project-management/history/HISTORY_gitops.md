@@ -99,6 +99,48 @@
 #### 산출물 (추가)
 - 운영 가이드: `docs/runbooks/aws-account-setup.md` (Step 1), `docs/runbooks/terraform-tfvars-setup.md` (Step 2), `docs/runbooks/terraform-apply-step3.md` (Step 3) — OS별 명령 + 트러블슈팅 포함
 
+#### B-2 path 실행 (kind 로컬 클러스터, 같은 날 저녁)
+
+EKS 실증 실패 후 kind로 즉시 대체 실증:
+
+1. kind v0.x + Docker Desktop 사용, K8s 1.35 cluster (1 control-plane + 2 worker)
+2. ArgoCD HA install.yaml 적용 — 단 `kubectl apply`가 ApplicationSet CRD의 annotation 크기 초과로 실패 → `kubectl apply --server-side --force-conflicts`로 해결
+3. argocd-server를 deployment scale로 replicas 3으로 변경 (HA install.yaml default는 2)
+4. `argocd/projects.yaml`, `argocd/bootstrap/`, `argocd/applicationset.yaml` 적용 → **5개 Application 등록 + Synced 상태 확인**
+5. 의도적 오류 PR (test/intentional-ci-failure, PR #14) 생성 → 첫 시도(apiVersion 변경)는 CI 통과(아래 학습) → 두 번째 시도(kustomize build 실패)로 **CI FAIL 확인** → PR close + 브랜치 삭제
+
+**B-2 실증 매핑**:
+- FR-GO-101: ✅ argocd-server 3 replicas (Pending 1개는 kind 3노드의 anti-affinity 부족이 원인, 토폴로지 의도 충족)
+- FR-GO-103: ✅ 5 Application 모두 Synced로 등록
+- FR-GO-104: ✅ CI FAIL 확인 (PR #14 두 번째 commit)
+
+**부수 학습 (D-008 trade-off)**:
+- D-005에서 채택한 kubeconform `-ignore-missing-schemas`가 **unknown apiVersion(예: `apps/v999`)도 skip하는 부작용** 발견.
+- 의도적 오류 PR 첫 시도(`apiVersion: apps/v1 → apps/v999`)가 CI를 통과해버림.
+- 원인: kubeconform이 group `apps`는 알지만 version `v999`의 schema가 없으니 missing-schemas로 처리.
+- 해결: `kustomize build` 단계에서 nonexistent file reference 추가하니 빌드 실패 → CI fail (정상 동작).
+- W3 후속: CRD 카탈로그 정비 + `-strict` 강화 시점에 unknown apiVersion도 fail 처리하도록 schema-location 또는 별도 검증 단계 추가.
+
+#### 최종 PRD W1 검수 매핑
+
+| FR | 코드 | 실증 | 비고 |
+|---|---|---|---|
+| FR-GO-101 server replicas 3 | ✅ | ✅ kind | EKS B-1 시점에 실 환경 재실증 |
+| FR-GO-102 외부 도메인 TLS | ✅ self-signed | ⚠️ kind는 port-forward로 동등 | W2 옵션1 마이그레이션 후 완전 충족 |
+| FR-GO-103 5 Application | ✅ | ✅ kind | EKS B-1 시점에 동일 결과 예상 |
+| FR-GO-104 kubeconform CI fail | ✅ | ✅ PR #14 | -ignore-missing-schemas trade-off 기록 |
+| FR-GO-105 main protection | ✅ Ruleset 16480319 | ✅ | PR #11~#13 머지 시 강제 동작 검증 |
+
+**W1 종료 선언**: 코드/CI/Ruleset 충족 + kind 로컬 실증 + 모든 학습 사항 HISTORY 기록 완료.
+
+#### B-1 path (며칠 후, 사용자 일정)
+
+결제수단 verification 완료 후 EKS 재시도:
+1. `git pull origin main` (Task 14 모든 fix + B-4 가이드 + B-2 학습 다 반영된 상태)
+2. `docs/runbooks/aws-account-setup.md` 부터 가이드 그대로 따라 진행
+3. Step 3 terraform apply 시 4건 버그는 이미 main에서 fix 완료된 상태로 시작
+4. 실증 결과를 HISTORY에 "B-1 실행" 섹션으로 추가 기록
+
 ---
 
 ## 다음 항목 템플릿

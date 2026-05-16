@@ -26,7 +26,7 @@
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [ ] In Progress / [x] Done (옵션2 적용, FR-GO-102 일부 W2 이월)
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (옵션2 적용 + kind B-2 실증 완료, FR-GO-102 일부 W2 이월. 실 EKS B-1은 결제수단 verification 후)
 
 ---
 
