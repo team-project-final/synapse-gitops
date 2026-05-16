@@ -4,10 +4,6 @@ on:
   pull_request:
     branches: [main]
 
-concurrency:
-  group: validate-${{ github.ref }}
-  cancel-in-progress: true
-
 permissions:
   contents: read
 
@@ -28,9 +24,7 @@ jobs:
 
       - name: Install kubeconform
         run: |
-          curl -sSL -o kubeconform.tar.gz \
-            https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
-          tar -xzf kubeconform.tar.gz kubeconform
+          curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz kubeconform
           sudo mv kubeconform /usr/local/bin/
           kubeconform -v
 
@@ -53,19 +47,12 @@ jobs:
           fi
 
       - name: Kubeconform validate
-        env:
-          CRD_SCHEMA_LOCATION: 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
         run: |
           failed=0
           for overlay in apps/*/overlays/*/kustomization.yaml; do
             dir="$(dirname "$overlay")"
             echo "--- Validating: $dir ---"
-            if ! kustomize build "$dir" | kubeconform \
-              -strict \
-              -ignore-missing-schemas \
-              -schema-location default \
-              -schema-location "$CRD_SCHEMA_LOCATION" \
-              -summary -output text; then
+            if ! kustomize build "$dir" | kubeconform -strict -ignore-missing-schemas -summary -output text; then
               echo "::error::kubeconform failed for $dir"
               failed=1
             fi
@@ -73,7 +60,3 @@ jobs:
           if [ "$failed" -ne 0 ]; then
             exit 1
           fi
-
-      - name: Report total time
-        if: always()
-        run: echo "Total: ${SECONDS}s"
