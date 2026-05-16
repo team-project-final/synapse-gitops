@@ -21,6 +21,32 @@
 ### 이벤트
 - (없음)
 
+### 2026-05-16 (W1 마무리)
+
+#### 의사결정
+- **D-001 ArgoCD 외부 노출 방식**: 옵션 2(NLB TCP passthrough + 자체서명 TLS) 채택.
+  - 이유: 실 도메인 미확보 → ACM 발급 불가. 옵션 1(ALB+ACM)은 W2 초반 마이그레이션으로 이월.
+  - 대안 검토: ALB Ingress + ACM (도메인 필요), ingress-nginx + Let's Encrypt (도메인 필요).
+  - 결과: PRD FR-GO-102 부분 충족(TLS는 있으나 도메인+CA 인증서 아님). [docs/argocd-tls-migration.md](../../argocd-tls-migration.md)에 마이그레이션 절차 사전 작성.
+- **D-002 ApplicationSet 구조**: matrix 유지 + env list=[dev]만 활성화 (C3).
+  - 이유: PRD FR-GO-103 "5개 Application" 원안 충실, W3/W4에 env list 1줄 추가로 확장.
+  - 대안 검토: list 5개로 축소(W3에 재구조화 필요), matrix + 15개 생성(PRD 수정 필요).
+- **D-003 ArgoCD HA 토폴로지**: controller=1, server=3, repoServer=2, applicationSet=2, redis-ha=true.
+  - 이유: PRD 문구는 server 3 명시. controller 샤딩은 W3 부하 발생 시.
+- **D-004 admin 비번 관리**: bootstrap.sh가 1회 회전 후 AWS Secrets Manager 저장 (secret: `synapse/argocd/admin`).
+  - 이유: W1 범위 최소화 + git 평문 0건 보장. ESO는 W2 Step 5에서 도입.
+- **D-005 CI 강화 범위**: kubeconform 추가, .yamllint 강화. CRD 스키마는 `-ignore-missing-schemas` 경고 처리.
+  - 이유: 핵심 K8s 리소스 검증이 우선. CRD 카탈로그 정비는 W3 Observability와 묶음.
+
+#### 산출물
+- 디자인 스펙: `docs/superpowers/specs/2026-05-16-w1-argocd-bootstrap-design.md` (commit e6483ec)
+- 구현 플랜: `docs/superpowers/plans/2026-05-16-w1-argocd-bootstrap.md` (commit 74e8896)
+- PR: (PR 번호는 생성 후 추가)
+
+#### 이벤트
+- 사용자 액션: `terraform apply` + `bootstrap-argocd.sh` 실행으로 EKS dev에 ArgoCD 부트스트랩 완료
+- 검증: 의도적 오류 PR로 kubeconform CI 실패 확인 (PR 번호는 실행 후 추가)
+
 ---
 
 ## 다음 항목 템플릿
