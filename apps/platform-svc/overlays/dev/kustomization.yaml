@@ -18,3 +18,4 @@ patches:
 images:
   - name: ghcr.io/team-project-final/synapse-platform-svc
     newTag: dev-latest
+  - nonexistent-file.yaml
