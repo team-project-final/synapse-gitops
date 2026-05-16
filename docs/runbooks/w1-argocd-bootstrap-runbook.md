@@ -29,23 +29,24 @@ choco install awscli kubernetes-cli terraform argocd-cli jq
 
 ---
 
-## 1. AWS 크레덴셜 설정 (5분)
+## 1. AWS 크레덴셜 설정 (25분, 첫 실행 시)
+
+AWS 계정만 있고 IAM 사용자 / Access Key / AWS CLI 설정이 아직이라면, 별도 가이드를 따른다:
+
+📖 **[aws-account-setup.md](./aws-account-setup.md)** — Budget 알람 → IAM 사용자 → Access Key → AWS CLI 설치 → configure → 검증까지 1-A~1-F 단계별로 안내.
+
+이미 `aws configure`가 완료됐다면 다음 한 줄로 검증만 하고 Step 2로 진행:
 
 ```bash
-aws configure
-# AWS Access Key ID:     <IAM_ACCESS_KEY>
-# AWS Secret Access Key: <IAM_SECRET_KEY>
-# Default region name:   ap-northeast-2
-# Default output format: json
-
 aws sts get-caller-identity
 ```
 
-**Expected**: `Account`, `Arn`, `UserId` 출력. 정상이면 다음 단계.
+**Expected**: `Arn`이 `arn:aws:iam::<ACCOUNT>:user/synapse-admin` 형식.
 
 **실패 시**:
-- `Unable to locate credentials` → `aws configure` 다시 실행
-- `AccessDenied` → IAM 사용자 권한 점검 (EKS/EC2/VPC/Route53/IAM 권한 필요)
+- `Unable to locate credentials` → `aws configure` 다시 실행 (또는 [aws-account-setup.md](./aws-account-setup.md) 1-E)
+- `AccessDenied` → IAM 사용자 권한 점검 (`AdministratorAccess` 또는 EKS/EC2/VPC/RDS/IAM 권한 필요)
+- `Arn`이 `:root`로 끝남 → Root 계정으로 작업 중. [aws-account-setup.md](./aws-account-setup.md) 1-B로 가서 IAM 사용자 사용
 
 ---
 
