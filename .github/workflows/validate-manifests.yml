@@ -53,6 +53,8 @@ jobs:
           fi
 
       - name: Kubeconform validate
+        env:
+          CRD_SCHEMA_LOCATION: 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
         run: |
           failed=0
           for overlay in apps/*/overlays/*/kustomization.yaml; do
@@ -62,7 +64,7 @@ jobs:
               -strict \
               -ignore-missing-schemas \
               -schema-location default \
-              -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+              -schema-location "$CRD_SCHEMA_LOCATION" \
               -summary -output text; then
               echo "::error::kubeconform failed for $dir"
               failed=1
