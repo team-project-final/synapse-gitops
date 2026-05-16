@@ -50,23 +50,15 @@ aws sts get-caller-identity
 
 ---
 
-## 2. Terraform 변수 채우기 (3분)
+## 2. Terraform 변수 채우기 (8분)
 
-```bash
-cd infra/aws/dev
-cp terraform.tfvars.example terraform.tfvars
-```
+OS별 시크릿 생성 방법(openssl vs PowerShell native vs Git Bash), 비용 최소화 override, gitignore 재검증까지 별도 가이드로 분리:
 
-`terraform.tfvars` 편집 — 최소 다음 2개는 실제 값으로 변경:
+📖 **[terraform-tfvars-setup.md](./terraform-tfvars-setup.md)** — 2-A 변수 파일 생성 / 2-B 비번 생성 / 2-C 편집 / 2-D gitignore 검증 / 2-E Terraform 설치 확인.
 
-```hcl
-aws_region       = "ap-northeast-2"
-environment      = "dev"
-rds_password     = "<강력한 비번 32자 이상>"
-redis_auth_token = "<강력한 토큰 32자 이상>"
-```
+요약: `infra/aws/dev/terraform.tfvars`를 만들고 `rds_password` + `redis_auth_token` 두 시크릿 + 비용 최소화 override 3개(`eks_node_count=2`, `rds_instance_class="db.t3.micro"`, `msk_broker_count=2`) 작성. 시크릿은 1Password 등에 보관 (학습 destroy 후 폐기).
 
-**주의**: `terraform.tfvars`는 `.gitignore`되어 git에 커밋되지 않음. 비번은 분실하지 않도록 로컬에 별도 보관(예: 1Password, Vault).
+검증: `terraform version` 출력 + `git status`에 `terraform.tfvars`가 보이지 않음.
 
 ---
 
