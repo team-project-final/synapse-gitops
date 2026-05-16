@@ -34,7 +34,7 @@
 - [x] README에 접속 방법 + 로그인 절차 기록 (`README.md`, `argocd/README.md`)
 - [x] HISTORY에 의사결정 기록 (D-001 ~ D-005)
 
-**Step 1 Status**: [ ] Not Started / [ ] In Progress / [x] Done (옵션2 코드 완료, FR-GO-102 일부 W2 이월. **실 EKS 부트스트랩 실증은 Task 14에서 AWS 신규 계정 Free Tier 제약으로 미완** → B-2(kind) / B-1(verification 후 재시도) path. 트러블슈팅 + 학습 결과는 HISTORY 2026-05-16 섹션 참고)
+**Step 1 Status**: [ ] Not Started / [ ] In Progress / [x] Done (옵션2 코드 완료, FR-GO-102 일부 W2 이월. **kind 로컬 클러스터로 B-2 실증 완료 (server replicas 3 동작, FR-GO-101 충족)**. 실 EKS는 B-1 path로 결제수단 verification 후 재시도 예정. 상세 흐름/학습은 HISTORY 2026-05-16 참고)
 
 ---
 
