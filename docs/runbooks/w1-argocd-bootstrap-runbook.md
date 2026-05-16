@@ -3,6 +3,8 @@
 > **대상**: gitops 트랙 담당자 (@VelkaressiaBlutkrone) 또는 후속 환경 부트스트랩 작업자
 > **소요 시간**: 약 50~60분 (terraform apply 단계가 가장 김)
 > **전제**: PR #6 + PR #7이 main에 머지된 상태 (스펙: [2026-05-16-w1-argocd-bootstrap-design.md](../superpowers/specs/2026-05-16-w1-argocd-bootstrap-design.md))
+>
+> 💡 **다른 PC에서 작업 이어받기**: [dev-machine-setup.md](./dev-machine-setup.md)에서 도구/인증/시크릿 인계 절차 먼저 확인.
 
 ---
 
@@ -275,6 +277,16 @@ terraform destroy
 - AWS Secrets Manager의 `synapse/argocd/admin` (7일 복구 대기 후 영구 삭제)
 - CloudWatch Logs (EKS 로그)
 - ECR 이미지 (있다면)
+
+---
+
+## 대체 path — AWS 불가 시 kind 로컬 클러스터
+
+EKS path가 막힐 때(예: AWS 신규 계정 결제수단 verification 미완료, 비용 제약, AWS 미사용 환경) **kind 로컬 클러스터로 동등 실증**:
+
+📖 **[kind-local-bootstrap.md](./kind-local-bootstrap.md)** — Docker Desktop / kind / kubectl 설치부터 ArgoCD HA + 5 Application 등록 + UI 접속 + CI 검증까지. 비용 0, 약 30~40분.
+
+EKS path와의 매핑(HA 토폴로지, 외부 노출, admin 비번 관리 등)도 같은 문서 끝에 정리되어 있음.
 
 ---
 
