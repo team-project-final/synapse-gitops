@@ -17,8 +17,6 @@ spec:
           - list:
               elements:
                 - env: dev
-                - env: staging
-                - env: prod
   template:
     metadata:
       name: "synapse-{{service}}-{{env}}"
@@ -42,9 +40,3 @@ spec:
           selfHeal: true
         syncOptions:
           - CreateNamespace=true
-  templatePatch: |
-    {{- if ne env "dev" }}
-    spec:
-      syncPolicy:
-        automated: null
-    {{- end }}
