@@ -62,33 +62,15 @@ OS별 시크릿 생성 방법(openssl vs PowerShell native vs Git Bash), 비용 
 
 ---
 
-## 3. Terraform Apply (20~25분)
+## 3. Terraform Apply (25~45분, 실패 + 재시도 포함)
 
-```bash
-terraform init
-terraform plan -out=tfplan
-```
+State backend 사전 생성(S3 bucket + DynamoDB), terraform init/plan/apply 절차, 실제 발생했던 트러블슈팅 케이스(EKS AMI 미지원, RDS parameter group, OpenSearch VPC policy, Free Tier 제약 등)는 별도 가이드로 분리:
 
-`terraform plan` 출력에서 다음 자원이 생성되는지 확인:
-- `aws_vpc.main`, `aws_subnet.*`, `aws_nat_gateway.*`
-- `aws_eks_cluster.main`, `aws_eks_node_group.main`
-- `aws_db_instance.*` (RDS), `aws_elasticache_*` (Redis)
-- `aws_msk_*` (Kafka), `aws_opensearch_domain.*`
-- `helm_release.argocd` (ArgoCD HA)
+📖 **[terraform-apply-step3.md](./terraform-apply-step3.md)** — 3-Pre backend 생성 / 3-A init / 3-B plan / 3-C apply / 3-D 비용 모니터링 / 3-Cleanup destroy. 트러블슈팅 9건.
 
-```bash
-terraform apply tfplan
-cd ../../..
-```
+⚠️ AWS **신규 가입 계정**은 결제수단 verification 완료 전엔 EKS 노드 launch가 막힌다(Free Tier eligible 인스턴스만 허용). 그 경우 destroy 후 verification 대기 또는 kind 로컬 대체.
 
-**Expected**:
-- 약 20분 후 `Apply complete!` 출력
-- output에 `argocd_namespace = argocd` 표시
-
-**실패 시 (자주 발생하는 케이스)**:
-- `service quota exceeded` (예: EIP 5개 한도): AWS Service Quotas 콘솔에서 quota 증설 요청 (24~48시간 소요). 임시 대안: `vpc.tf`에서 NAT Gateway 개수 줄임.
-- `InvalidParameterValue: At least two subnets in two different AZs` (RDS): VPC의 `database_subnet`이 2개 AZ에 분포하는지 확인.
-- 중간 실패 시: `terraform apply tfplan` 재실행 (Terraform이 멱등 처리).
+요약: `terraform init` → `terraform plan -out=tfplan` → `terraform apply tfplan` 후 output에 `argocd_namespace = "argocd"` 표시되면 Step 4로 진행.
 
 ---
 

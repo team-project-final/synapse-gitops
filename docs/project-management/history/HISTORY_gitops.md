@@ -63,6 +63,42 @@
   - 영향: CRD 카탈로그 schema-location 없이도 `-ignore-missing-schemas`로 ArgoCD CRD는 경고 처리, 핵심 K8s 리소스 검증은 그대로. PRD FR-GO-104 충족.
   - 후속: W3 Observability와 함께 CRD 카탈로그 + concurrency 재도입 시도. 그 시점에 단일 원인 격리.
 
+#### Task 14 사용자 실행 결과 (오후~저녁)
+
+**실행 흐름**:
+1. AWS 계정(신규) + IAM 사용자 `synapse-admin` 생성 + AdministratorAccess 부착 (콘솔 path)
+2. S3 backend bucket + DynamoDB lock table 수동 생성 (chicken-and-egg 해소)
+3. terraform init + plan + apply 실행 → 부분 자원만 생성된 채 5건 에러 발생
+4. 4건의 코드 버그를 PR #11/#12로 main에 수정 반영
+5. 최종적으로 AWS 신규 계정의 Free Tier 제약(EKS 노드 launch 불가)으로 실증 막힘
+6. 비용 출혈 차단 위해 즉시 `terraform destroy -auto-approve` 실행 (40분 36초)
+7. S3 state bucket + DynamoDB lock table 삭제 완료
+
+**발견된 코드 버그 (모두 main 반영 완료)**:
+- PR #11 — `infra/aws/dev/eks.tf` EKS 1.29 → 1.30 (AMI 미지원), `infra/aws/dev/rds.tf` parameter group에 `apply_method = "pending-reboot"` 추가
+- PR #12 — `infra/aws/dev/opensearch.tf` IP-based access policy Condition 제거 (VPC endpoint와 충돌), `infra/aws/dev/rds.tf` postgres 16.3 → 16.6
+
+**환경 issue (코드 외)**:
+- OpenSearch service-linked role 수동 생성 필요: `aws iam create-service-linked-role --aws-service-name opensearchservice.amazonaws.com`
+- MSK는 콘솔에서 한 번 페이지 방문해야 활성화
+- 신규 AWS 계정의 결제수단 verification 미완료 → EKS 노드 launch 불가 (Free Tier eligible 인스턴스만 허용). 24~72h 후 verification 완료 시 해결.
+
+**비용**: 자원이 1~2시간 부분 가동 후 destroy. 예상 청구 $0.30~$1 (Cost Explorer는 24h lag로 다음 날 정확 표시).
+
+**PRD W1 검수 결론 (Task 14 후)**:
+- FR-GO-101/103: 코드 ✅, 실증 미완 (결제수단 verification 후 B-1 path로 재시도 예정)
+- FR-GO-102: 코드 ✅ (self-signed TLS), 실증 미완
+- FR-GO-104: 코드 ✅ + CI 정상 동작 검증됨 (PR #6~#12에서 yamllint/kustomize/kubeconform 모두 작동). 의도적 오류 PR 실증은 B-2(kind 로컬) 또는 B-1(EKS 재시도) 시점에 수행
+- FR-GO-105: ✅ 충족 (PR #7~#12에서 ruleset이 PR + status check를 강제하며 정상 동작)
+
+**다음 path (사용자 결정 B-4 → B-2 → B-1)**:
+- B-4 (현재 PR): Task 14 결과를 HISTORY/WORKFLOW에 기록 + 사용자 액션 가이드를 docs/runbooks/에 영구 보관
+- B-2 (다음 작업): kind 로컬 클러스터로 ArgoCD HA + ApplicationSet 5개 실증 (오늘 안에 완료, 비용 0)
+- B-1 (며칠 후): 결제수단 verification 완료 후 실제 EKS 부트스트랩 재시도. 본 PR 머지된 main으로 git pull 받으면 코드 버그 다 해결된 상태로 시작 가능.
+
+#### 산출물 (추가)
+- 운영 가이드: `docs/runbooks/aws-account-setup.md` (Step 1), `docs/runbooks/terraform-tfvars-setup.md` (Step 2), `docs/runbooks/terraform-apply-step3.md` (Step 3) — OS별 명령 + 트러블슈팅 포함
+
 ---
 
 ## 다음 항목 템플릿
