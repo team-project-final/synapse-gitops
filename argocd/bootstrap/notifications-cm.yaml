@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-notifications-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-notifications-cm
+    app.kubernetes.io/part-of: argocd
+data:
+  # W3 Observability에서 templates / triggers / subscriptions 추가 예정
+  context: |
+    argocdUrl: https://argocd.placeholder.local

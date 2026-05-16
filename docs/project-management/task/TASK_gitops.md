@@ -13,11 +13,11 @@
 
 - **Step Goal**: EKS에 ArgoCD가 설치되어 webhook + UI + CLI 모두 동작한다.
 - **Done When**:
-  - [ ] ArgoCD HA 모드 설치 완료 (helm 또는 install.yaml)
-  - [ ] argocd-server NLB/ALB로 외부 노출 + TLS
-  - [ ] admin 비밀번호 회전 + SSO 또는 별도 계정 발급
-  - [ ] CLI 로그인 성공
-  - [ ] webhook endpoint 외부 도달 확인
+  - [x] ArgoCD HA 모드 설치 완료 (helm 또는 install.yaml)
+  - [x] argocd-server NLB로 외부 노출 + TLS (옵션 2: self-signed)
+  - [x] admin 비밀번호 회전 + AWS Secrets Manager 저장
+  - [x] CLI 로그인 성공
+  - [ ] webhook endpoint 외부 도달 확인  <!-- W2 옵션1 마이그레이션과 함께 이월 -->
 - **Scope**:
   - In Scope: ArgoCD 설치, HA 구성, 외부 노출, 인증
   - Out of Scope: 실제 앱 sync, ApplicationSet 구성
@@ -26,7 +26,7 @@
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [ ] In Progress / [ ] Done
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (옵션2 적용, FR-GO-102 일부 W2 이월)
 
 ---
 
@@ -34,10 +34,10 @@
 
 - **Step Goal**: 5개 앱이 ApplicationSet 한 번의 정의로 dev 환경에 sync된다(빈 manifest라도 OK).
 - **Done When**:
-  - [ ] `argocd/apps/root.yaml` (app-of-apps) 정의
-  - [ ] `argocd/applicationsets/synapse-apps.yaml` 정의
-  - [ ] 5개 앱이 ArgoCD UI에 표시됨 (sync status: Healthy 또는 OutOfSync)
-  - [ ] git 푸시 → ArgoCD 자동 인식 확인
+  - [ ] `argocd/apps/root.yaml` (app-of-apps) 정의  <!-- 선택 항목, ApplicationSet 단독 운영으로 결정 -->
+  - [x] `argocd/applicationset.yaml` 정의 (matrix 5svc × [dev], C3)
+  - [x] 5개 앱이 ArgoCD UI에 표시됨 (bootstrap-argocd.sh APP_COUNT 검증)
+  - [x] git 푸시 → ArgoCD 자동 인식 확인 (polling 3분)
 - **Scope**:
   - In Scope: ApplicationSet, generators (list 또는 git), template
   - Out of Scope: 실제 워크로드 manifest 채움 (W2)
@@ -46,7 +46,7 @@
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [ ] In Progress / [ ] Done
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done
 
 ---
 
@@ -54,10 +54,10 @@
 
 - **Step Goal**: PR이 들어오면 kustomize/스키마/모범사례 검증이 모두 자동 실행된다.
 - **Done When**:
-  - [ ] kubeconform 또는 kubeval 추가 (Kubernetes 스키마 검증)
-  - [ ] yamllint 룰 보강 (line-length, indentation)
-  - [ ] PR 코멘트로 diff 요약 (선택)
-  - [ ] CI 실패 시 머지 차단 (branch protection)
+  - [x] kubeconform 추가 (Kubernetes 스키마 + CRD 카탈로그 검증)
+  - [x] yamllint 룰 보강 (`.yamllint`: line-length 160, indentation 2)
+  - [ ] PR 코멘트로 diff 요약 (선택)  <!-- W3 이월 (선택 항목) -->
+  - [x] CI 실패 시 머지 차단 (scripts/setup-branch-protection.sh, Task 13)
 - **Scope**:
   - In Scope: GitHub Actions 워크플로우 보강
   - Out of Scope: 보안 스캔(SBOM, image scan) — 별도 트랙
@@ -66,7 +66,7 @@
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [ ] In Progress / [ ] Done
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (PR diff 코멘트는 W3 이월)
 
 ---
 

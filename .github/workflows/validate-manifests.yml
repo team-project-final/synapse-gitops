@@ -22,8 +22,14 @@ jobs:
       - name: Install yamllint
         run: pip install yamllint
 
+      - name: Install kubeconform
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz kubeconform
+          sudo mv kubeconform /usr/local/bin/
+          kubeconform -v
+
       - name: Lint YAML
-        run: yamllint -d relaxed apps/ argocd/ infra/
+        run: yamllint -c .yamllint apps/ argocd/ infra/
 
       - name: Kustomize build all overlays
         run: |
@@ -33,6 +39,21 @@ jobs:
             echo "--- Building: $dir ---"
             if ! kustomize build "$dir" > /dev/null; then
               echo "::error::kustomize build failed for $dir"
+              failed=1
+            fi
+          done
+          if [ "$failed" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Kubeconform validate
+        run: |
+          failed=0
+          for overlay in apps/*/overlays/*/kustomization.yaml; do
+            dir="$(dirname "$overlay")"
+            echo "--- Validating: $dir ---"
+            if ! kustomize build "$dir" | kubeconform -strict -ignore-missing-schemas -summary -output text; then
+              echo "::error::kubeconform failed for $dir"
               failed=1
             fi
           done
