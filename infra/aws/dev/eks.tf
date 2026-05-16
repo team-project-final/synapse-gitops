@@ -27,7 +27,7 @@ resource "aws_iam_role_policy_attachment" "eks_vpc_resource_controller" {
 
 resource "aws_eks_cluster" "main" {
   name     = local.cluster_name
-  version  = "1.29"
+  version  = "1.30"
   role_arn = aws_iam_role.eks_cluster.arn
 
   vpc_config {
