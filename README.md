@@ -83,6 +83,15 @@ aws secretsmanager get-secret-value --secret-id synapse/argocd/admin \
 
 ## 문서
 
+### Runbook (작업 단계별)
+- **[dev-machine-setup.md](docs/runbooks/dev-machine-setup.md)** — 새 PC/환경에서 작업 이어받기 (도구 설치 + 인증 + 시크릿 인계)
+- [w1-argocd-bootstrap-runbook.md](docs/runbooks/w1-argocd-bootstrap-runbook.md) — W1 EKS 부트스트랩 메인 흐름
+- [aws-account-setup.md](docs/runbooks/aws-account-setup.md) — Step 1 AWS 계정/IAM/CLI 셋업
+- [terraform-tfvars-setup.md](docs/runbooks/terraform-tfvars-setup.md) — Step 2 변수 파일 + 시크릿 생성
+- [terraform-apply-step3.md](docs/runbooks/terraform-apply-step3.md) — Step 3 init/plan/apply + 트러블슈팅 14건
+- [kind-local-bootstrap.md](docs/runbooks/kind-local-bootstrap.md) — kind 로컬 클러스터 대체 path (비용 0)
+
+### 참고
 - [Project Management](docs/project-management/) — KICKOFF, PRD, TASK, WORKFLOW, HISTORY
 - [argocd/README.md](argocd/README.md) — ApplicationSet 구조 + 트러블슈팅
 - [CONTRIBUTING.md](CONTRIBUTING.md) — 브랜치/커밋/PR 절차
