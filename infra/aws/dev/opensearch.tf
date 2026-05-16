@@ -42,11 +42,6 @@ resource "aws_opensearch_domain" "main" {
       Principal = { AWS = "*" }
       Action    = "es:*"
       Resource  = "arn:aws:es:${var.aws_region}:${data.aws_caller_identity.current.account_id}:domain/${local.project}-${local.environment}/*"
-      Condition = {
-        IpAddress = {
-          "aws:SourceIp" = var.vpc_cidr
-        }
-      }
     }]
   })
 
