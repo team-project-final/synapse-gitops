@@ -84,7 +84,7 @@
 ### 1.3 적용 + 검증
 - [x] 의도적 오류 PR로 검증 (잘못된 apiVersion → CI 실패 확인 — Task 14 step 8 실행)
 - [x] 정상 PR로 검증 (CI 통과 — feature/w1-argocd-bootstrap-finalize PR로 검증)
-- [x] main 브랜치 보호 규칙에 필수 체크 추가 (scripts/setup-branch-protection.sh, Task 13)
+- [x] main 브랜치 보호 규칙에 필수 체크 추가 (Public 전환 + GitHub Ruleset `main-protection` id 16480319, scripts/setup-branch-protection.sh로 재현 가능 — D-006)
 - [x] CI 평균 실행 시간 측정 (`echo "Total: ${SECONDS}s"` 추가, 첫 PR에서 측정)
 
 ### 1.4 문서화

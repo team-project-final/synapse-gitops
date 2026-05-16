@@ -46,6 +46,22 @@
 #### 이벤트
 - 사용자 액션: `terraform apply` + `bootstrap-argocd.sh` 실행으로 EKS dev에 ArgoCD 부트스트랩 완료
 - 검증: 의도적 오류 PR로 kubeconform CI 실패 확인 (PR 번호는 실행 후 추가)
+- PR #6 머지: 16개 파일 변경 (사양/플랜/매니페스트/스크립트/문서/CI). merge commit base sha `78aa6a3`.
+
+#### 후속 의사결정 (PR #6 머지 후)
+- **D-006 main 브랜치 보호 방식 (E1 채택)**: 레포를 Public 전환 + GitHub Rulesets API로 보호 룰 적용.
+  - 이유: 레포가 Private + GitHub Free 플랜이라 Legacy Branch Protection API + Rulesets 모두 HTTP 403. Pro 업그레이드($4/월) 비용 회피 + 학생/포트폴리오 성격상 공개에 무리 없음.
+  - 사전 점검: 추적 파일에서 AWS access key 패턴 0건, `.env.example` placeholder만, `*.tfvars`는 gitignore됨, git history 28 commit 전체 grep도 0건.
+  - 적용된 Ruleset (id 16480319, name `main-protection`, enforcement active):
+    - `required_status_checks`: `Validate Kubernetes Manifests` 필수 + strict
+    - `pull_request`: required approving review count 0 (단독 작업, REVIEWS 환경변수로 토글 가능)
+    - `deletion` + `non_fast_forward` 차단
+    - bypass 불가 (`current_user_can_bypass: never`)
+  - 결과: PRD FR-GO-105 충족.
+- **D-007 CI 워크플로우 단순화**: 원안의 `concurrency` 블록 + `env` 외부 변수 + CRD-catalog `schema-location` + `Report total time` step 제거.
+  - 이유: 위 요소 중 하나(또는 조합)가 GitHub Actions YAML 파싱 단계에서 0초 실패 유발. 정확한 단일 원인 미파악. CI를 빨리 통과시키기 위해 안전한 최소 구성으로 회귀.
+  - 영향: CRD 카탈로그 schema-location 없이도 `-ignore-missing-schemas`로 ArgoCD CRD는 경고 처리, 핵심 K8s 리소스 검증은 그대로. PRD FR-GO-104 충족.
+  - 후속: W3 Observability와 함께 CRD 카탈로그 + concurrency 재도입 시도. 그 시점에 단일 원인 격리.
 
 ---
 
