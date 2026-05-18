@@ -14,7 +14,26 @@ patches:
       - op: replace
         path: /spec/replicas
         value: 1
+  - target:
+      kind: ConfigMap
+      name: knowledge-svc-config
+    patch: |
+      - op: replace
+        path: /data/LOG_LEVEL
+        value: "DEBUG"
+      - op: replace
+        path: /data/SPRING_PROFILES_ACTIVE
+        value: "dev"
+
+  - target:
+      kind: ExternalSecret
+      name: knowledge-svc-external-secret
+    patch: |
+      - op: replace
+        path: /spec/secretStoreRef/name
+        value: fake-secrets
 
 images:
   - name: ghcr.io/team-project-final/synapse-knowledge-svc
-    newTag: dev-latest
+    newName: localhost:5001/synapse/knowledge-svc
+    newTag: "1.0.0"

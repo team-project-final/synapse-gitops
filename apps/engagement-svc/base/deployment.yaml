@@ -21,6 +21,12 @@ spec:
           image: ghcr.io/team-project-final/synapse-engagement-svc:latest
           ports:
             - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: engagement-svc-config
+            - secretRef:
+                name: engagement-svc-secret
+                optional: true
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness

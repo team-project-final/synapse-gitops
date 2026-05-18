@@ -21,6 +21,12 @@ spec:
           image: ghcr.io/team-project-final/synapse-knowledge-svc:latest
           ports:
             - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: knowledge-svc-config
+            - secretRef:
+                name: knowledge-svc-secret
+                optional: true
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness

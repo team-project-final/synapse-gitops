@@ -14,7 +14,23 @@ patches:
       - op: replace
         path: /spec/replicas
         value: 1
+  - target:
+      kind: ConfigMap
+      name: learning-ai-config
+    patch: |
+      - op: replace
+        path: /data/LOG_LEVEL
+        value: "DEBUG"
+
+  - target:
+      kind: ExternalSecret
+      name: learning-ai-external-secret
+    patch: |
+      - op: replace
+        path: /spec/secretStoreRef/name
+        value: fake-secrets
 
 images:
   - name: ghcr.io/team-project-final/synapse-learning-ai
-    newTag: dev-latest
+    newName: localhost:5001/synapse/learning-ai
+    newTag: "1.0.0"

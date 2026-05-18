@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: learning-card-config
+  labels:
+    app.kubernetes.io/name: learning-card
+    app.kubernetes.io/part-of: synapse
+data:
+  LOG_LEVEL: "INFO"
+  SERVER_PORT: "8080"
+  SPRING_PROFILES_ACTIVE: "default"

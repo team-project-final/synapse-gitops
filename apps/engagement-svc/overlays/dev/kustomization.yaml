@@ -14,7 +14,26 @@ patches:
       - op: replace
         path: /spec/replicas
         value: 1
+  - target:
+      kind: ConfigMap
+      name: engagement-svc-config
+    patch: |
+      - op: replace
+        path: /data/LOG_LEVEL
+        value: "DEBUG"
+      - op: replace
+        path: /data/SPRING_PROFILES_ACTIVE
+        value: "dev"
+
+  - target:
+      kind: ExternalSecret
+      name: engagement-svc-external-secret
+    patch: |
+      - op: replace
+        path: /spec/secretStoreRef/name
+        value: fake-secrets
 
 images:
   - name: ghcr.io/team-project-final/synapse-engagement-svc
-    newTag: dev-latest
+    newName: localhost:5001/synapse/engagement-svc
+    newTag: "1.0.0"

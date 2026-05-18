@@ -25,6 +25,13 @@ spec:
         app.kubernetes.io/part-of: synapse
         app.kubernetes.io/component: "{{service}}"
         environment: "{{env}}"
+      annotations:
+        argocd-image-updater.argoproj.io/image-list: "app=localhost:5001/synapse/{{service}}"
+        argocd-image-updater.argoproj.io/app.update-strategy: semver
+        argocd-image-updater.argoproj.io/app.allow-tags: "regexp:^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        argocd-image-updater.argoproj.io/write-back-method: git
+        argocd-image-updater.argoproj.io/write-back-target: kustomization
+        argocd-image-updater.argoproj.io/git-branch: main
     spec:
       project: synapse
       source:
