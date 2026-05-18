@@ -4,7 +4,7 @@
 > **결과**: `infra/aws/dev/terraform.tfvars`가 작성되고, 시크릿 두 개가 git에 노출되지 않은 상태로 로컬에 저장됨
 > **상위 문서**: [w1-argocd-bootstrap-runbook.md](./w1-argocd-bootstrap-runbook.md) Step 2
 
-본 문서는 [aws-account-setup.md](./aws-account-setup.md)에서 AWS CLI 설정을 마친 직후의 단계.
+본 문서는 [step1-aws-account-setup.md](./step1-aws-account-setup.md)에서 AWS CLI 설정을 마친 직후의 단계.
 
 ---
 

@@ -158,7 +158,7 @@ aws sts get-caller-identity
 `Arn`이 `arn:aws:iam::<ACCOUNT>:user/synapse-admin` 확인.
 
 ### 3-2. 새 IAM 사용자가 필요할 때 (첫 셋업)
-[aws-account-setup.md](./aws-account-setup.md) 1-A ~ 1-F 그대로 따라 진행.
+[step1-aws-account-setup.md](./step1-aws-account-setup.md) 1-A ~ 1-F 그대로 따라 진행.
 
 ### 3-3. Access Key를 잃어버렸을 때
 1. AWS 콘솔 → IAM → Users → `synapse-admin`
@@ -183,7 +183,7 @@ aws secretsmanager get-secret-value --secret-id synapse/argocd/admin \
 ### 4-2. `terraform.tfvars`
 시크릿(rds_password, redis_auth_token)이 들어있어 git에 안 들어감(.gitignore). 새 PC에서 다시 생성:
 - 이미 자원이 있는 경우(부분 또는 전체 apply 됨): 같은 비번을 다시 입력해야 함. 1Password / Bitwarden에서 복원.
-- 자원 없는 새 시작: [terraform-tfvars-setup.md](./terraform-tfvars-setup.md)로 새 비번 생성.
+- 자원 없는 새 시작: [step2-terraform-tfvars.md](./step2-terraform-tfvars.md)로 새 비번 생성.
 
 ### 4-3. kubeconfig
 EKS 클러스터 접근용. 새 PC에서:
@@ -217,7 +217,7 @@ argocd login "$NLB_HOST" --username admin --password "$PW" --insecure --grpc-web
 | Path | 진입 문서 | 사전 조건 |
 |---|---|---|
 | **W1 마무리 / 검수** | [w1-argocd-bootstrap-runbook.md](./w1-argocd-bootstrap-runbook.md) | 도구 설치 + AWS 인증 + 자원 destroy 안 됐으면 그대로 |
-| **B-1 EKS 실 환경 재시도** | [aws-account-setup.md](./aws-account-setup.md) → [terraform-tfvars-setup.md](./terraform-tfvars-setup.md) → [terraform-apply-step3.md](./terraform-apply-step3.md) | 결제수단 verification 완료 |
+| **B-1 EKS 실 환경 재시도** | [step1-aws-account-setup.md](./step1-aws-account-setup.md) → [step2-terraform-tfvars.md](./step2-terraform-tfvars.md) → [step3-terraform-apply.md](./step3-terraform-apply.md) | 결제수단 verification 완료 |
 | **B-2 kind 로컬 학습** | [kind-local-bootstrap.md](./kind-local-bootstrap.md) | Docker Desktop 실행 중 |
 | **W2 시작** | [PRD_W2.md](../project-management/prd/PRD_W2.md) → [WORKFLOW_gitops_W2.md](../project-management/workflow/WORKFLOW_gitops_W2.md) | W1 검수 결론 확인 (HISTORY) |
 
@@ -261,7 +261,7 @@ argocd login "$NLB_HOST" --username admin --password "$PW" --insecure --grpc-web
 
 - 도구 설치 / 환경 차이: 본 문서 1~3절
 - 작업 step별 막힘: 각 step 가이드의 트러블슈팅 섹션
-- AWS 비용 / 청구 우려: [aws-account-setup.md](./aws-account-setup.md) Budget 알람 / 비용 추정
+- AWS 비용 / 청구 우려: [step1-aws-account-setup.md](./step1-aws-account-setup.md) Budget 알람 / 비용 추정
 - ArgoCD 자체: https://argo-cd.readthedocs.io/
 - Terraform AWS provider: https://registry.terraform.io/providers/hashicorp/aws/latest/docs
 - HISTORY에 "도움 요청" 항목 기록 (다음 작업자가 참고할 수 있도록)

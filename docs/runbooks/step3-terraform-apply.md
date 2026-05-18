@@ -3,7 +3,7 @@
 > **소요 시간**: 25~45분 (실패 + 재시도 발생 시 더 김)
 > **결과**: dev 환경의 AWS 인프라(VPC, EKS, RDS, Redis, MSK, OpenSearch, ArgoCD Helm) 생성 완료
 > **상위 문서**: [w1-argocd-bootstrap-runbook.md](./w1-argocd-bootstrap-runbook.md) Step 3
-> **사전 조건**: [aws-account-setup.md](./aws-account-setup.md) + [terraform-tfvars-setup.md](./terraform-tfvars-setup.md) 완료
+> **사전 조건**: [step1-aws-account-setup.md](./step1-aws-account-setup.md) + [step2-terraform-tfvars.md](./step2-terraform-tfvars.md) 완료
 
 ⚠️ **이 단계부터 AWS 비용 발생**. 자원이 만들어진 시각을 기록하고, 학습 완료 후 즉시 destroy로 출혈 종료.
 
