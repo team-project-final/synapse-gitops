@@ -35,7 +35,7 @@ choco install awscli kubernetes-cli terraform argocd-cli jq
 
 AWS 계정만 있고 IAM 사용자 / Access Key / AWS CLI 설정이 아직이라면, 별도 가이드를 따른다:
 
-📖 **[aws-account-setup.md](./aws-account-setup.md)** — Budget 알람 → IAM 사용자 → Access Key → AWS CLI 설치 → configure → 검증까지 1-A~1-F 단계별로 안내.
+📖 **[step1-aws-account-setup.md](./step1-aws-account-setup.md)** — Budget 알람 → IAM 사용자 → Access Key → AWS CLI 설치 → configure → 검증까지 1-A~1-F 단계별로 안내.
 
 이미 `aws configure`가 완료됐다면 다음 한 줄로 검증만 하고 Step 2로 진행:
 
@@ -46,9 +46,9 @@ aws sts get-caller-identity
 **Expected**: `Arn`이 `arn:aws:iam::<ACCOUNT>:user/synapse-admin` 형식.
 
 **실패 시**:
-- `Unable to locate credentials` → `aws configure` 다시 실행 (또는 [aws-account-setup.md](./aws-account-setup.md) 1-E)
+- `Unable to locate credentials` → `aws configure` 다시 실행 (또는 [step1-aws-account-setup.md](./step1-aws-account-setup.md) 1-E)
 - `AccessDenied` → IAM 사용자 권한 점검 (`AdministratorAccess` 또는 EKS/EC2/VPC/RDS/IAM 권한 필요)
-- `Arn`이 `:root`로 끝남 → Root 계정으로 작업 중. [aws-account-setup.md](./aws-account-setup.md) 1-B로 가서 IAM 사용자 사용
+- `Arn`이 `:root`로 끝남 → Root 계정으로 작업 중. [step1-aws-account-setup.md](./step1-aws-account-setup.md) 1-B로 가서 IAM 사용자 사용
 
 ---
 
@@ -56,7 +56,7 @@ aws sts get-caller-identity
 
 OS별 시크릿 생성 방법(openssl vs PowerShell native vs Git Bash), 비용 최소화 override, gitignore 재검증까지 별도 가이드로 분리:
 
-📖 **[terraform-tfvars-setup.md](./terraform-tfvars-setup.md)** — 2-A 변수 파일 생성 / 2-B 비번 생성 / 2-C 편집 / 2-D gitignore 검증 / 2-E Terraform 설치 확인.
+📖 **[step2-terraform-tfvars.md](./step2-terraform-tfvars.md)** — 2-A 변수 파일 생성 / 2-B 비번 생성 / 2-C 편집 / 2-D gitignore 검증 / 2-E Terraform 설치 확인.
 
 요약: `infra/aws/dev/terraform.tfvars`를 만들고 `rds_password` + `redis_auth_token` 두 시크릿 + 비용 최소화 override 3개(`eks_node_count=2`, `rds_instance_class="db.t3.micro"`, `msk_broker_count=2`) 작성. 시크릿은 1Password 등에 보관 (학습 destroy 후 폐기).
 
@@ -68,7 +68,7 @@ OS별 시크릿 생성 방법(openssl vs PowerShell native vs Git Bash), 비용 
 
 State backend 사전 생성(S3 bucket + DynamoDB), terraform init/plan/apply 절차, 실제 발생했던 트러블슈팅 케이스(EKS AMI 미지원, RDS parameter group, OpenSearch VPC policy, Free Tier 제약 등)는 별도 가이드로 분리:
 
-📖 **[terraform-apply-step3.md](./terraform-apply-step3.md)** — 3-Pre backend 생성 / 3-A init / 3-B plan / 3-C apply / 3-D 비용 모니터링 / 3-Cleanup destroy. 트러블슈팅 9건.
+📖 **[step3-terraform-apply.md](./step3-terraform-apply.md)** — 3-Pre backend 생성 / 3-A init / 3-B plan / 3-C apply / 3-D 비용 모니터링 / 3-Cleanup destroy. 트러블슈팅 9건.
 
 ⚠️ AWS **신규 가입 계정**은 결제수단 verification 완료 전엔 EKS 노드 launch가 막힌다(Free Tier eligible 인스턴스만 허용). 그 경우 destroy 후 verification 대기 또는 kind 로컬 대체.
 

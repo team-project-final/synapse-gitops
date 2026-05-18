@@ -97,7 +97,7 @@
 - B-1 (며칠 후): 결제수단 verification 완료 후 실제 EKS 부트스트랩 재시도. 본 PR 머지된 main으로 git pull 받으면 코드 버그 다 해결된 상태로 시작 가능.
 
 #### 산출물 (추가)
-- 운영 가이드: `docs/runbooks/aws-account-setup.md` (Step 1), `docs/runbooks/terraform-tfvars-setup.md` (Step 2), `docs/runbooks/terraform-apply-step3.md` (Step 3) — OS별 명령 + 트러블슈팅 포함
+- 운영 가이드: `docs/runbooks/step1-aws-account-setup.md` (Step 1), `docs/runbooks/step2-terraform-tfvars.md` (Step 2), `docs/runbooks/step3-terraform-apply.md` (Step 3) — OS별 명령 + 트러블슈팅 포함
 
 #### B-2 path 실행 (kind 로컬 클러스터, 같은 날 저녁)
 
@@ -137,7 +137,7 @@ EKS 실증 실패 후 kind로 즉시 대체 실증:
 
 결제수단 verification 완료 후 EKS 재시도:
 1. `git pull origin main` (Task 14 모든 fix + B-4 가이드 + B-2 학습 다 반영된 상태)
-2. `docs/runbooks/aws-account-setup.md` 부터 가이드 그대로 따라 진행
+2. `docs/runbooks/step1-aws-account-setup.md` 부터 가이드 그대로 따라 진행
 3. Step 3 terraform apply 시 4건 버그는 이미 main에서 fix 완료된 상태로 시작
 4. 실증 결과를 HISTORY에 "B-1 실행" 섹션으로 추가 기록
 
