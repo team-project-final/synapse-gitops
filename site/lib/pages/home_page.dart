@@ -55,17 +55,12 @@ class _HomePageState extends State<HomePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Synapse GitOps Runbooks',
-            style: Theme.of(context).textTheme.headlineLarge,
-          ),
-          const SizedBox(height: 8),
-          Text(
             '인프라 구축부터 운영까지, 단계별 실행 가이드',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
           for (final category in categories)
             if (grouped.containsKey(category)) ...[
               Text(
