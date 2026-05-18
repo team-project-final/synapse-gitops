@@ -162,7 +162,13 @@ EKS 실증 실패 후 kind로 즉시 대체 실증:
 - ApplicationSet: Image Updater annotations
 
 ### 이벤트
-- (kind 실증 결과를 여기에 기록)
+
+#### 2026-05-18 (W2 사전 준비, 일요일)
+- 새 PC 환경 세팅: choco로 kind/helm/argocd-cli/gitleaks/jq 설치
+- kind 클러스터 생성 시 `containerdConfigPatches`가 K8s v1.35.0에서 kubelet 타임아웃 유발 → 단일 노드 + ConfigMap 기반 레지스트리 연결로 해결
+- ESO CRD apiVersion: `v1beta1` → `v1`로 수정 필요 (최신 ESO가 v1을 기본 등록)
+- **D-015 Image Updater CRD 방식 전환 필요**: v1.2.0부터 annotation 기반 → CRD(`ImageUpdater` CR) 기반으로 변경됨. `"No ImageUpdater CRs to process"` 로그 확인. EKS 전환 시 CRD 방식으로 작성 예정. annotation은 구조 참고용으로 유지.
+- kind 실증 결과: Step 4 (매니페스트 구조 ✅) + Step 5 (ESO Fake sync ✅) + Step 6 (Image Updater 설치 ✅, E2E는 CRD 방식 전환 후 재검증)
 - (EKS 전환 결과를 여기에 기록)
 
 ---
