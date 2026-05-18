@@ -35,4 +35,5 @@ patches:
 
 images:
   - name: ghcr.io/team-project-final/synapse-engagement-svc
-    newTag: dev-latest
+    newName: localhost:5001/synapse/engagement-svc
+    newTag: "1.0.0"

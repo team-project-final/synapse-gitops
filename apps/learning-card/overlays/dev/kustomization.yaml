@@ -35,4 +35,5 @@ patches:
 
 images:
   - name: ghcr.io/team-project-final/synapse-learning-card
-    newTag: dev-latest
+    newName: localhost:5001/synapse/learning-card
+    newTag: "1.0.0"

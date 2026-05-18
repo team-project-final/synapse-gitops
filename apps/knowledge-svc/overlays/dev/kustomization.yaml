@@ -35,4 +35,5 @@ patches:
 
 images:
   - name: ghcr.io/team-project-final/synapse-knowledge-svc
-    newTag: dev-latest
+    newName: localhost:5001/synapse/knowledge-svc
+    newTag: "1.0.0"

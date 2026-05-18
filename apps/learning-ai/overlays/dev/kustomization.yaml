@@ -32,4 +32,5 @@ patches:
 
 images:
   - name: ghcr.io/team-project-final/synapse-learning-ai
-    newTag: dev-latest
+    newName: localhost:5001/synapse/learning-ai
+    newTag: "1.0.0"
