@@ -62,39 +62,125 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 ),
           ),
           const SizedBox(height: 24),
-          Stepper(
-            currentStep: 0,
-            controlsBuilder: (context, details) => const SizedBox.shrink(),
-            steps: [
-              for (var i = 0; i < _steps.length; i++)
-                Step(
-                  title: InkWell(
-                    onTap: () => context.go('/runbook/${_steps[i].slug}'),
-                    child: Text(_steps[i].title),
+          for (var i = 0; i < _steps.length; i++)
+            _OnboardingStepCard(
+              index: i + 1,
+              step: _steps[i],
+              isLast: i == _steps.length - 1,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OnboardingStepCard extends StatelessWidget {
+  final int index;
+  final RunbookIndex step;
+  final bool isLast;
+
+  const _OnboardingStepCard({
+    required this.index,
+    required this.step,
+    required this.isLast,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Timeline indicator
+          SizedBox(
+            width: 40,
+            child: Column(
+              children: [
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  child: Text(
+                    '$index',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  subtitle: _steps[i].duration != null
-                      ? Text(_steps[i].duration!)
-                      : null,
-                  content: Align(
-                    alignment: Alignment.centerLeft,
+                ),
+                if (!isLast)
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Card content
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Card(
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: () => context.go('/runbook/${step.slug}'),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (_steps[i].target != null)
-                          Text('대상: ${_steps[i].target!}'),
-                        const SizedBox(height: 8),
-                        FilledButton.tonalIcon(
-                          onPressed: () =>
-                              context.go('/runbook/${_steps[i].slug}'),
-                          icon: const Icon(Icons.arrow_forward),
-                          label: const Text('런북 열기'),
+                        Text(
+                          step.title,
+                          style: Theme.of(context).textTheme.titleMedium,
                         ),
+                        const SizedBox(height: 8),
+                        if (step.target != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Row(
+                              children: [
+                                Icon(Icons.person_outline,
+                                    size: 14,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    step.target!,
+                                    style:
+                                        Theme.of(context).textTheme.bodySmall,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        if (step.duration != null)
+                          Row(
+                            children: [
+                              Icon(Icons.schedule,
+                                  size: 14,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant),
+                              const SizedBox(width: 4),
+                              Text(
+                                step.duration!,
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
                       ],
                     ),
                   ),
-                  isActive: true,
                 ),
-            ],
+              ),
+            ),
           ),
         ],
       ),
