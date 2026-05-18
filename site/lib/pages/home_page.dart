@@ -91,8 +91,10 @@ class _RunbookCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final cardWidth = screenWidth < 600 ? screenWidth - 48 : 320.0;
     return SizedBox(
-      width: 300,
+      width: cardWidth,
       child: Card(
         clipBehavior: Clip.antiAlias,
         child: InkWell(
