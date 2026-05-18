@@ -10,3 +10,4 @@ data:
   SERVER_PORT: "8000"
   PYTHONUNBUFFERED: "1"
   MODEL_NAME: "gpt-4o-mini"
+  KAFKA_TOPIC_CARDS_GENERATED: "learning.ai.cards-generated-v1"
