@@ -11,13 +11,13 @@ echo "=== 1/6 Creating kind cluster ==="
 if kind get clusters 2>/dev/null | grep -q synapse-w2; then
   echo "Cluster synapse-w2 already exists, skipping."
 else
-  kind create cluster --name synapse-w2 --config "$SCRIPT_DIR/kind-config.yaml"
+  kind create cluster --name synapse-w2 --config "$SCRIPT_DIR/kind-config.yaml" --wait 5m
 fi
 kubectl cluster-info --context kind-synapse-w2
 
 echo ""
 echo "=== 2/6 Starting local registry ==="
-bash "$SCRIPT_DIR/local-registry.sh"
+bash "$SCRIPT_DIR/local-registry.sh" synapse-w2
 
 echo ""
 echo "=== 3/6 Installing ArgoCD ==="
