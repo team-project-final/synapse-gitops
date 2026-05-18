@@ -14,6 +14,13 @@ patches:
       - op: replace
         path: /spec/replicas
         value: 1
+  - target:
+      kind: ConfigMap
+      name: learning-ai-config
+    patch: |
+      - op: replace
+        path: /data/LOG_LEVEL
+        value: "DEBUG"
 
 images:
   - name: ghcr.io/team-project-final/synapse-learning-ai
