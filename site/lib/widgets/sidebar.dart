@@ -78,7 +78,7 @@ class _SidebarState extends State<Sidebar> {
                 title: Text(
                   runbook.title,
                   style: Theme.of(context).textTheme.bodyMedium,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
                 subtitle: runbook.duration != null
