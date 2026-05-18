@@ -21,6 +21,12 @@ spec:
           image: ghcr.io/team-project-final/synapse-learning-ai:latest
           ports:
             - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: learning-ai-config
+            - secretRef:
+                name: learning-ai-secret
+                optional: true
           livenessProbe:
             httpGet:
               path: /health

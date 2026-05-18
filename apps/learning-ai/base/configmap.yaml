@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: learning-ai-config
+  labels:
+    app.kubernetes.io/name: learning-ai
+    app.kubernetes.io/part-of: synapse
+data:
+  LOG_LEVEL: "INFO"
+  SERVER_PORT: "8000"
+  PYTHONUNBUFFERED: "1"
+  MODEL_NAME: "gpt-4o-mini"
