@@ -25,6 +25,14 @@ patches:
         path: /data/SPRING_PROFILES_ACTIVE
         value: "dev"
 
+  - target:
+      kind: ExternalSecret
+      name: engagement-svc-external-secret
+    patch: |
+      - op: replace
+        path: /spec/secretStoreRef/name
+        value: fake-secrets
+
 images:
   - name: ghcr.io/team-project-final/synapse-engagement-svc
     newTag: dev-latest

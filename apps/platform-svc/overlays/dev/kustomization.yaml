@@ -25,6 +25,14 @@ patches:
         path: /data/SPRING_PROFILES_ACTIVE
         value: "dev"
 
+  - target:
+      kind: ExternalSecret
+      name: platform-svc-external-secret
+    patch: |
+      - op: replace
+        path: /spec/secretStoreRef/name
+        value: fake-secrets
+
 images:
   - name: ghcr.io/team-project-final/synapse-platform-svc
     newTag: dev-latest

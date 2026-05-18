@@ -25,6 +25,14 @@ patches:
         path: /data/SPRING_PROFILES_ACTIVE
         value: "dev"
 
+  - target:
+      kind: ExternalSecret
+      name: learning-card-external-secret
+    patch: |
+      - op: replace
+        path: /spec/secretStoreRef/name
+        value: fake-secrets
+
 images:
   - name: ghcr.io/team-project-final/synapse-learning-card
     newTag: dev-latest
