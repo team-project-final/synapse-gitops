@@ -143,6 +143,30 @@ EKS 실증 실패 후 kind로 즉시 대체 실증:
 
 ---
 
+## 2026-05-19 ~ 2026-05-23 (W2)
+
+### 의사결정
+- **D-009 kind 먼저 → EKS 전환**: 결제수단 verification 미완, 비용 0으로 구조 검증.
+- **D-010 ESO Fake provider (kind) → AWS provider (EKS)**: kind에서 ESO 동작 흐름 검증 + overlay 패치로 교체 용이.
+- **D-011 로컬 레지스트리 + Image Updater (kind)**: ECR 없이 이미지 자동 반영 E2E 검증 가능.
+- **D-012 단일 브랜치 순차 진행**: W1 패턴 일치, Step 간 의존성 자연 처리, 하나의 PR로 리뷰.
+- **D-013 ConfigMap은 svc 레포 yml 기반**: 실제 앱 설정과 정합성 보장.
+- **D-014 ExternalSecret secretStoreRef를 overlay에서 패치**: kind/EKS 전환 시 구조 변경 없이 값만 교체.
+
+### 산출물
+- 디자인 스펙: `docs/superpowers/specs/2026-05-18-w2-dev-deploy-design.md`
+- 구현 플랜: `docs/superpowers/plans/2026-05-18-w2-dev-deploy.md`
+- kind 인프라: `infra/kind/` (kind-config, local-registry, setup-kind-w2, fake-secret-store)
+- 5개 앱 base 보강: ConfigMap + ExternalSecret + envFrom
+- dev overlay: ConfigMap patch + ExternalSecret secretStoreRef patch
+- ApplicationSet: Image Updater annotations
+
+### 이벤트
+- (kind 실증 결과를 여기에 기록)
+- (EKS 전환 결과를 여기에 기록)
+
+---
+
 ## 다음 항목 템플릿
 
 ### YYYY-MM-DD
