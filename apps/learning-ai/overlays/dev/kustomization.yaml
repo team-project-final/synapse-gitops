@@ -28,9 +28,9 @@ patches:
     patch: |
       - op: replace
         path: /spec/secretStoreRef/name
-        value: fake-secrets
+        value: aws-secrets-manager
 
 images:
   - name: ghcr.io/team-project-final/synapse-learning-ai
-    newName: localhost:5001/synapse/learning-ai
-    newTag: "1.0.0"
+    newName: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/learning-ai
+    newTag: dev-latest
