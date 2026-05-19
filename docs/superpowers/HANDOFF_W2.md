@@ -1,9 +1,9 @@
 # W2 핸드오프: 다음 세션 이어받기 (v2)
 
-> **최종 갱신**: 2026-05-18 (2차 세션 종료 시점)
-> **현재 상태**: Phase 1 (kind) 완료 + shared W2 Kafka/Schema 완료 + Docker Compose 검증 완료
-> **남은 작업**: Task 2 (terraform apply) → Task 8 (EKS provider swap) → Task 9 (PRD 검수)
-> **브랜치**: gitops `feat/w2-dev-deploy` (PR #20) / shared `feat/w2-kafka-schemas` (PR #2)
+> **최종 갱신**: 2026-05-19 (3차 세션 종료 시점)
+> **현재 상태**: Phase 1 (kind) 완료 + shared PR #2 머지 + EKS provider swap 완료 + PRD 검수 완료
+> **남은 작업**: EKS 실배포 시 ESO Helm 설치 + IRSA + ConfigMap endpoint 추가 + Task 10 (kind 정리)
+> **브랜치**: gitops `feat/w2-dev-deploy` (PR #20) / shared `feat/w2-kafka-schemas` (PR #2 → main 머지 완료)
 > **담당**: @VelkaressiaBlutkrone
 
 ---
@@ -44,14 +44,14 @@
 | Task | 내용 | 상태 | 비고 |
 |---|---|---|---|
 | 1 | aws CLI + terraform 설치 | ✅ 완료 | choco 설치 |
-| 2 | terraform apply (AWS 인프라) | ⬜ 미착수 | 가이드 문서 준비됨 |
+| 2 | terraform apply (AWS 인프라) | ✅ 완료 | 다른 PC에서 이미 완료. 중복 생성분 destroy 정리 |
 | 3 | Docker Compose 보강 | ✅ 완료 | kafka-init + BACKWARD |
-| 4 | Avro 스키마 (shared) | ✅ 완료 | shared PR #2 |
-| 5 | shared HISTORY 갱신 | ⬜ 대기 | Task 2 완료 후 |
+| 4 | Avro 스키마 (shared) | ✅ 완료 | shared PR #2 → main 머지 |
+| 5 | shared HISTORY 갱신 | ✅ 완료 | W2 Step 4-5 기록 |
 | 6 | Schema Registry 검증 | ✅ 완료 | BACKWARD + 비호환 거부 |
-| 7 | ConfigMap 토픽명 추가 | ✅ 완료 | endpoint는 Task 2 후 추가 |
-| 8 | EKS provider swap | ⬜ 대기 | Task 2 완료 후 |
-| 9 | PRD W2 검수 + 문서 | ⬜ 대기 | Task 8 완료 후 |
+| 7 | ConfigMap 토픽명 추가 | ✅ 완료 | endpoint는 인프라 재생성 후 추가 |
+| 8 | EKS provider swap | ✅ 완료 | ESO→AWS SM, 이미지→ECR, ClusterSecretStore 추가 |
+| 9 | PRD W2 검수 + 문서 | ✅ 완료 | FR-GO-201/205/206 완료, 203/204 매니페스트 완료 |
 | 10 | kind 클러스터 정리 | ⬜ 대기 | 언제든 가능 |
 
 ---
