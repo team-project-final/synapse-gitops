@@ -24,6 +24,21 @@ patches:
       - op: replace
         path: /data/SPRING_PROFILES_ACTIVE
         value: "dev"
+      - op: add
+        path: /data/DATABASE_HOST
+        value: "synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com"
+      - op: add
+        path: /data/DATABASE_PORT
+        value: "5432"
+      - op: add
+        path: /data/DATABASE_NAME
+        value: "synapse"
+      - op: add
+        path: /data/KAFKA_BROKERS
+        value: "b-1.synapsedevkafka.fark5c.c2.kafka.ap-northeast-2.amazonaws.com:9094,b-2.synapsedevkafka.fark5c.c2.kafka.ap-northeast-2.amazonaws.com:9094"
+      - op: add
+        path: /data/OPENSEARCH_URL
+        value: "https://vpc-synapse-dev-qm5l2xdch6nfmkqanpmipou74a.ap-northeast-2.es.amazonaws.com"
 
   - target:
       kind: ExternalSecret
