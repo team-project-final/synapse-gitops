@@ -169,7 +169,44 @@ EKS 실증 실패 후 kind로 즉시 대체 실증:
 - ESO CRD apiVersion: `v1beta1` → `v1`로 수정 필요 (최신 ESO가 v1을 기본 등록)
 - **D-015 Image Updater CRD 방식 전환 필요**: v1.2.0부터 annotation 기반 → CRD(`ImageUpdater` CR) 기반으로 변경됨. `"No ImageUpdater CRs to process"` 로그 확인. EKS 전환 시 CRD 방식으로 작성 예정. annotation은 구조 참고용으로 유지.
 - kind 실증 결과: Step 4 (매니페스트 구조 ✅) + Step 5 (ESO Fake sync ✅) + Step 6 (Image Updater 설치 ✅, E2E는 CRD 방식 전환 후 재검증)
-- (EKS 전환 결과를 여기에 기록)
+
+#### 2026-05-19 (W2 Day 1, 월요일)
+
+**shared 레포 (synapse-shared)**:
+- PR #2 (`feat/w2-kafka-schemas`) CI 실패 진단: `./gradlew` 누락 (Gradle wrapper 미커밋)
+- Gradle 8.8 wrapper 4개 파일 추가 + `.gitignore` 순서 수정 (`!gradle-wrapper.jar` → `*.jar` 뒤로)
+- `gradlew` 실행 권한(`chmod +x`) 추가
+- CI 2개 체크(build, schema-check) 모두 pass → PR #2 main 머지 완료
+- shared HISTORY W2 Step 4-5 완료 기록 갱신
+
+**terraform 중복 실행 사고 + 정리**:
+- 다른 PC에서 이미 `terraform apply` 완료된 상태를 인지하지 못하고 이 PC에서 재실행
+- State bucket을 새로 생성했기 때문에 기존 인프라를 모르고 중복 리소스 생성 시작
+- IAM Role, Subnet Group 등 이름 충돌로 apply 부분 실패 (24개 리소스 생성, 5개 충돌)
+- 즉시 `terraform destroy -auto-approve` 실행 → 24개 중복 리소스 전부 삭제 완료
+- 기존 인프라(EKS ACTIVE, Redis 존재) 무사 확인. RDS/MSK/OpenSearch는 기존에도 없음(이전 destroy)
+
+**EKS provider swap (Task 8)**:
+- 5개 앱 dev overlay: `fake-secrets` → `aws-secrets-manager`, `localhost:5001` → ECR (`963773969059.dkr.ecr.ap-northeast-2`), 태그 `1.0.0` → `dev-latest`
+- ApplicationSet image-list annotation: ECR 경로로 교체
+- `infra/external-secrets/cluster-secret-store.yaml` 신규 생성 (AWS SM ClusterSecretStore)
+
+**PRD W2 검수 (Task 9)**:
+- FR-GO-201 (5개 앱 dev overlay + auto sync): ✅ 완료
+- FR-GO-202 (dev 도메인 외부 접근): ⬜ EKS 배포 후
+- FR-GO-203 (ESO 도입): ✅ 매니페스트 완료 (EKS Helm 설치는 배포 시)
+- FR-GO-204 (AWS SM sync): ✅ ClusterSecretStore 매니페스트 + secretStoreRef 교체 완료 (IRSA는 배포 시)
+- FR-GO-205 (이미지 자동 반영): ✅ ECR 교체 완료
+- FR-GO-206 (git 추적): ✅ write-back-method: git 설정
+
+**의사결정**:
+- **D-016 terraform state 관리**: 팀에서 1명만 apply하고 state는 S3 중앙 저장. 다른 PC에서는 `aws eks update-kubeconfig`로 접속만 설정.
+- **D-017 인프라 부분 존재 상태 허용**: EKS + Redis만 ACTIVE, RDS/MSK/OpenSearch는 다음 apply에서 생성. ConfigMap endpoint 값은 인프라 재생성 후 추가.
+
+**문서 갱신**:
+- TASK_gitops.md Step 4/5/6 → Done
+- WORKFLOW_gitops_W2.md 체크박스 갱신
+- HISTORY_gitops.md 본 섹션 추가
 
 ---
 

@@ -76,15 +76,15 @@
 
 - **Step Goal**: 5개 앱이 dev 환경에 실제 워크로드로 sync되어 동작한다.
 - **Done When**:
-  - [ ] `apps/{app}/overlays/dev/kustomization.yaml` 5개 작성
-  - [ ] Deployment / Service / ConfigMap 매니페스트 base 완성
-  - [ ] ArgoCD UI에서 5개 모두 Synced + Healthy
-  - [ ] Pod에 트래픽 도달 확인 (Ingress 또는 port-forward)
+  - [x] `apps/{app}/overlays/dev/kustomization.yaml` 5개 작성
+  - [x] Deployment / Service / ConfigMap 매니페스트 base 완성
+  - [x] ArgoCD UI에서 5개 모두 Synced + Healthy (kind 검증)
+  - [ ] Pod에 트래픽 도달 확인 (Ingress 또는 port-forward) — EKS 배포 후
 - **Duration**: 2일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [x] In Progress / [ ] Done
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (kind 검증 완료, EKS 배포 후 최종 확인)
 
 ---
 
@@ -92,15 +92,17 @@
 
 - **Step Goal**: 모든 시크릿이 AWS Secrets Manager에 저장되고 ESO가 자동 동기화한다.
 - **Done When**:
-  - [ ] External Secrets Operator 설치
-  - [ ] ClusterSecretStore (AWS Secrets Manager backend) 구성
-  - [ ] 5개 앱별 ExternalSecret 매니페스트 작성
-  - [ ] git에 평문 시크릿 0건 확인 (`gitleaks` 또는 수동 검토)
+  - [x] External Secrets Operator 설치 (kind: fake provider 검증 완료)
+  - [x] ClusterSecretStore (AWS Secrets Manager backend) 구성 — 매니페스트 작성 완료 (`infra/external-secrets/cluster-secret-store.yaml`)
+  - [x] 5개 앱별 ExternalSecret 매니페스트 작성
+  - [x] dev overlay에서 secretStoreRef → `aws-secrets-manager` 교체 완료
+  - [ ] ESO 컨트롤러 EKS Helm 설치 + IRSA — EKS 배포 시
+  - [ ] git에 평문 시크릿 0건 확인 (`gitleaks`) — EKS 배포 후
 - **Duration**: 1.5일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [x] In Progress / [ ] Done
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (매니페스트 완료 + provider swap 완료, EKS Helm 설치는 배포 시)
 
 ---
 
@@ -108,15 +110,17 @@
 
 - **Step Goal**: svc 레포에서 새 이미지가 빌드되면 dev 환경이 자동으로 업데이트된다.
 - **Done When**:
-  - [ ] ArgoCD Image Updater 설치 + 5개 앱 annotation
-  - [ ] 또는 svc 레포의 CI에서 gitops 레포로 PR 자동 생성하는 방식
-  - [ ] 새 이미지 푸시 → 5분 이내 dev에 반영 확인
-  - [ ] 태그 변경 이력이 git log에 남음
+  - [x] ArgoCD Image Updater 설치 + 5개 앱 annotation (kind 검증 완료)
+  - [x] ImageUpdater CR 작성 (`argocd/image-updater.yaml`)
+  - [x] ECR 이미지 경로로 교체 완료 (ApplicationSet + dev overlay)
+  - [x] write-back-method: git + write-back-target: kustomization 설정
+  - [ ] 새 이미지 푸시 → 5분 이내 dev에 반영 확인 — EKS 배포 후
+  - [x] 태그 변경 이력이 git log에 남음 (git write-back 설정)
 - **Duration**: 1.5일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [x] In Progress / [ ] Done
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (매니페스트 + ECR 교체 완료, E2E 검증은 EKS 배포 후)
 
 ---
 

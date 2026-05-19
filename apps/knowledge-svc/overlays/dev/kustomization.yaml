@@ -31,9 +31,9 @@ patches:
     patch: |
       - op: replace
         path: /spec/secretStoreRef/name
-        value: fake-secrets
+        value: aws-secrets-manager
 
 images:
   - name: ghcr.io/team-project-final/synapse-knowledge-svc
-    newName: localhost:5001/synapse/knowledge-svc
-    newTag: "1.0.0"
+    newName: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/knowledge-svc
+    newTag: dev-latest

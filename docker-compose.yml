@@ -138,8 +138,9 @@ services:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:9092
       SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      SCHEMA_REGISTRY_SCHEMA_COMPATIBILITY_LEVEL: BACKWARD
     ports:
-      - "8081:8081"
+      - "8085:8081"
     networks:
       - synapse-net
     healthcheck:
@@ -176,6 +177,22 @@ services:
       resources:
         limits:
           memory: 512M
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: synapse-kafka-init
+    platform: linux/amd64
+    depends_on:
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./scripts/kafka-init:/scripts
+    command: ["bash", "/scripts/create-topics.sh"]
+    environment:
+      KAFKA_BROKER: kafka:9092
+    networks:
+      - synapse-net
+    restart: "no"
 
   # ─── Application Services ───────────────────────────────────────────────────
 
