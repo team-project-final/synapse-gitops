@@ -96,13 +96,14 @@
   - [x] ClusterSecretStore (AWS Secrets Manager backend) 구성 — 매니페스트 작성 완료 (`infra/external-secrets/cluster-secret-store.yaml`)
   - [x] 5개 앱별 ExternalSecret 매니페스트 작성
   - [x] dev overlay에서 secretStoreRef → `aws-secrets-manager` 교체 완료
-  - [ ] ESO 컨트롤러 EKS Helm 설치 + IRSA — EKS 배포 시
-  - [ ] git에 평문 시크릿 0건 확인 (`gitleaks`) — EKS 배포 후
+  - [x] ESO 컨트롤러 EKS Helm 설치 + IRSA 완료 (Role: `synapse-dev-eso-role`, Policy: `synapse-dev-eso-secrets-read`)
+  - [x] ClusterSecretStore Valid + 5개 ExternalSecret SecretSynced 확인
+  - [ ] git에 평문 시크릿 0건 확인 (`gitleaks`)
 - **Duration**: 1.5일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [ ] In Progress / [x] Done (매니페스트 완료 + provider swap 완료, EKS Helm 설치는 배포 시)
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (EKS 실배포 완료: ESO Helm + IRSA + ClusterSecretStore Valid + 5개 SecretSynced)
 
 ---
 

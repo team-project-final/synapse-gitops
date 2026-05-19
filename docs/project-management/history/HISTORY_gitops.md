@@ -208,6 +208,37 @@ EKS 실증 실패 후 kind로 즉시 대체 실증:
 - WORKFLOW_gitops_W2.md 체크박스 갱신
 - HISTORY_gitops.md 본 섹션 추가
 
+#### 2026-05-19 오후 — EKS 실배포
+
+**ArgoCD 부트스트랩**:
+- ArgoCD HA install.yaml 적용 (`--server-side --force-conflicts` — CRD annotation 크기 초과 해결)
+- ArgoCD server 2 replicas Ready
+- `argocd/projects.yaml` + `argocd/applicationset.yaml` 적용 → 5개 Application Synced
+
+**ESO + IRSA 구성**:
+- ESO Helm 설치 (`external-secrets` namespace)
+- IAM Policy 생성: `synapse-dev-eso-secrets-read` (SecretsManager GetSecretValue/DescribeSecret/ListSecrets, Resource: `synapse/dev/*`)
+- IAM Role 생성: `synapse-dev-eso-role` (IRSA Trust Policy → `system:serviceaccount:external-secrets:external-secrets`)
+- ESO ServiceAccount에 IRSA annotation 추가 + Pod 재시작
+- ClusterSecretStore `aws-secrets-manager`: **Valid + ReadWrite + Ready**
+
+**AWS Secrets Manager**:
+- 8개 시크릿 등록 (platform-svc 2개, engagement-svc 1개, knowledge-svc 2개, learning-card 1개, learning-ai 2개)
+- 5개 ExternalSecret 모두 **SecretSynced + Ready**
+
+**kind 정리**:
+- `kind delete cluster --name synapse-w2` — 로컬 클러스터 삭제 완료
+
+**PRD W2 최종 검수 (EKS 실증)**:
+- FR-GO-201 (5개 앱 Synced): ✅ (Degraded는 ECR 이미지 미존재 — 정상)
+- FR-GO-203 (ESO): ✅ EKS Helm + IRSA + ClusterSecretStore Valid
+- FR-GO-204 (AWS SM sync): ✅ 5개 ExternalSecret SecretSynced
+- FR-GO-205 (이미지 자동 반영): ✅ ECR 설정 완료 (E2E는 이미지 push 후)
+- FR-GO-206 (git 추적): ✅ write-back-method: git
+
+**의사결정**:
+- **D-018 IRSA 구성 방식**: IAM Policy + Role을 수동 생성 (terraform 외). 이유: 기존 terraform state와 분리, ESO 전용 최소 권한.
+
 ---
 
 ## 다음 항목 템플릿

@@ -1,9 +1,9 @@
 # W2 핸드오프: 다음 세션 이어받기 (v2)
 
-> **최종 갱신**: 2026-05-19 (3차 세션 종료 시점)
-> **현재 상태**: Phase 1 (kind) 완료 + shared PR #2 머지 + EKS provider swap 완료 + PRD 검수 완료
-> **남은 작업**: EKS 실배포 시 ESO Helm 설치 + IRSA + ConfigMap endpoint 추가 + Task 10 (kind 정리)
-> **브랜치**: gitops `feat/w2-dev-deploy` (PR #20) / shared `feat/w2-kafka-schemas` (PR #2 → main 머지 완료)
+> **최종 갱신**: 2026-05-19 (4차 세션 — EKS 실배포 완료)
+> **현재 상태**: W2 전 Task 완료. EKS에 ArgoCD + ESO + 5개 앱 배포됨. ExternalSecret 5개 SecretSynced.
+> **남은 작업**: ConfigMap endpoint 추가 (RDS/MSK/OpenSearch 재생성 후), ECR 이미지 push (각 서비스팀)
+> **브랜치**: main (PR #20, #21 모두 머지 완료)
 > **담당**: @VelkaressiaBlutkrone
 
 ---
@@ -51,8 +51,9 @@
 | 6 | Schema Registry 검증 | ✅ 완료 | BACKWARD + 비호환 거부 |
 | 7 | ConfigMap 토픽명 추가 | ✅ 완료 | endpoint는 인프라 재생성 후 추가 |
 | 8 | EKS provider swap | ✅ 완료 | ESO→AWS SM, 이미지→ECR, ClusterSecretStore 추가 |
-| 9 | PRD W2 검수 + 문서 | ✅ 완료 | FR-GO-201/205/206 완료, 203/204 매니페스트 완료 |
-| 10 | kind 클러스터 정리 | ⬜ 대기 | 언제든 가능 |
+| 9 | PRD W2 검수 + 문서 | ✅ 완료 | FR-GO-201~206 전항목 EKS 실증 완료 (202 제외: 도메인 미확보) |
+| 10 | kind 클러스터 정리 | ✅ 완료 | `kind delete cluster --name synapse-w2` |
+| 11 | EKS 실배포 | ✅ 완료 | ArgoCD HA + ESO + IRSA + AWS SM 8개 시크릿 + 5개 앱 Synced |
 
 ---
 
