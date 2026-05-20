@@ -20,3 +20,12 @@ Desktop.ini
 *.decoded
 secrets/
 !secrets/.gitkeep
+
+# === Terraform ===
+infra/aws/dev/tfplan
+
+# === Tools ===
+.claude/
+.superpowers/
+.playwright-mcp/
+*.png
