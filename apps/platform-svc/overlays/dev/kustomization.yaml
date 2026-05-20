@@ -42,6 +42,12 @@ patches:
       - op: add
         path: /data/KAFKA_BROKERS
         value: "b-1.synapsedevkafka.fark5c.c2.kafka.ap-northeast-2.amazonaws.com:9094,b-2.synapsedevkafka.fark5c.c2.kafka.ap-northeast-2.amazonaws.com:9094"
+      - op: add
+        path: /data/DB_URL
+        value: "jdbc:postgresql://synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com:5432/synapse"
+      - op: add
+        path: /data/DB_USERNAME
+        value: "synapse_admin"
 
   - target:
       kind: ExternalSecret
