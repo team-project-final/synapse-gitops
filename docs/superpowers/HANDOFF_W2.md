@@ -1,8 +1,8 @@
-# W2 핸드오프: 다음 세션 이어받기 (v5)
+# W2 핸드오프: 다음 세션 이어받기 (v6)
 
-> **최종 갱신**: 2026-05-20 (7차 세션 — ECR push + ArgoCD 전체 배포 + 인프라 디버깅 완료)
-> **현재 상태**: 6개 서비스 ECR push 완료. 5개 앱 ArgoCD Synced. knowledge-svc Healthy. 나머지 4개 Progressing (DB migration 필요).
-> **남은 작업**: platform-svc DB migration, 나머지 서비스 안정화, W3 시작
+> **최종 갱신**: 2026-05-20 (7차 세션 — ECR push + ArgoCD 배포 + 인프라 디버깅 + Flow Simulator)
+> **현재 상태**: 6개 서비스 ECR push 완료. 5개 앱 ArgoCD Synced. knowledge-svc Healthy. Flow Simulator 배포 완료.
+> **남은 작업**: platform-svc DB migration, 나머지 서비스 안정화, Flow Simulator 디자인 개선, W3 시작
 > **브랜치**: main
 > **담당**: @VelkaressiaBlutkrone
 
@@ -40,6 +40,12 @@
 | RDS/Redis/MSK/OpenSearch SG 수정 | 현재 EKS 노드 SG를 각 서비스 SG ingress에 추가 |
 | ArgoCD --insecure 플래그 추가 | HTTP 접근 가능 (ArgoCD UI 확인 완료) |
 | ArgoCD UI 스크린샷 | `argocd-ui-applications.png` |
+| Developer Guide 작성 (808줄) | `docs/synapse-developer-guide.md` (PR #28) |
+| Pages 사이트에 가이드 추가 | `scripts/parse-runbooks.dart` 수정 (PR #29) |
+| **Flow Simulator 새 레포** | `synapse-flow-simulator` — 18개 시나리오 인터랙티브 시뮬레이터 |
+| **Flow Simulator GitHub Pages 배포** | https://team-project-final.github.io/synapse-flow-simulator/ |
+| Flow Simulator 설계 스펙 | `docs/superpowers/specs/2026-05-20-flow-simulator-design.md` |
+| Flow Simulator 구현 플랜 | `docs/superpowers/plans/2026-05-20-flow-simulator.md` |
 
 ---
 
@@ -81,7 +87,13 @@ spring:
    ├── SG 규칙도 수동 추가했으므로 terraform import 또는 코드 반영
    └── terraform plan 확인
         ↓
-3. W3 시작 준비
+3. Flow Simulator 디자인 개선
+   ├── /design-review 실행 (synapse-flow-simulator 레포에서)
+   ├── 화살표 애니메이션 개선 (이동하는 점)
+   ├── Tabler Icons 로드 확인
+   └── 시퀀스 뷰 + 에러 분기 UI 검증
+        ↓
+4. W3 시작 준비
    ├── Step 7: staging overlay 작성
    ├── Step 8: Observability 스택 (Prometheus + Grafana + Loki)
    └── 비용 관리: 작업 완료 후 terraform destroy 필수
