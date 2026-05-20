@@ -566,3 +566,243 @@ envFrom:
 ```
 
 > 📎 **상세 가이드**: [Step 5: ESO Secret 관리](runbooks/step5-eso-secrets.md)
+
+---
+
+## 9. 자주 하는 작업 (레시피)
+
+> 이 섹션에서 알 수 있는 것: 일상적인 개발 작업의 step-by-step 절차.
+
+### 새 환경변수 추가하기
+
+서비스에 새 환경변수(`MY_NEW_CONFIG`)를 추가하려면:
+
+1. **base ConfigMap에 기본값 추가**
+   ```yaml
+   # apps/<service>/base/configmap.yaml
+   data:
+     MY_NEW_CONFIG: "default-value"
+   ```
+
+2. **dev overlay에 dev 환경 값 패치**
+   ```yaml
+   # apps/<service>/overlays/dev/kustomization.yaml의 patches 섹션
+   - target:
+       kind: ConfigMap
+       name: <service>-config
+     patch: |
+       - op: add
+         path: /data/MY_NEW_CONFIG
+         value: "dev-specific-value"
+   ```
+
+3. **PR 생성 → 머지 → ArgoCD 자동 sync**
+
+### 새 Kafka 토픽 추가하기
+
+1. **shared 레포에서 Avro 스키마 작성**
+   ```
+   src/main/avro/<domain>/MyNewEvent.avsc
+   ```
+
+2. **토픽 생성 스크립트에 추가**
+   ```bash
+   # scripts/create-kafka-topics.sh에 토픽 추가
+   kafka-topics --create --topic my-domain.my-event-v1 ...
+   ```
+
+3. **ConfigMap에 토픽명 환경변수 추가** (위 "새 환경변수 추가하기" 참조)
+
+4. **docker compose 재실행** (로컬)
+   ```bash
+   cd synapse-shared && docker compose down && docker compose up -d
+   ```
+
+### ECR에 이미지 push하기
+
+```bash
+# 1. ECR 로그인
+aws ecr get-login-password --region ap-northeast-2 | \
+  docker login --username AWS --password-stdin \
+  963773969059.dkr.ecr.ap-northeast-2.amazonaws.com
+
+# 2. 이미지 빌드
+cd synapse-platform-svc  # (서비스 디렉토리)
+docker build -t platform-svc .
+
+# 3. 태그
+docker tag platform-svc:latest \
+  963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/platform-svc:1.0.0
+
+# 4. push
+docker push \
+  963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/platform-svc:1.0.0
+```
+
+push 후 5분 이내에 ArgoCD Image Updater가 감지하고 자동 배포합니다.
+
+### Avro 스키마 변경하기
+
+**반드시 BACKWARD 호환을 유지**해야 합니다.
+
+| 허용 | 금지 |
+|---|---|
+| 새 필드 추가 (default 값 필수) | 기존 필드 삭제 |
+| optional 필드 추가 | 필드 타입 변경 |
+| doc 추가/수정 | 필드 이름 변경 |
+
+```bash
+# 호환성 검증
+cd synapse-shared
+pwsh scripts/check-schema-compatibility.ps1
+```
+
+### ArgoCD에서 앱 상태 확인하기
+
+```bash
+# Bastion 접속 후
+kubectl get applications -n argocd
+
+# 특정 앱 상세
+kubectl describe application synapse-platform-svc-dev -n argocd
+
+# sync 강제 실행
+kubectl patch application synapse-platform-svc-dev -n argocd \
+  --type merge -p '{"operation":{"sync":{}}}'
+```
+
+---
+
+## 10. 트러블슈팅 + 런북 인덱스
+
+> 이 섹션에서 알 수 있는 것: 문제가 생겼을 때 어디를 보고, 어떻게 해결하는가.
+
+### 자주 만나는 에러
+
+#### Pod ImagePullBackOff
+
+**증상**: Pod가 시작되지 않고 `ImagePullBackOff` 상태
+**원인**: ECR에 이미지가 없거나, 이미지 태그가 틀림
+**해결**:
+```bash
+# Pod 이벤트 확인
+kubectl describe pod <pod-name> -n synapse-dev | grep -A5 Events
+
+# ECR에 이미지가 있는지 확인 (로컬에서)
+aws ecr describe-images --repository-name synapse/platform-svc --region ap-northeast-2
+```
+
+#### Pod CrashLoopBackOff
+
+**증상**: Pod가 시작되었다가 반복적으로 죽음
+**원인**: 환경변수 누락, DB 연결 실패, 포트 충돌
+**해결**:
+```bash
+# Pod 로그 확인
+kubectl logs <pod-name> -n synapse-dev --previous
+
+# 환경변수 확인
+kubectl exec <pod-name> -n synapse-dev -- env | sort
+```
+
+#### ArgoCD OutOfSync 유지
+
+**증상**: sync 시도하지만 계속 OutOfSync
+**원인**: Git 레포 접근 실패, CRD 미설치, manifest 문법 오류
+**해결**:
+```bash
+# 앱 상세에서 에러 메시지 확인
+kubectl get application <app-name> -n argocd \
+  -o jsonpath='{.status.conditions[*].message}'
+
+# sync 결과의 리소스별 에러
+kubectl get application <app-name> -n argocd \
+  -o jsonpath='{.status.operationState.syncResult.resources[*].message}'
+```
+
+#### SSM 접속 불가
+
+**증상**: `TargetNotConnected` 에러
+**원인**: Bastion 인스턴스 중지, SSM Agent 미실행, SG/IAM 문제
+**해결**:
+```bash
+# 인스턴스 상태 확인
+aws ec2 describe-instance-status --instance-ids i-08399527c6f112cee --region ap-northeast-2
+
+# SSM Agent 상태 확인
+aws ssm describe-instance-information \
+  --filters "Key=InstanceIds,Values=i-08399527c6f112cee" --region ap-northeast-2
+```
+
+#### ExternalSecret SecretSyncError
+
+**증상**: ExternalSecret 상태가 `SecretSyncError`
+**원인**: IRSA 권한 부족, Secrets Manager 경로 불일치
+**해결**:
+```bash
+# ExternalSecret 상태 확인
+kubectl get externalsecret -n synapse-dev
+kubectl describe externalsecret <name> -n synapse-dev
+```
+
+---
+
+### 런북 인덱스
+
+프로젝트의 모든 가이드 및 런북 목록입니다. 필요할 때 참조하세요.
+
+#### 인프라 세팅
+
+| 문서 | 용도 | 언제 참조? |
+|---|---|---|
+| [Step 1: AWS 계정 설정](runbooks/step1-aws-account-setup.md) | AWS 계정 + IAM 초기 설정 | 처음 AWS 접근할 때 |
+| [Step 2: Terraform 변수](runbooks/step2-terraform-tfvars.md) | terraform.tfvars 설정 | Terraform 처음 실행 전 |
+| [Step 3: Terraform Apply](runbooks/step3-terraform-apply.md) | Terraform 실행 + 트러블슈팅 | 인프라 생성/수정할 때 |
+| [Terraform 빠른 시작](runbooks/w2-terraform-apply-quickstart.md) | Terraform apply 요약 | 빠르게 인프라 띄울 때 |
+| [새 PC 온보딩](runbooks/dev-machine-setup.md) | 개발 환경 세팅 | 새 PC에서 시작할 때 |
+
+#### 애플리케이션 배포
+
+| 문서 | 용도 | 언제 참조? |
+|---|---|---|
+| [Step 4: Dev Overlay](runbooks/step4-dev-overlay.md) | dev 환경 K8s 매니페스트 | 새 서비스 추가할 때 |
+| [Step 5: ESO Secrets](runbooks/step5-eso-secrets.md) | 시크릿 관리 절차 | 시크릿 추가/변경할 때 |
+| [Step 6: Image Sync](runbooks/step6-image-sync.md) | ArgoCD Image Updater 설정 | 이미지 자동 배포 설정할 때 |
+| [Step 7: Staging Overlay](runbooks/step7-staging-overlay.md) | staging 환경 구성 | staging 배포할 때 |
+
+#### 접근 및 보안
+
+| 문서 | 용도 | 언제 참조? |
+|---|---|---|
+| [Bastion SSM 접근](runbooks/bastion-ssm-access.md) | EKS 접근 방법 | kubectl 실행할 때 |
+| [ArgoCD UI 접속](runbooks/argocd-ui-access.md) | ArgoCD 웹 UI 접근 | 배포 상태 확인할 때 |
+| [EKS 전환 가이드](runbooks/w2-eks-transition.md) | kind → EKS 전환 | EKS로 처음 배포할 때 |
+| [Step 9: Prod 승인 게이트](runbooks/step9-prod-approval.md) | 프로덕션 배포 승인 | prod 배포할 때 |
+
+#### 관측성 및 운영
+
+| 문서 | 용도 | 언제 참조? |
+|---|---|---|
+| [Step 8: Observability](runbooks/step8-observability.md) | 모니터링 스택 구축 | 모니터링 세팅할 때 |
+| [Step 10: 롤백 + 백업](runbooks/step10-rollback-backup.md) | 롤백/백업 절차 | 장애 발생 시 |
+| [Step 11: 장애 Runbook](runbooks/step11-operational-runbook.md) | 장애 대응 절차 | 장애 발생 시 |
+| [Step 12: 비용 최적화](runbooks/step12-cost-optimization.md) | 비용 관리 | 비용 점검할 때 |
+| [TLS 마이그레이션](argocd-tls-migration.md) | TLS 인증서 설정 | 도메인/TLS 설정할 때 |
+
+#### 주차별 실행 가이드
+
+| 문서 | 용도 |
+|---|---|
+| [W1: ArgoCD 부트스트랩](runbooks/w1-argocd-bootstrap-runbook.md) | ArgoCD HA 설치 |
+| [W2: Dev 배포](runbooks/w2-dev-deploy-runbook.md) | Dev 환경 전체 배포 |
+| [W3: Staging + Observability](runbooks/w3-staging-observability-runbook.md) | Staging + 모니터링 |
+| [W4: Prod + 롤백](runbooks/w4-prod-rollback-runbook.md) | Prod 배포 + 롤백 체계 |
+| [W5: 안정화](runbooks/w5-stabilize-runbook.md) | 안정화 + 핸드오프 |
+| [KinD 로컬 부트스트랩](runbooks/kind-local-bootstrap.md) | 로컬 KinD 테스트 |
+
+#### 워크플로우 가이드
+
+| 문서 | 용도 |
+|---|---|
+| [AWS 인프라 프로비저닝](aws-infra-provisioning-workflow-guide.md) | AWS 인프라 프로비저닝 절차 |
+| [Docker Compose 워크플로우](docker-compose-workflow-guide.md) | 로컬 개발 환경 세팅 |
