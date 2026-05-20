@@ -80,3 +80,10 @@ output "opensearch_dashboard_endpoint" {
   description = "OpenSearch Dashboard endpoint"
   value       = aws_opensearch_domain.main.dashboard_endpoint
 }
+
+# ─── Bastion ────────────────────────────────────────────────────────────────
+
+output "bastion_instance_id" {
+  description = "Bastion EC2 instance ID (for SSM session)"
+  value       = aws_instance.bastion.id
+}
