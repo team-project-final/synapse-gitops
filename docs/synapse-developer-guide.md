@@ -303,3 +303,140 @@ synapse-gitops/
 ```
 
 > **왜 overlay인가요?** 같은 서비스를 dev / staging / prod에 배포할 때, 대부분의 설정(Deployment spec, 포트 등)은 동일하고, 환경마다 다른 것(DB endpoint, 이미지 경로, 리소스 제한)만 다릅니다. base에 공통을 두고, overlay에 차이만 패치하면 중복 없이 관리할 수 있습니다.
+
+---
+
+## 5. GitOps 배포 흐름
+
+> 이 섹션에서 알 수 있는 것: 내 코드 변경이 어떻게 EKS 클러스터에 배포되는가.
+
+### 배포 파이프라인
+
+코드를 푸시하면 자동으로 EKS에 배포됩니다. 전체 흐름:
+
+```
+[1] 서비스 레포에서 코드 수정
+     │
+     ▼
+[2] PR 생성 → CI 빌드 + 테스트
+     │
+     ▼
+[3] 머지 → Docker 이미지 빌드 → ECR에 push
+     │
+     ▼
+[4] ArgoCD Image Updater가 ECR의 새 이미지 태그 감지 (5분 간격)
+     │
+     ▼
+[5] gitops 레포의 Kustomize overlay에 새 이미지 태그 반영 (자동 커밋)
+     │
+     ▼
+[6] ArgoCD가 gitops 레포 변경 감지 → 자동 sync
+     │
+     ▼
+[7] EKS에서 Pod 롤링 업데이트 완료
+```
+
+> **왜 GitOps인가요?** Git 레포가 "클러스터에 무엇이 배포되어 있어야 하는지"의 진실의 원천(Single Source of Truth)이 됩니다. 누가, 언제, 무엇을 배포했는지 Git 히스토리로 추적할 수 있고, 문제가 생기면 git revert로 즉시 롤백할 수 있습니다.
+
+### Kustomize overlay 구조
+
+```
+apps/platform-svc/
+├── base/                          # 모든 환경에 공통
+│   ├── deployment.yaml               # Pod 스펙 (컨테이너, 포트, 헬스체크)
+│   ├── service.yaml                   # K8s Service (ClusterIP)
+│   ├── configmap.yaml                 # 환경변수 기본값
+│   ├── external-secret.yaml           # AWS Secrets Manager 참조
+│   └── kustomization.yaml
+└── overlays/dev/                  # dev 환경만의 차이
+    ├── kustomization.yaml             # 이미지 경로 → ECR, ConfigMap 패치
+    └── (패치 파일들)
+```
+
+### ConfigMap — 환경별 설정값
+
+ConfigMap에는 DB endpoint, Kafka broker, Redis 주소 같은 **환경별로 다른 설정값**이 들어갑니다.
+
+```yaml
+# apps/platform-svc/overlays/dev/kustomization.yaml 에서 패치
+data:
+  DATABASE_HOST: synapse-dev-postgres.xxx.ap-northeast-2.rds.amazonaws.com
+  REDIS_HOST: master.synapse-dev-redis.xxx.cache.amazonaws.com
+  KAFKA_BROKERS: b-1.synapsedevkafka.xxx.kafka.ap-northeast-2.amazonaws.com:9094
+```
+
+이 값들은 Pod의 환경변수로 주입됩니다 (`envFrom: configMapRef`).
+
+### ExternalSecret — 시크릿 자동 동기화
+
+DB 비밀번호 같은 민감한 값은 ConfigMap이 아니라 **AWS Secrets Manager**에 저장하고, External Secrets Operator가 자동으로 K8s Secret으로 동기화합니다. (섹션 8에서 상세 설명)
+
+> 📎 **상세 가이드**: [Step 4: Dev Overlay](runbooks/step4-dev-overlay.md) | [Step 5: ESO Secrets](runbooks/step5-eso-secrets.md) | [Step 6: Image Sync](runbooks/step6-image-sync.md)
+
+---
+
+## 6. AWS 인프라
+
+> 이 섹션에서 알 수 있는 것: AWS에 뭐가 있고, Terraform으로 어떻게 관리하는가.
+
+### 인프라 구성도
+
+```
+AWS ap-northeast-2 (Seoul)
+┌─────────────────────────────────────────────────────────┐
+│  VPC 10.0.0.0/16                                        │
+│                                                         │
+│  ┌── Public Subnet (10.0.1.0/24, 10.0.2.0/24) ───────┐ │
+│  │  Bastion EC2 (t3.micro, SSM 전용)                   │ │
+│  │  NAT Gateway                                        │ │
+│  └─────────────────────────────────────────────────────┘ │
+│                                                         │
+│  ┌── Private Subnet (10.0.10.0/24, 10.0.11.0/24) ────┐ │
+│  │  EKS Cluster (synapse-dev)                          │ │
+│  │    ├── 3x t3.medium worker nodes                    │ │
+│  │    ├── ArgoCD (HA)                                  │ │
+│  │    ├── External Secrets Operator                    │ │
+│  │    └── 5개 앱 서비스 Pods                            │ │
+│  │                                                     │ │
+│  │  RDS PostgreSQL 16 (db.t3.medium)                   │ │
+│  │  ElastiCache Redis 7 (cache.t3.micro)               │ │
+│  │  MSK Kafka 3.x (kafka.t3.small x 3 broker)         │ │
+│  │  OpenSearch (t3.small.search)                       │ │
+│  └─────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Terraform으로 인프라 관리
+
+모든 AWS 리소스는 `infra/aws/dev/` 디렉토리의 Terraform 코드로 관리됩니다.
+
+```bash
+cd infra/aws/dev
+
+# 1. 초기화 (최초 1회)
+terraform init
+
+# 2. 변경사항 미리보기
+terraform plan
+
+# 3. 적용
+terraform apply
+
+# 4. 작업 완료 후 반드시 삭제 (비용 절감)
+terraform destroy
+```
+
+| 파일 | 관리 대상 |
+|---|---|
+| `vpc.tf` | VPC, 서브넷, NAT Gateway, 보안그룹 |
+| `eks.tf` | EKS 클러스터 + 노드그룹 + OIDC |
+| `rds.tf` | PostgreSQL |
+| `msk.tf` | Kafka 브로커 |
+| `redis.tf` | ElastiCache Redis |
+| `opensearch.tf` | OpenSearch |
+| `bastion.tf` | SSM Bastion EC2 |
+| `outputs.tf` | 엔드포인트 출력 |
+
+> **비용 주의**: terraform apply 후 시간당 약 $0.40이 발생합니다. 작업이 끝나면 **반드시** `terraform destroy`를 실행하세요.
+
+> 📎 **상세 가이드**: [Terraform Apply 빠른 시작](runbooks/w2-terraform-apply-quickstart.md) | [AWS 인프라 프로비저닝 가이드](aws-infra-provisioning-workflow-guide.md)
