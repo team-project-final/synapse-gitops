@@ -1,8 +1,8 @@
-# W2 핸드오프: 다음 세션 이어받기 (v4)
+# W2 핸드오프: 다음 세션 이어받기 (v5)
 
-> **최종 갱신**: 2026-05-20 (6차 세션 — SSM Bastion 구성 완료)
-> **현재 상태**: EKS private endpoint only + SSM Bastion 접근 구성 완료. aws-auth에 bastion role 등록됨.
-> **남은 작업**: ECR 이미지 push (각 서비스팀), ConfigMap endpoint 반영 확인, W3 시작
+> **최종 갱신**: 2026-05-20 (7차 세션 — ECR push + ArgoCD 전체 배포 + 인프라 디버깅 완료)
+> **현재 상태**: 6개 서비스 ECR push 완료. 5개 앱 ArgoCD Synced. knowledge-svc Healthy. 나머지 4개 Progressing (DB migration 필요).
+> **남은 작업**: platform-svc DB migration, 나머지 서비스 안정화, W3 시작
 > **브랜치**: main
 > **담당**: @VelkaressiaBlutkrone
 
@@ -10,95 +10,78 @@
 
 ## 1. 세션별 완료 사항
 
-### 1차 세션 (설계 + kind 검증)
+### 1~5차 세션 (설계 + kind + shared 통합 + AWS 인프라)
 
-| 작업 | 산출물 |
-|---|---|
-| W2 설계 스펙 | `docs/superpowers/specs/2026-05-18-w2-dev-deploy-design.md` |
-| W2 구현 플랜 | `docs/superpowers/plans/2026-05-18-w2-dev-deploy.md` |
-| kind 클러스터 세팅 | `infra/kind/` (kind-config, local-registry, setup-kind-w2, fake-secret-store) |
-| 5개 앱 base 보강 | ConfigMap + envFrom + ExternalSecret |
-| dev overlay | ConfigMap patch + ExternalSecret secretStoreRef patch |
-| ApplicationSet | Image Updater annotations + ImageUpdater CR |
-| kind 검증 | Step 4 ✅ Step 5 ✅ Step 6 ✅ (태그 감지 성공) |
-
-### 2차 세션 (shared 통합 + Docker Compose + 가이드)
-
-| 작업 | 산출물 |
-|---|---|
-| shared+gitops 통합 설계 스펙 | `docs/superpowers/specs/2026-05-18-shared-gitops-unified-plan-design.md` |
-| 통합 구현 플랜 | `docs/superpowers/plans/2026-05-18-shared-gitops-unified.md` |
-| Docker Compose 보강 | `kafka-init` 서비스 + Schema Registry BACKWARD 정책 |
-| Avro 스키마 4개 (shared) | NoteCreated, NoteUpdated, ReviewCompleted, CardsGenerated |
-| MSK 토픽 생성 스크립트 (shared) | `scripts/create-kafka-topics.sh` |
-| ConfigMap 토픽명 추가 | 4개 앱에 Kafka 토픽 환경변수 |
-| Schema Registry 검증 | BACKWARD 정책 ✅ + 비호환 거부 ✅ |
-| ArgoCD UI 접속 가이드 | `docs/runbooks/argocd-ui-access.md` |
-| EKS 전환 가이드 | `docs/runbooks/w2-eks-transition.md` |
-| Terraform 빠른 시작 | `docs/runbooks/w2-terraform-apply-quickstart.md` |
-
-### 5차 세션 (AWS 인프라 재생성 + ConfigMap endpoint 추가)
-
-| 작업 | 산출물 |
-|---|---|
-| terraform apply (AWS 인프라 재생성) | VPC, EKS, RDS, MSK, Redis, OpenSearch — 잔존 리소스 import 포함 |
-| ConfigMap endpoint 추가 | 5개 앱 dev overlay에 서비스별 선별 매핑 (PR #23) |
-| kustomize build 검증 | 5개 앱 전체 빌드 성공 |
+이전 세션 내용은 v4 핸드오프 참조. 핵심: kind 검증 → Docker Compose → Avro 스키마 → terraform apply → ConfigMap endpoint.
 
 ### 6차 세션 (SSM Bastion 구성)
 
 | 작업 | 산출물 |
 |---|---|
-| SSM Bastion 설계 스펙 | `docs/superpowers/specs/2026-05-20-ssm-bastion-design.md` |
-| SSM Bastion 구현 플랜 | `docs/superpowers/plans/2026-05-20-ssm-bastion.md` |
-| Bastion Terraform 리소스 | `infra/aws/dev/bastion.tf` (IAM Role + SG + EC2) |
-| EKS public endpoint 비활성화 | `eks.tf` — private only |
-| SSM 접근 런북 | `docs/runbooks/bastion-ssm-access.md` |
+| SSM Bastion 설계 + 구현 | `infra/aws/dev/bastion.tf`, PR #24 + #25 |
+| EKS public endpoint 비활성화 | private only, bastion 경유 접근 |
 | aws-auth ConfigMap 등록 | bastion role → `system:masters` |
-| SSM 접속 검증 | kubectl get nodes ✅ (2 nodes Ready) |
+| SSM 접속 검증 | kubectl get nodes ✅ |
+
+### 7차 세션 (ECR push + ArgoCD 전체 배포 + 인프라 디버깅)
+
+| 작업 | 산출물 |
+|---|---|
+| Developer Guide 작성 (808줄) | `docs/synapse-developer-guide.md` (PR #28) |
+| Pages 사이트에 가이드 추가 | `scripts/parse-runbooks.dart` 수정 (PR #29) |
+| 3개 서비스 Dockerfile 추가 | engagement/knowledge/learning-card (dev 브랜치 PR) |
+| 6개 서비스 ECR push | platform/gateway/engagement/knowledge/learning-card/learning-ai (1.0.0 + dev-latest) |
+| ECR 리포지토리 5개 생성 | `synapse/platform-svc`, `engagement-svc`, `knowledge-svc`, `learning-card`, `learning-ai` |
+| AppProject + ApplicationSet 적용 | bastion 경유 kubectl apply |
+| ESO 설치 + IRSA + ClusterSecretStore | Helm install + IRSA annotation + CSS apply |
+| OIDC Provider 불일치 수정 | IAM OIDC provider 재생성 + ESO role trust policy 업데이트 |
+| AWS Secrets Manager 시크릿 값 업데이트 | 8개 시크릿에 실제 RDS 비밀번호 반영 |
+| ConfigMap 환경변수 매핑 수정 | DB_URL/SPRING_DATASOURCE_URL 등 앱 기대값 매핑 (PR #30) |
+| RDS/Redis/MSK/OpenSearch SG 수정 | 현재 EKS 노드 SG를 각 서비스 SG ingress에 추가 |
+| ArgoCD --insecure 플래그 추가 | HTTP 접근 가능 (ArgoCD UI 확인 완료) |
+| ArgoCD UI 스크린샷 | `argocd-ui-applications.png` |
 
 ---
 
-## 2. 현재 상태 (태스크별)
+## 2. 현재 서비스 상태
 
-| Task | 내용 | 상태 | 비고 |
+| 서비스 | ArgoCD | Pod | 비고 |
 |---|---|---|---|
-| 1 | aws CLI + terraform 설치 | ✅ 완료 | choco 설치 |
-| 2 | terraform apply (AWS 인프라) | ✅ 완료 | 다른 PC에서 이미 완료. 중복 생성분 destroy 정리 |
-| 3 | Docker Compose 보강 | ✅ 완료 | kafka-init + BACKWARD |
-| 4 | Avro 스키마 (shared) | ✅ 완료 | shared PR #2 → main 머지 |
-| 5 | shared HISTORY 갱신 | ✅ 완료 | W2 Step 4-5 기록 |
-| 6 | Schema Registry 검증 | ✅ 완료 | BACKWARD + 비호환 거부 |
-| 7 | ConfigMap 토픽명 + endpoint 추가 | ✅ 완료 | 토픽명 + RDS/Redis/MSK/OpenSearch endpoint 반영 (PR #23) |
-| 8 | EKS provider swap | ✅ 완료 | ESO→AWS SM, 이미지→ECR, ClusterSecretStore 추가 |
-| 9 | PRD W2 검수 + 문서 | ✅ 완료 | FR-GO-201~206 전항목 EKS 실증 완료 (202 제외: 도메인 미확보) |
-| 10 | kind 클러스터 정리 | ✅ 완료 | `kind delete cluster --name synapse-w2` |
-| 11 | EKS 실배포 | ✅ 완료 | ArgoCD HA + ESO + IRSA + AWS SM 8개 시크릿 + 5개 앱 Synced |
-| 12 | SSM Bastion 구성 | ✅ 완료 | PR #24 + #25 머지. EKS private only + aws-auth 등록 |
+| **knowledge-svc** | Synced / **Healthy** | Running / Ready | 완전 정상 |
+| engagement-svc | Synced / Progressing | Running / CrashLoop | DB 연결 성공, Flyway 완료 후 크래시 — 앱 설정 확인 필요 |
+| learning-card | Synced / Progressing | Running / CrashLoop | DB 연결 성공, Tomcat 기동 후 크래시 — 앱 설정 확인 필요 |
+| learning-ai | Synced / Progressing | Running / CrashLoop | Uvicorn 시작됨, health check 또는 DB 문제 |
+| platform-svc | Synced / Progressing | Running / CrashLoop | **DB 테이블 `mfa_credentials` 미존재** — Flyway migration 필요 |
+
+### platform-svc 수정 방법
+
+`application-dev.yml`의 JPA 설정에서 `ddl-auto: validate` → `update`로 변경하거나, Flyway migration 파일 추가:
+
+```yaml
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update  # 또는 create (최초만)
+```
 
 ---
 
 ## 3. 다음 세션 작업 순서
 
 ```
-1. ArgoCD sync + Pod 검증
-   ├── SSM으로 bastion 접속
-   ├── ArgoCD가 ConfigMap 변경 감지 → 자동 sync
-   ├── 5개 앱 Pod 환경변수에 endpoint 반영 확인
-   │     kubectl exec <pod> -- env | grep DATABASE_HOST
-   └── Pod 정상 기동 확인 (actuator/health 200)
+1. 서비스 안정화
+   ├── platform-svc: Flyway migration 추가 또는 ddl-auto 변경
+   ├── engagement-svc: 크래시 로그 확인 → 앱 설정 수정
+   ├── learning-card: 크래시 로그 확인 → 앱 설정 수정
+   ├── learning-ai: health check 설정 확인
+   └── 각 서비스 수정 후 ECR re-push
         ↓
-2. ECR 이미지 push (각 서비스팀)
-   ├── AWS credential 공유 완료 (synapse-admin, AdministratorAccess)
-   ├── ECR 로그인: aws ecr get-login-password ... | docker login ...
-   ├── 이미지 태그: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/<svc>:dev-latest
-   └── push 후 Image Updater 자동 반영 확인 (5분 이내)
+2. terraform state 정리
+   ├── OIDC provider를 수동으로 재생성했으므로 state import 필요
+   ├── SG 규칙도 수동 추가했으므로 terraform import 또는 코드 반영
+   └── terraform plan 확인
         ↓
-3. terraform state 정리 (선택)
-   ├── EKS/NodeGroup/OIDC import 후 drift 발생 (replace 예정)
-   └── terraform plan 확인 후 필요 시 state rm + re-import
-        ↓
-4. W3 시작 준비
+3. W3 시작 준비
    ├── Step 7: staging overlay 작성
    ├── Step 8: Observability 스택 (Prometheus + Grafana + Loki)
    └── 비용 관리: 작업 완료 후 terraform destroy 필수
@@ -106,26 +89,33 @@
 
 ---
 
-## 4. 사전 조건 체크리스트 (다음 세션 시작 시)
+## 4. 사전 조건 체크리스트
 
 ```
 [x] AWS 결제수단 verification 완료
-[x] aws configure 완료 (aws sts get-caller-identity → synapse-admin)
-[x] terraform apply 완료 (RDS/MSK/Redis/OpenSearch/Bastion 생성됨)
-[x] SSM Session Manager Plugin 설치 (로컬)
+[x] aws configure 완료
+[x] terraform apply 완료
+[x] SSM Session Manager Plugin 설치
 [x] aws-auth ConfigMap에 bastion role 등록
-[ ] ArgoCD sync 후 Pod 환경변수 반영 확인
-[ ] ECR 이미지 push (각 서비스팀)
+[x] ArgoCD sync 후 Pod 환경변수 반영 확인
+[x] ECR 이미지 push (6개 서비스 완료)
+[x] OIDC Provider 수정
+[x] ClusterSecretStore 정상 (store validated)
+[x] ExternalSecret 동기화 (5/5 SecretSynced)
+[x] SG 수정 (RDS/Redis/MSK/OpenSearch)
+[ ] 서비스 안정화 (5개 중 1개 Healthy)
+[ ] terraform state 정리
 ```
 
 ---
 
 ## 5. 핵심 파일 위치
 
-### 가이드 문서 (순서대로 참조)
+### 가이드 문서
 
 | 순서 | 문서 | 용도 |
 |---|---|---|
+| 0 | `docs/synapse-developer-guide.md` | **올인원 개발자 가이드 (808줄)** |
 | 1 | `docs/runbooks/w2-terraform-apply-quickstart.md` | terraform apply 전체 절차 |
 | 2 | `docs/runbooks/w2-eks-transition.md` | EKS provider swap 절차 |
 | 3 | `docs/runbooks/argocd-ui-access.md` | ArgoCD UI 접속 |
@@ -135,113 +125,86 @@
 
 | 문서 | 내용 |
 |---|---|
-| `docs/superpowers/specs/2026-05-18-w2-dev-deploy-design.md` | gitops W2 설계 |
-| `docs/superpowers/specs/2026-05-18-shared-gitops-unified-plan-design.md` | shared+gitops 통합 설계 |
 | `docs/superpowers/specs/2026-05-20-ssm-bastion-design.md` | SSM Bastion 설계 |
-| `docs/superpowers/plans/2026-05-18-shared-gitops-unified.md` | 통합 구현 플랜 (10 tasks) |
-| `docs/superpowers/plans/2026-05-20-ssm-bastion.md` | SSM Bastion 구현 플랜 (6 tasks) |
-
-### Provider 교체 대상 파일
-
-| 파일 | 변경 내용 |
-|---|---|
-| `apps/*/overlays/dev/kustomization.yaml` | `fake-secrets` → `aws-secrets-manager` + `localhost:5001` → ECR + endpoint 추가 |
-| `argocd/applicationset.yaml` | `localhost:5001` → ECR |
+| `docs/superpowers/specs/2026-05-20-developer-guide-design.md` | Developer Guide 설계 |
+| `docs/superpowers/plans/2026-05-20-ssm-bastion.md` | SSM Bastion 구현 플랜 |
+| `docs/superpowers/plans/2026-05-20-developer-guide.md` | Developer Guide 구현 플랜 |
 
 ---
 
-## 6. 발견 사항 기록 (다음 세션에서 주의)
+## 6. 발견 사항 기록
 
 | ID | 내용 | 영향 |
 |---|---|---|
-| D-015 | Image Updater v1.2.0: annotation → CRD 기반 | `argocd/image-updater.yaml`에 CR 작성 완료. `useAnnotations: true`로 기존 annotation 호환 |
-| D-016 | terraform state drift: EKS/NodeGroup/OIDC import 후 replace 예정 | `terraform plan`에서 3 destroy 표시. state rm + re-import 또는 EKS 재생성 필요 |
-| D-017 | EKS private endpoint — 로컬 helm/kubectl 접근 불가 | ✅ SSM Bastion 구성 완료. `docs/runbooks/bastion-ssm-access.md` 참조 |
-| D-019 | AL2023 최소 AMI에 SSM Agent 미포함 | User Data에 `dnf install -y amazon-ssm-agent` 추가로 해결 (PR #25) |
-| D-020 | Bastion SG egress 443-only → DNS(53) 차단 | egress all outbound으로 변경. 보안은 ingress 0개로 유지 (PR #25) |
-| — | ESO apiVersion `v1beta1` → `v1` | 이미 수정 완료 |
-| — | Schema Registry 포트 8081 충돌 | Docker Compose에서 8085로 변경 완료 |
-| — | learning-card 포트/헬스체크 | 현재 8080/Spring. svc 레포 확인 후 3000/Next.js면 수정 필요 |
+| D-016 | terraform state drift | OIDC, SG 수동 수정됨 → terraform import 필요 |
+| D-017 | EKS private endpoint | ✅ SSM Bastion 구성 완료 |
+| D-021 | OIDC Provider ID 불일치 | ✅ IAM OIDC 재생성 + ESO trust policy 업데이트로 해결 |
+| D-022 | RDS/Redis/MSK/OpenSearch SG에 현재 EKS 노드 SG 미등록 | ✅ 수동으로 SG ingress 추가 |
+| D-023 | ConfigMap 환경변수와 앱 기대 변수명 불일치 | ✅ DB_URL, SPRING_DATASOURCE_URL 등 추가 (PR #30) |
+| D-024 | platform-svc: `mfa_credentials` 테이블 미존재 | Flyway migration 또는 ddl-auto 변경 필요 (서비스팀) |
+| D-025 | AWS SM 시크릿에 placeholder 값 → 실제 RDS PW로 교체 필요 | ✅ 8개 시크릿 값 업데이트 완료 |
 
 ---
 
 ## 7. PR 현황
 
-| 레포 | PR | 브랜치 | 상태 |
+### synapse-gitops
+
+| PR | 브랜치 | 내용 | 상태 |
 |---|---|---|---|
-| synapse-gitops | [#20](https://github.com/team-project-final/synapse-gitops/pull/20) | `feat/w2-dev-deploy` | Merged |
-| synapse-gitops | [#21](https://github.com/team-project-final/synapse-gitops/pull/21) | `feat/w2-dev-deploy` | Merged |
-| synapse-gitops | [#22](https://github.com/team-project-final/synapse-gitops/pull/22) | `docs/w2-eks-deploy-update` | Merged |
-| synapse-gitops | [#23](https://github.com/team-project-final/synapse-gitops/pull/23) | `feat/w2-configmap-endpoints` | Merged |
-| synapse-gitops | [#24](https://github.com/team-project-final/synapse-gitops/pull/24) | `feat/w2-ssm-bastion` | Merged |
-| synapse-gitops | [#25](https://github.com/team-project-final/synapse-gitops/pull/25) | `fix/bastion-ssm-agent` | Merged |
-| synapse-shared | [#2](https://github.com/team-project-final/synapse-shared/pull/2) | `feat/w2-kafka-schemas` | Open |
+| [#24](https://github.com/team-project-final/synapse-gitops/pull/24) | `feat/w2-ssm-bastion` | SSM Bastion 구성 | Merged |
+| [#25](https://github.com/team-project-final/synapse-gitops/pull/25) | `fix/bastion-ssm-agent` | SSM Agent fix | Merged |
+| [#27](https://github.com/team-project-final/synapse-gitops/pull/27) | `docs/w2-ssm-bastion-complete` | 핸드오프 v4 + 설계문서 | Merged |
+| [#28](https://github.com/team-project-final/synapse-gitops/pull/28) | `docs/developer-guide` | Developer Guide (808줄) | Merged |
+| [#29](https://github.com/team-project-final/synapse-gitops/pull/29) | `feat/pages-developer-guide` | Pages 사이트에 가이드 추가 | Merged |
+| [#30](https://github.com/team-project-final/synapse-gitops/pull/30) | `fix/configmap-db-env` | ConfigMap DB 환경변수 매핑 수정 | Merged |
+
+### 서비스 레포 (Dockerfile 추가 → dev 브랜치)
+
+| 레포 | PR | 상태 |
+|---|---|---|
+| synapse-engagement-svc | [#7](https://github.com/team-project-final/synapse-engagement-svc/pull/7) | Merged → dev |
+| synapse-knowledge-svc | [#16](https://github.com/team-project-final/synapse-knowledge-svc/pull/16) | Merged → dev |
+| synapse-learning-svc | [#17](https://github.com/team-project-final/synapse-learning-svc/pull/17) | Merged → dev (learning-card Dockerfile) |
+| synapse-learning-svc | [#18](https://github.com/team-project-final/synapse-learning-svc/pull/18) | Merged → dev (learning-ai Dockerfile fix) |
 
 ---
 
-## 8. Bastion 접속 정보
+## 8. ECR 이미지 현황
+
+| 서비스 | ECR 리포지토리 | 태그 |
+|---|---|---|
+| platform-svc | `synapse/platform-svc` | 1.0.0, dev-latest |
+| gateway | `synapse-gateway` | 1.0.0, dev-latest, latest |
+| engagement-svc | `synapse/engagement-svc` | 1.0.0, dev-latest |
+| knowledge-svc | `synapse/knowledge-svc` | 1.0.0, dev-latest |
+| learning-card | `synapse/learning-card` | 1.0.0, dev-latest |
+| learning-ai | `synapse/learning-ai` | 1.0.0, dev-latest |
+
+---
+
+## 9. Bastion 접속 정보
 
 | 항목 | 값 |
 |---|---|
 | **Instance ID** | `i-08399527c6f112cee` |
-| **Instance Type** | t3.micro |
-| **IAM Role** | `synapse-dev-bastion-role` |
 | **도구** | kubectl v1.36.1, helm v3.21.0 |
-| **EKS 인증** | aws-auth `system:masters` 등록됨 |
-
-### 접속 방법
+| **EKS 인증** | aws-auth `system:masters` |
 
 ```powershell
-# PowerShell
+# 접속
 $env:PATH += ";C:\Program Files\Amazon\SessionManagerPlugin\bin"
 aws ssm start-session --target i-08399527c6f112cee --region ap-northeast-2
+
+# ArgoCD UI (SSM 포트 포워딩)
+aws ssm start-session --target i-08399527c6f112cee --region ap-northeast-2 --document-name AWS-StartPortForwardingSessionToRemoteHost --parameters '{"host":["localhost"],"portNumber":["8080"],"localPortNumber":["9090"]}'
+# → http://localhost:9090 (admin / N9nWOZZt25NXzXJr)
 ```
-
-```bash
-# Bash
-aws ssm start-session --target i-08399527c6f112cee --region ap-northeast-2
-```
-
----
-
-## 9. AWS Endpoint 요약
-
-| 서비스 | Endpoint |
-|---|---|
-| **RDS** | `synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com:5432` |
-| **Redis** | `master.synapse-dev-redis.v6lpdh.apn2.cache.amazonaws.com:6379` |
-| **MSK** | `b-1.synapsedevkafka.fark5c.c2.kafka.ap-northeast-2.amazonaws.com:9094,b-2.synapsedevkafka.fark5c.c2.kafka.ap-northeast-2.amazonaws.com:9094` |
-| **OpenSearch** | `https://vpc-synapse-dev-qm5l2xdch6nfmkqanpmipou74a.ap-northeast-2.es.amazonaws.com` |
-| **EKS** | `synapse-dev` (ap-northeast-2, private endpoint only) |
-| **ECR** | `963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/<svc>` |
 
 ---
 
 ## 10. 비용 관리
 
-- terraform apply 후 시간당 ~$0.40 발생 (bastion t3.micro 추가: ~$0.01/hr)
+- terraform apply 후 시간당 ~$0.41 발생
 - 작업 완료 후 반드시: `cd infra/aws/dev && terraform destroy -auto-approve`
-- S3 state bucket + DynamoDB lock table은 삭제하지 않음 (다음 apply에 필요, 비용 거의 없음)
-
----
-
-## 11. 빠른 시작 (다음 세션)
-
-```bash
-# 1. gitops 레포 최신화
-cd /c/workspace/team-project-manager/team-project-final/synapse-gitops
-git checkout main && git pull
-
-# 2. 핸드오프 확인
-cat docs/superpowers/HANDOFF_W2.md
-
-# 3. bastion 접속
-aws ssm start-session --target i-08399527c6f112cee --region ap-northeast-2
-
-# 4. kubectl 확인
-kubectl get pods -A
-kubectl get configmap -n synapse-dev -o yaml | grep DATABASE_HOST
-
-# 5. 비용 관리 — 작업 완료 후 반드시
-cd infra/aws/dev && terraform destroy -auto-approve
-```
+- S3 state bucket + DynamoDB lock table은 유지

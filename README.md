@@ -72,16 +72,26 @@ main은 보호되어 있어 CI 통과 + 리뷰 후에만 머지된다. (`scripts
 
 ## ArgoCD 접속
 
-```bash
-# UI 호스트
-kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+```powershell
+# SSM 포트 포워딩으로 ArgoCD UI 접근 (EKS private endpoint)
+$env:PATH += ";C:\Program Files\Amazon\SessionManagerPlugin\bin"
+aws ssm start-session --target i-08399527c6f112cee --region ap-northeast-2 `
+  --document-name AWS-StartPortForwardingSessionToRemoteHost `
+  --parameters '{"host":["localhost"],"portNumber":["8080"],"localPortNumber":["9090"]}'
+# → http://localhost:9090 (admin / kubectl get secret 으로 확인)
+```
 
-# admin 비번 조회
-aws secretsmanager get-secret-value --secret-id synapse/argocd/admin \
-  --region ap-northeast-2 --query SecretString --output text | jq -r .password
+```bash
+# admin 비번 조회 (bastion 내에서)
+kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath='{.data.password}' | base64 -d
 ```
 
 ## 문서
+
+### 시작하기
+
+- **[Synapse Developer Guide](docs/synapse-developer-guide.md)** — 올인원 개발자 가이드 (프로젝트 개요 → 로컬 개발 → 배포 → 트러블슈팅)
+- **[Bastion SSM 접근](docs/runbooks/bastion-ssm-access.md)** — EKS kubectl 접근 방법 (SSM Session Manager)
 
 ### Runbook (작업 단계별)
 - **[dev-machine-setup.md](docs/runbooks/dev-machine-setup.md)** — 새 PC/환경에서 작업 이어받기 (도구 설치 + 인증 + 시크릿 인계)
