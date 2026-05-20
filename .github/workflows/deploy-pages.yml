@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'docs/runbooks/**'
+      - 'docs/synapse-developer-guide.md'
       - 'site/**'
       - 'scripts/parse-runbooks.dart'
       - '.github/workflows/deploy-pages.yml'

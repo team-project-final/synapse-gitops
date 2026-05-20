@@ -24,8 +24,15 @@ void main() {
       .listSync()
       .whereType<File>()
       .where((f) => f.path.endsWith('.md'))
-      .toList()
-    ..sort((a, b) => a.path.compareTo(b.path));
+      .toList();
+
+  // docs/ 직하의 가이드 문서도 포함
+  final guideFile = File('docs/synapse-developer-guide.md');
+  if (guideFile.existsSync()) {
+    mdFiles.add(guideFile);
+  }
+
+  mdFiles.sort((a, b) => a.path.compareTo(b.path));
 
   final runbooks = <Map<String, dynamic>>[];
 
@@ -64,8 +71,14 @@ void main() {
       order = int.parse(weeklyMatch.group(1)!);
     } else {
       category = 'onboarding';
-      // dev-machine-setup을 먼저, kind-local-bootstrap을 두 번째로
-      order = fileName == 'dev-machine-setup.md' ? 0 : 1;
+      // synapse-developer-guide를 최상단, dev-machine-setup을 두 번째로
+      if (fileName == 'synapse-developer-guide.md') {
+        order = -1;
+      } else if (fileName == 'dev-machine-setup.md') {
+        order = 0;
+      } else {
+        order = 1;
+      }
     }
 
     // 본문 추출 (첫 번째 --- 이후)
