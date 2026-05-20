@@ -440,3 +440,129 @@ terraform destroy
 > **비용 주의**: terraform apply 후 시간당 약 $0.40이 발생합니다. 작업이 끝나면 **반드시** `terraform destroy`를 실행하세요.
 
 > 📎 **상세 가이드**: [Terraform Apply 빠른 시작](runbooks/w2-terraform-apply-quickstart.md) | [AWS 인프라 프로비저닝 가이드](aws-infra-provisioning-workflow-guide.md)
+
+---
+
+## 7. EKS 접근 (Bastion SSM)
+
+> 이 섹션에서 알 수 있는 것: EKS 클러스터에 어떻게 접근하고 kubectl을 사용하는가.
+
+### 왜 Bastion인가?
+
+EKS 클러스터의 API 서버는 **Private Endpoint**로만 접근할 수 있습니다. 외부에서 직접 `kubectl`을 실행할 수 없고, VPC 내부에 있는 Bastion EC2를 거쳐야 합니다.
+
+Bastion에는 SSH가 아닌 **AWS SSM Session Manager**로 접속합니다. SSH 키가 필요 없고, IAM 인증만으로 접속할 수 있어 더 안전합니다.
+
+### 접속 방법
+
+```powershell
+# 1. Session Manager Plugin 경로 추가 (PowerShell, 세션마다 필요)
+$env:PATH += ";C:\Program Files\Amazon\SessionManagerPlugin\bin"
+
+# 2. SSM 세션 시작
+aws ssm start-session --target i-08399527c6f112cee --region ap-northeast-2
+
+# 3. Bastion 내에서 kubectl 사용
+kubectl get nodes
+kubectl get pods -n synapse-dev
+kubectl get configmap -n synapse-dev
+```
+
+### 자주 쓰는 kubectl 명령
+
+```bash
+# Pod 상태 확인
+kubectl get pods -n synapse-dev
+
+# Pod 로그 확인
+kubectl logs -f <pod-name> -n synapse-dev
+
+# Pod 환경변수 확인
+kubectl exec <pod-name> -n synapse-dev -- env | grep DATABASE
+
+# ConfigMap 내용 확인
+kubectl get configmap platform-svc-config -n synapse-dev -o yaml
+
+# ArgoCD 앱 상태
+kubectl get applications -n argocd
+
+# Helm 릴리즈 목록
+helm list -n argocd
+```
+
+> 📎 **상세 가이드**: [Bastion SSM 접근 가이드](runbooks/bastion-ssm-access.md)
+
+---
+
+## 8. 시크릿 관리
+
+> 이 섹션에서 알 수 있는 것: DB 비밀번호 같은 시크릿이 어떻게 안전하게 Pod에 전달되는가.
+
+### 시크릿 흐름
+
+```
+AWS Secrets Manager          EKS 클러스터
+┌──────────────────┐    ┌─────────────────────────────────┐
+│ synapse/dev/     │    │                                 │
+│   platform-svc   │───→│ ClusterSecretStore              │
+│   engagement-svc │    │   (aws-secrets-manager)         │
+│   knowledge-svc  │    │         │                       │
+│   ...            │    │         ▼                       │
+└──────────────────┘    │ ExternalSecret (각 앱별)         │
+                        │         │                       │
+                        │         ▼                       │
+                        │ K8s Secret (자동 생성)           │
+                        │         │                       │
+                        │         ▼                       │
+                        │ Pod (envFrom: secretRef)        │
+                        └─────────────────────────────────┘
+```
+
+1. **AWS Secrets Manager**: 실제 시크릿 값이 저장되는 곳 (DB 비밀번호, API 키 등)
+2. **ClusterSecretStore**: "어떤 AWS 리전의 Secrets Manager를 사용할지" 정의
+3. **ExternalSecret**: "어떤 시크릿을, 어떤 K8s Secret으로 매핑할지" 정의
+4. **K8s Secret**: ESO가 자동 생성. Pod가 환경변수로 참조
+
+### 새 시크릿 추가하기 (3단계)
+
+**1단계: AWS Secrets Manager에 시크릿 생성**
+
+```bash
+aws secretsmanager create-secret \
+  --name synapse/dev/my-new-secret \
+  --secret-string '{"API_KEY":"xxx","API_SECRET":"yyy"}' \
+  --region ap-northeast-2
+```
+
+**2단계: ExternalSecret 매니페스트 추가**
+
+`apps/<service>/base/external-secret.yaml`에 참조 추가:
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: <service>-external-secret
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: aws-secrets-manager
+    kind: ClusterSecretStore
+  target:
+    name: <service>-secrets
+  data:
+    - secretKey: API_KEY
+      remoteRef:
+        key: synapse/dev/my-new-secret
+        property: API_KEY
+```
+
+**3단계: Deployment에서 참조**
+
+```yaml
+envFrom:
+  - secretRef:
+      name: <service>-secrets
+```
+
+> 📎 **상세 가이드**: [Step 5: ESO Secret 관리](runbooks/step5-eso-secrets.md)
