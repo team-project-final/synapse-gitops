@@ -74,10 +74,10 @@ resource "aws_security_group" "bastion" {
   description = "Bastion host - SSM only, no SSH"
 
   egress {
-    description = "HTTPS outbound (SSM + EKS API + package downloads)"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
+    description = "All outbound (SSM + EKS API + DNS + package downloads)"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -104,6 +104,11 @@ resource "aws_instance" "bastion" {
     #!/bin/bash
     set -euo pipefail
 
+    # SSM Agent 설치 (AL2023 최소 AMI에 미포함될 수 있음)
+    dnf install -y amazon-ssm-agent
+    systemctl enable amazon-ssm-agent
+    systemctl start amazon-ssm-agent
+
     # kubectl
     curl -LO "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
     install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
@@ -112,8 +117,8 @@ resource "aws_instance" "bastion" {
     # helm
     curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
-    # kubeconfig for ssm-user
-    runuser -l ssm-user -c "aws eks update-kubeconfig --name ${local.cluster_name} --region ${var.aws_region}"
+    # kubeconfig for ec2-user (ssm-user는 첫 SSM 세션 시 자동 생성)
+    runuser -l ec2-user -c "aws eks update-kubeconfig --name ${local.cluster_name} --region ${var.aws_region}"
   EOF
 
   tags = { Name = "${local.project}-${local.environment}-bastion" }
