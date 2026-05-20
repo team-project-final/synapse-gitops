@@ -98,6 +98,8 @@ Task 10: kind 클러스터 정리
 [ ] terraform version → v1.x 확인
 [ ] gitops 레포: git checkout feat/w2-dev-deploy && git pull
 [ ] shared PR #2 머지 여부 확인 (머지 안 됐으면 먼저 머지)
+[ ] SSM Session Manager Plugin 설치 (로컬)
+[ ] aws-auth ConfigMap에 bastion role 등록
 ```
 
 ---
@@ -111,6 +113,7 @@ Task 10: kind 클러스터 정리
 | 1 | `docs/runbooks/w2-terraform-apply-quickstart.md` | terraform apply 전체 절차 |
 | 2 | `docs/runbooks/w2-eks-transition.md` | EKS provider swap 절차 |
 | 3 | `docs/runbooks/argocd-ui-access.md` | ArgoCD UI 접속 |
+| 4 | `docs/runbooks/bastion-ssm-access.md` | Bastion SSM 접근 절차 |
 
 ### 설계/계획 문서
 
@@ -133,6 +136,7 @@ Task 10: kind 클러스터 정리
 
 | ID | 내용 | 영향 |
 |---|---|---|
+| D-017 | EKS private endpoint — 로컬 helm/kubectl 접근 불가 | ✅ SSM Bastion 구성 완료. `docs/runbooks/bastion-ssm-access.md` 참조 |
 | D-015 | Image Updater v1.2.0: annotation → CRD 기반 | `argocd/image-updater.yaml`에 CR 작성 완료. `useAnnotations: true`로 기존 annotation 호환 |
 | — | ESO apiVersion `v1beta1` → `v1` | 이미 수정 완료 |
 | — | kind `containerdConfigPatches` K8s v1.35.0 비호환 | 단일 노드 + 수동 mirror로 해결. EKS에서는 해당 없음 |
