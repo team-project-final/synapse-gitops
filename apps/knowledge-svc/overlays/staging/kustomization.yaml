@@ -14,7 +14,47 @@ patches:
       - op: replace
         path: /spec/replicas
         value: 2
+  - target:
+      kind: ConfigMap
+      name: knowledge-svc-config
+    patch: |
+      - op: replace
+        path: /data/LOG_LEVEL
+        value: "INFO"
+      - op: replace
+        path: /data/SPRING_PROFILES_ACTIVE
+        value: "staging"
+      - op: add
+        path: /data/DATABASE_HOST
+        value: "synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com"
+      - op: add
+        path: /data/DATABASE_PORT
+        value: "5432"
+      - op: add
+        path: /data/DATABASE_NAME
+        value: "synapse"
+      - op: add
+        path: /data/KAFKA_BROKERS
+        value: "b-1.synapsedevkafka.ejn12p.c2.kafka.ap-northeast-2.amazonaws.com:9094,b-2.synapsedevkafka.ejn12p.c2.kafka.ap-northeast-2.amazonaws.com:9094"
+      - op: add
+        path: /data/OPENSEARCH_URL
+        value: "https://vpc-synapse-dev-qm5l2xdch6nfmkqanpmipou74a.ap-northeast-2.es.amazonaws.com"
+      - op: add
+        path: /data/SPRING_DATASOURCE_URL
+        value: "jdbc:postgresql://synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com:5432/synapse"
+      - op: add
+        path: /data/SPRING_DATASOURCE_USERNAME
+        value: "synapse_admin"
+
+  - target:
+      kind: ExternalSecret
+      name: knowledge-svc-external-secret
+    patch: |
+      - op: replace
+        path: /spec/secretStoreRef/name
+        value: aws-secrets-manager
 
 images:
   - name: ghcr.io/team-project-final/synapse-knowledge-svc
-    newTag: staging-latest
+    newName: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/knowledge-svc
+    newTag: dev-latest

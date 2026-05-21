@@ -1,8 +1,8 @@
-# W2 핸드오프: 다음 세션 이어받기 (v6)
+# W2 핸드오프: 다음 세션 이어받기 (v7)
 
-> **최종 갱신**: 2026-05-20 (7차 세션 — ECR push + ArgoCD 배포 + 인프라 디버깅 + Flow Simulator)
-> **현재 상태**: 6개 서비스 ECR push 완료. 5개 앱 ArgoCD Synced. knowledge-svc Healthy. Flow Simulator 배포 완료.
-> **남은 작업**: platform-svc DB migration, 나머지 서비스 안정화, Flow Simulator 디자인 개선, W3 시작
+> **최종 갱신**: 2026-05-21 (8차 세션 — 인프라 재기동 + staging overlay + 브랜치 정리)
+> **현재 상태**: staging overlay 생성 완료. terraform re-apply 진행 중. 서비스 안정화 대기.
+> **남은 작업**: 서비스 CrashLoop 해결 (terraform 완료 후), staging ArgoCD sync, W3 E2E 검증
 > **브랜치**: main
 > **담당**: @VelkaressiaBlutkrone
 
@@ -47,6 +47,18 @@
 | Flow Simulator 설계 스펙 | `docs/superpowers/specs/2026-05-20-flow-simulator-design.md` |
 | Flow Simulator 구현 플랜 | `docs/superpowers/plans/2026-05-20-flow-simulator.md` |
 
+### 8차 세션 (인프라 재기동 + staging overlay + 정리)
+
+| 작업 | 산출물 |
+|---|---|
+| 브랜치 정리 (gitops 16개 + shared 2개) | 로컬/리모트 삭제 |
+| 임시 파일 정리 | `.playwright-mcp/*.log` 8개 삭제 |
+| staging overlay 생성 (5개 서비스) | `apps/*/overlays/staging/kustomization.yaml` |
+| staging ApplicationSet 추가 | `argocd/applicationset-staging.yaml` (manual sync) |
+| Cross-repo 작업 설계 + 플랜 | `docs/superpowers/specs/2026-05-21-cross-repo-work-order-design.md` |
+| terraform re-apply | 인프라 재기동 (진행중) |
+| synapse-shared 문서 현행화 | HANDOFF, ARGOCD guide, TEAM_CHECKLIST 업데이트 |
+
 ---
 
 ## 2. 현재 서비스 상태
@@ -75,27 +87,25 @@ spring:
 ## 3. 다음 세션 작업 순서
 
 ```
-1. 서비스 안정화
-   ├── platform-svc: Flyway migration 추가 또는 ddl-auto 변경
-   ├── engagement-svc: 크래시 로그 확인 → 앱 설정 수정
-   ├── learning-card: 크래시 로그 확인 → 앱 설정 수정
-   ├── learning-ai: health check 설정 확인
-   └── 각 서비스 수정 후 ECR re-push
+1. 서비스 안정화 (terraform apply 완료 후)
+   ├── kubectl logs로 4개 서비스 크래시 원인 확인
+   ├── platform-svc: Flyway migration 또는 ddl-auto 변경
+   ├── engagement-svc/learning-card/learning-ai: 크래시 원인별 수정
+   └── ECR re-push → ArgoCD Sync → 5/5 Healthy
         ↓
-2. terraform state 정리
-   ├── OIDC provider를 수동으로 재생성했으므로 state import 필요
-   ├── SG 규칙도 수동 추가했으므로 terraform import 또는 코드 반영
-   └── terraform plan 확인
+2. terraform state 검증
+   ├── fresh apply이므로 state drift 없어야 함
+   └── terraform plan → no changes 확인
         ↓
-3. Flow Simulator 디자인 개선
-   ├── /design-review 실행 (synapse-flow-simulator 레포에서)
-   ├── 화살표 애니메이션 개선 (이동하는 점)
-   ├── Tabler Icons 로드 확인
-   └── 시퀀스 뷰 + 에러 분기 UI 검증
+3. staging ArgoCD sync 검증
+   ├── applicationset-staging.yaml apply
+   ├── 수동 Sync → synapse-staging namespace 생성
+   └── 5개 서비스 staging Healthy 확인
         ↓
-4. W3 시작 준비
-   ├── Step 7: staging overlay 작성
-   ├── Step 8: Observability 스택 (Prometheus + Grafana + Loki)
+4. W3 E2E 검증 (팀원 Kafka 구현 완료 후)
+   ├── synapse-shared kafka-e2e-test.sh 실행
+   ├── dev → staging 프로모션 테스트
+   ├── Rollback 시나리오 테스트
    └── 비용 관리: 작업 완료 후 terraform destroy 필수
 ```
 
@@ -115,8 +125,11 @@ spring:
 [x] ClusterSecretStore 정상 (store validated)
 [x] ExternalSecret 동기화 (5/5 SecretSynced)
 [x] SG 수정 (RDS/Redis/MSK/OpenSearch)
-[ ] 서비스 안정화 (5개 중 1개 Healthy)
-[ ] terraform state 정리
+[x] staging overlay 생성 (5개 서비스)
+[x] staging ApplicationSet 추가 (manual sync)
+[ ] 서비스 안정화 (5개 중 1개 Healthy → 목표: 5/5)
+[ ] terraform state 검증 (fresh apply 후 plan clean)
+[ ] staging ArgoCD sync 검증
 ```
 
 ---
