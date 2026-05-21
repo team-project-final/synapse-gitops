@@ -79,12 +79,15 @@
   - [x] `apps/{app}/overlays/dev/kustomization.yaml` 5개 작성
   - [x] Deployment / Service / ConfigMap 매니페스트 base 완성
   - [x] ArgoCD UI에서 5개 모두 Synced + Healthy (kind 검증)
-  - [ ] Pod에 트래픽 도달 확인 (Ingress 또는 port-forward) — EKS 배포 후
+  - [x] EKS 배포: 3/5 Healthy (engagement-svc, knowledge-svc, learning-card)
+  - [ ] EKS 배포: platform-svc Healthy (앱 코드 수정 필요 — mfa_credentials 테이블)
+  - [ ] EKS 배포: learning-ai Healthy (앱 코드 수정 필요 — Python 기동 문제)
+  - [ ] Pod에 트래픽 도달 확인 (Ingress 또는 port-forward)
 - **Duration**: 2일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [ ] In Progress / [x] Done (kind 검증 완료, EKS 배포 후 최종 확인)
+**Status**: [ ] Not Started / [x] In Progress / [ ] Done (EKS 3/5 Healthy, 2개 앱 레벨 문제 잔존)
 
 ---
 
@@ -97,8 +100,9 @@
   - [x] 5개 앱별 ExternalSecret 매니페스트 작성
   - [x] dev overlay에서 secretStoreRef → `aws-secrets-manager` 교체 완료
   - [x] ESO 컨트롤러 EKS Helm 설치 + IRSA 완료 (Role: `synapse-dev-eso-role`, Policy: `synapse-dev-eso-secrets-read`)
-  - [x] ClusterSecretStore Valid + 5개 ExternalSecret SecretSynced 확인
+  - [x] ClusterSecretStore Valid + 5개 ExternalSecret SecretSynced 확인 (8차 세션 재확인)
   - [ ] git에 평문 시크릿 0건 확인 (`gitleaks`)
+  - [x] EKS 인증 모드 API_AND_CONFIG_MAP + access entry 설정 (D-027)
 - **Duration**: 1.5일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
@@ -131,15 +135,18 @@
 
 - **Step Goal**: staging이 dev와 분리된 네임스페이스/리소스로 동작하고, dev의 머지된 변경이 staging으로 승격된다.
 - **Done When**:
-  - [ ] `apps/{app}/overlays/staging/kustomization.yaml` 5개 작성
-  - [ ] 리소스 한도 dev > staging 분리 (replicas, requests)
+  - [x] `apps/{app}/overlays/staging/kustomization.yaml` 5개 작성 (PR #34)
+  - [x] 리소스 한도 dev > staging 분리 (dev: replicas=1/DEBUG, staging: replicas=2/INFO)
+  - [x] staging ApplicationSet 추가 — manual sync (PR #34, `argocd/applicationset-staging.yaml`)
+  - [x] ArgoCD에서 staging 5개 앱 OutOfSync 확인 (manual sync 대기 정상)
   - [ ] staging 전용 도메인 + Ingress + TLS
   - [ ] dev → staging 승격 절차 문서화
+  - [ ] staging manual sync → 5/5 Healthy 검증
 - **Duration**: 2일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [ ] In Progress / [ ] Done
+**Status**: [ ] Not Started / [x] In Progress / [ ] Done (overlay + ApplicationSet 완료, 도메인/TLS/승격 문서 남음)
 
 ---
 
