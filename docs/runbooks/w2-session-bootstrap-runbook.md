@@ -280,6 +280,65 @@ kubectl -n synapse-dev get pods
 
 ---
 
+## Step 11. staging sync (선택)
+
+dev 5/5 Healthy 확인 후 staging sync를 진행할 수 있습니다.
+
+```bash
+# synapse-staging 네임스페이스 생성 (최초 1회)
+kubectl create namespace synapse-staging
+
+# 각 서비스 manual sync (한 줄씩 실행)
+kubectl -n argocd patch app synapse-platform-svc-staging --type merge -p '{"operation":{"initiatedBy":{"username":"admin"},"sync":{"revision":"HEAD","syncOptions":["CreateNamespace=true"]}}}'
+kubectl -n argocd patch app synapse-engagement-svc-staging --type merge -p '{"operation":{"initiatedBy":{"username":"admin"},"sync":{"revision":"HEAD","syncOptions":["CreateNamespace=true"]}}}'
+kubectl -n argocd patch app synapse-knowledge-svc-staging --type merge -p '{"operation":{"initiatedBy":{"username":"admin"},"sync":{"revision":"HEAD","syncOptions":["CreateNamespace=true"]}}}'
+kubectl -n argocd patch app synapse-learning-card-staging --type merge -p '{"operation":{"initiatedBy":{"username":"admin"},"sync":{"revision":"HEAD","syncOptions":["CreateNamespace=true"]}}}'
+kubectl -n argocd patch app synapse-learning-ai-staging --type merge -p '{"operation":{"initiatedBy":{"username":"admin"},"sync":{"revision":"HEAD","syncOptions":["CreateNamespace=true"]}}}'
+```
+
+> **참고**: ArgoCD CLI(`/tmp/argocd app sync`)는 port-forward 문제가 발생할 수 있으므로 `kubectl patch` 방식을 권장합니다 (T-071 참조).
+
+확인:
+```bash
+kubectl -n argocd get apps | grep staging
+kubectl -n synapse-staging get pods
+```
+
+---
+
+## Step 12. MSK 토픽 생성 (선택)
+
+```bash
+# Java 설치
+sudo dnf install -y java-17-amazon-corretto-headless
+
+# Kafka CLI 설치
+curl -sL https://archive.apache.org/dist/kafka/3.7.0/kafka_2.13-3.7.0.tgz | tar xz -C /tmp
+export PATH=$PATH:/tmp/kafka_2.13-3.7.0/bin
+
+# TLS 설정
+cat > /tmp/client.properties << 'PROPS'
+security.protocol=SSL
+PROPS
+
+# 브로커 주소 확인 (매 apply 후 변경됨)
+# 로컬에서: aws kafka get-bootstrap-brokers 명령으로 확인 후 설정
+KAFKA_BROKERS="<현재_MSK_브로커_주소>"
+
+# 연결 확인
+kafka-broker-api-versions.sh --bootstrap-server "$KAFKA_BROKERS" --command-config /tmp/client.properties --timeout 10000
+
+# 토픽 생성 (5개, replication-factor=2 — 브로커 2대)
+for topic in platform.auth.user-registered-v1 knowledge.note.note-created-v1 knowledge.note.note-updated-v1 learning.card.review-completed-v1 learning.ai.cards-generated-v1; do kafka-topics.sh --bootstrap-server "$KAFKA_BROKERS" --create --topic "$topic" --partitions 3 --replication-factor 2 --config retention.ms=604800000 --config cleanup.policy=delete --command-config /tmp/client.properties; done
+
+# 토픽 목록 확인
+kafka-topics.sh --bootstrap-server "$KAFKA_BROKERS" --list --command-config /tmp/client.properties
+```
+
+> **주의**: replication-factor는 브로커 수 이하여야 함. dev 환경은 브로커 2대이므로 max 2. (T-082 참조)
+
+---
+
 ## ArgoCD UI 접속 (선택)
 
 별도 PowerShell 터미널에서:
