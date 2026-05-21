@@ -20,7 +20,7 @@ spec:
         - name: learning-ai
           image: ghcr.io/team-project-final/synapse-learning-ai:latest
           ports:
-            - containerPort: 8000
+            - containerPort: 8090
           envFrom:
             - configMapRef:
                 name: learning-ai-config
@@ -30,13 +30,13 @@ spec:
           livenessProbe:
             httpGet:
               path: /health
-              port: 8000
+              port: 8090
             initialDelaySeconds: 60
             periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /health/ready
-              port: 8000
+              port: 8090
             initialDelaySeconds: 10
             periodSeconds: 5
           resources:
