@@ -1,8 +1,8 @@
-# W2 핸드오프: 다음 세션 이어받기 (v7)
+# W2 핸드오프: 다음 세션 이어받기 (v8)
 
-> **최종 갱신**: 2026-05-21 (8차 세션 — 인프라 재기동 + staging overlay + 브랜치 정리)
-> **현재 상태**: staging overlay 생성 완료. terraform re-apply 진행 중. 서비스 안정화 대기.
-> **남은 작업**: 서비스 CrashLoop 해결 (terraform 완료 후), staging ArgoCD sync, W3 E2E 검증
+> **최종 갱신**: 2026-05-21 (8차 세션 완료 — 3/5 Healthy + 2개 fix PR 머지)
+> **현재 상태**: 3/5 서비스 Healthy. platform-svc/learning-ai fix PR 머지 완료. terraform destroy 완료.
+> **남은 작업**: platform-svc ECR re-push → 5/5 Healthy, staging sync 검증, MSK 토픽 생성, W3 E2E
 > **브랜치**: main
 > **담당**: @VelkaressiaBlutkrone
 
@@ -56,8 +56,15 @@
 | staging overlay 생성 (5개 서비스) | `apps/*/overlays/staging/kustomization.yaml` |
 | staging ApplicationSet 추가 | `argocd/applicationset-staging.yaml` (manual sync) |
 | Cross-repo 작업 설계 + 플랜 | `docs/superpowers/specs/2026-05-21-cross-repo-work-order-design.md` |
-| terraform re-apply | 인프라 재기동 (진행중) |
+| terraform re-apply + destroy | 인프라 재기동 → 서비스 디버깅 → destroy 완료 |
 | synapse-shared 문서 현행화 | HANDOFF, ARGOCD guide, TEAM_CHECKLIST 업데이트 |
+| EKS 인증 모드 변경 | CONFIG_MAP → API_AND_CONFIG_MAP + bastion access entry (D-027) |
+| 인프라 SG 수정 | EKS cluster SG를 RDS/Redis/MSK/OpenSearch SG에 추가 (D-026) |
+| liveness probe 수정 | initialDelaySeconds 30s → 90s/60s (PR #35) |
+| KAFKA_BROKERS 갱신 | MSK 재생성으로 endpoint 변경 (PR #34) |
+| **platform-svc fix** | `ddl-auto: update` 추가 ([platform-svc PR #26](https://github.com/team-project-final/synapse-platform-svc/pull/26) → dev 머지) |
+| **learning-ai fix** | 포트 8000 → 8090 통일 (gitops [PR #38](https://github.com/team-project-final/synapse-gitops/pull/38) → main 머지) |
+| TASK/WORKFLOW 문서 갱신 | W2 Step 4~7 진행 상태 업데이트 (PR #37) |
 
 ---
 
@@ -66,12 +73,12 @@
 | 서비스 | ArgoCD | Pod | 비고 |
 |---|---|---|---|
 | **knowledge-svc** | Synced / **Healthy** | Running / Ready | 완전 정상 |
-| engagement-svc | Synced / Progressing | Running / CrashLoop | DB 연결 성공, Flyway 완료 후 크래시 — 앱 설정 확인 필요 |
-| learning-card | Synced / Progressing | Running / CrashLoop | DB 연결 성공, Tomcat 기동 후 크래시 — 앱 설정 확인 필요 |
-| learning-ai | Synced / Progressing | Running / CrashLoop | Uvicorn 시작됨, health check 또는 DB 문제 |
-| platform-svc | Synced / Progressing | Running / CrashLoop | **DB 테이블 `mfa_credentials` 미존재** — Flyway migration 필요 |
+| **engagement-svc** | Synced / **Healthy** | Running / Ready | SG 수정 후 정상 |
+| **learning-card** | Synced / **Healthy** | Running / Ready | SG + probe delay 후 정상 |
+| learning-ai | Synced / Progressing | CrashLoop | **포트 불일치 수정 완료** (PR #38 머지). 다음 apply 시 ArgoCD 자동 sync로 해결 예정 |
+| platform-svc | Synced / Progressing | CrashLoop | **ddl-auto fix 완료** (platform-svc PR #26 머지). ECR re-push 필요 |
 
-### platform-svc 수정 방법
+### platform-svc 다음 세션 조치
 
 `application-dev.yml`의 JPA 설정에서 `ddl-auto: validate` → `update`로 변경하거나, Flyway migration 파일 추가:
 
@@ -87,26 +94,38 @@ spring:
 ## 3. 다음 세션 작업 순서
 
 ```
-1. 서비스 안정화 (terraform apply 완료 후)
-   ├── kubectl logs로 4개 서비스 크래시 원인 확인
-   ├── platform-svc: Flyway migration 또는 ddl-auto 변경
-   ├── engagement-svc/learning-card/learning-ai: 크래시 원인별 수정
-   └── ECR re-push → ArgoCD Sync → 5/5 Healthy
+1. terraform apply + 기본 설정 (매 세션 반복)
+   ├── terraform apply
+   ├── EKS 인증: aws eks update-cluster-config --access-config authenticationMode=API_AND_CONFIG_MAP
+   ├── Bastion access entry 추가: aws eks create-access-entry + associate-access-policy
+   ├── ArgoCD 설치: kubectl apply --server-side -f install.yaml
+   ├── ESO 설치: helm install + SA IRSA annotation
+   ├── SG 수정: EKS cluster SG를 RDS/Redis/MSK/OpenSearch SG에 추가 (D-026)
+   ├── ClusterSecretStore + AppProject + ApplicationSet apply
+   └── aws-auth 또는 access entry로 bastion role 등록
         ↓
-2. terraform state 검증
-   ├── fresh apply이므로 state drift 없어야 함
-   └── terraform plan → no changes 확인
+2. platform-svc ECR re-push (코드 변경 반영)
+   ├── synapse-platform-svc dev 브랜치에서 docker build
+   ├── ECR push (dev-latest 태그)
+   └── ArgoCD rollout restart → Healthy 확인
         ↓
-3. staging ArgoCD sync 검증
-   ├── applicationset-staging.yaml apply
-   ├── 수동 Sync → synapse-staging namespace 생성
-   └── 5개 서비스 staging Healthy 확인
+3. learning-ai 자동 해결 확인
+   ├── gitops PR #38 이미 머지 → ArgoCD 자동 sync
+   └── learning-ai Pod Ready 확인 (포트 8090)
         ↓
-4. W3 E2E 검증 (팀원 Kafka 구현 완료 후)
-   ├── synapse-shared kafka-e2e-test.sh 실행
+4. 5/5 Healthy 달성 후 staging sync
+   ├── argocd app sync synapse-*-staging (5개)
+   └── synapse-staging namespace 5/5 Healthy
+        ↓
+5. MSK 토픽 생성 (선행 가능)
+   ├── scripts/create-kafka-topics.sh 실행 (Bastion에서)
+   ├── Schema Registry 등록
+   └── docs/guides/MSK_TOPIC_SETUP.md 참조
+        ↓
+6. W3 E2E 검증 (팀원 Kafka 구현 완료 후)
+   ├── kafka-e2e-test.sh --all 실행
    ├── dev → staging 프로모션 테스트
-   ├── Rollback 시나리오 테스트
-   └── 비용 관리: 작업 완료 후 terraform destroy 필수
+   └── 비용 관리: terraform destroy 필수
 ```
 
 ---
@@ -188,8 +207,11 @@ spring:
 | [#30](https://github.com/team-project-final/synapse-gitops/pull/30) | `fix/configmap-db-env` | ConfigMap DB 환경변수 매핑 수정 | Merged |
 | [#34](https://github.com/team-project-final/synapse-gitops/pull/34) | `feat/w2-staging-overlay` | staging overlay + ApplicationSet + KAFKA_BROKERS 갱신 | Merged |
 | [#35](https://github.com/team-project-final/synapse-gitops/pull/35) | `fix/liveness-probe-delay` | liveness probe initialDelaySeconds 90s | Merged |
+| [#36](https://github.com/team-project-final/synapse-gitops/pull/36) | `docs/session8-final` | 핸드오프 v7 D-026~D-028 | Merged |
+| [#37](https://github.com/team-project-final/synapse-gitops/pull/37) | `docs/session8-task-update` | TASK/WORKFLOW W2 갱신 | Merged |
+| [#38](https://github.com/team-project-final/synapse-gitops/pull/38) | `fix/learning-ai-port-mismatch` | learning-ai 포트 8000→8090 | Merged |
 
-### 서비스 레포 (Dockerfile 추가 → dev 브랜치)
+### 서비스 레포
 
 | 레포 | PR | 상태 |
 |---|---|---|
@@ -197,6 +219,7 @@ spring:
 | synapse-knowledge-svc | [#16](https://github.com/team-project-final/synapse-knowledge-svc/pull/16) | Merged → dev |
 | synapse-learning-svc | [#17](https://github.com/team-project-final/synapse-learning-svc/pull/17) | Merged → dev (learning-card Dockerfile) |
 | synapse-learning-svc | [#18](https://github.com/team-project-final/synapse-learning-svc/pull/18) | Merged → dev (learning-ai Dockerfile fix) |
+| **synapse-platform-svc** | [#26](https://github.com/team-project-final/synapse-platform-svc/pull/26) | **Merged → dev** (ddl-auto: update) |
 
 ---
 
