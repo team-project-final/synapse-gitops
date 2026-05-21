@@ -286,6 +286,89 @@ kubectl -n synapse-dev logs <pod-name> --tail=50
 
 ---
 
+### T-054: platform-svc — `Could not resolve placeholder 'AES_SECRET_KEY'` (D-031)
+
+```
+Could not resolve placeholder 'AES_SECRET_KEY' in value "${AES_SECRET_KEY}" <-- "${app.crypto.aes-secret-key}"
+```
+
+**원인**: platform-svc PR #24(Stripe 결제 + OAuth2 + 암호화) 이후 필요한 환경변수 14개가 gitops ExternalSecret/ConfigMap에 누락.
+
+**누락 환경변수 목록**:
+- 민감값 (ExternalSecret): `AES_SECRET_KEY`, `JWT_PRIVATE_KEY`, `JWT_PUBLIC_KEY`, `STRIPE_API_KEY`, `STRIPE_WEBHOOK_SECRET`, `GOOGLE_CLIENT_ID/SECRET`, `GITHUB_CLIENT_ID/SECRET`, `APPLE_CLIENT_ID/SECRET`
+- 비민감값 (ConfigMap): `STRIPE_PRO_PRICE_ID`, `STRIPE_TEAM_PRICE_ID`, `STRIPE_ENTERPRISE_PRICE_ID`
+
+**해결**: PR #40에서 ExternalSecret 11개 + ConfigMap 3개 추가. AWS SM에 시크릿 11개 생성.
+
+**참고**: `JWT_SECRET` (기존 ExternalSecret)과 `JWT_PRIVATE_KEY`/`JWT_PUBLIC_KEY` (앱이 실제 사용)는 다른 키. 앱은 RSA 키페어를 사용.
+
+---
+
+### T-055: platform-svc — `AES secret key must be 32 bytes` (D-030)
+
+```
+Caused by: java.lang.IllegalArgumentException: AES secret key must be 32 bytes
+  at com.synapse.platform.global.crypto.FieldEncryptor.<init>(FieldEncryptor.java:26)
+```
+
+**원인**: `FieldEncryptor`가 `Base64.getDecoder().decode(encodedKey)`로 디코딩 후 32바이트(AES-256) 검증. `openssl rand -hex 16`으로 생성한 hex 문자열은 디코딩 후 16바이트.
+
+**해결**:
+```bash
+# 올바른 AES 키 생성 (Base64 인코딩된 32바이트)
+AES_KEY=$(openssl rand -base64 32)
+
+# AWS SM 업데이트
+aws secretsmanager update-secret \
+  --secret-id synapse/dev/platform-svc/aes-secret-key \
+  --region ap-northeast-2 \
+  --secret-string "$AES_KEY"
+
+# ESO 갱신 + Pod 재시작
+kubectl -n synapse-dev delete secret platform-svc-secret
+kubectl -n synapse-dev rollout restart deploy platform-svc
+```
+
+---
+
+### T-056: platform-svc — `missing column [provider_user_id] in table [oauth_identities]` (D-029)
+
+```
+Schema-validation: missing column [provider_user_id] in table [oauth_identities]
+```
+
+**원인**: Flyway V3 migration이 `provider_id` 컬럼으로 테이블 생성하지만, JPA 엔티티 `OAuthIdentity.providerUserId`는 Hibernate 네이밍 전략에 의해 `provider_user_id`를 기대.
+
+**해결**: Flyway V28 migration 추가 (synapse-platform-svc 레포):
+```sql
+ALTER TABLE oauth_identities RENAME COLUMN provider_id TO provider_user_id;
+DROP INDEX IF EXISTS uq_oauth_provider_user;
+CREATE UNIQUE INDEX uq_oauth_provider_user ON oauth_identities(provider, provider_user_id);
+```
+
+migration 추가 후 ECR re-push 필요:
+```bash
+cd synapse-platform-svc
+docker build -t synapse/platform-svc:dev-latest .
+docker tag synapse/platform-svc:dev-latest 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/platform-svc:dev-latest
+docker push 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/platform-svc:dev-latest
+# Bastion에서:
+kubectl -n synapse-dev rollout restart deploy platform-svc
+```
+
+---
+
+### T-057: ECR re-push 후 Pod가 구 이미지로 기동
+
+**원인**: Deployment spec에 변경이 없으면 ArgoCD가 새 rollout을 트리거하지 않음. `imagePullPolicy: Always`가 아닌 경우 노드 캐시에서 구 이미지 사용 가능.
+
+**해결**: Bastion에서 수동 rollout restart:
+```bash
+kubectl -n synapse-dev rollout restart deploy <service-name>
+```
+
+---
+
 ## 7. SSM Bastion 관련
 
 ### T-060: `TargetNotConnected` — SSM 접속 실패
@@ -349,3 +432,6 @@ echo "<붙여넣기>" | base64 -d | kubectl apply -f -
 | D-026 | EKS managed node group SG 불일치 | 반복 | 매 apply 후 T-040 절차 수행 |
 | D-027 | EKS 인증 모드 CONFIG_MAP only | 해결 | API_AND_CONFIG_MAP + access entry |
 | D-028 | liveness probe delay 부족 | 해결 | initialDelaySeconds 90s (PR #35) |
+| D-029 | Flyway `provider_id` vs JPA `provider_user_id` | 해결 | V28 migration 컬럼 rename (T-056) |
+| D-030 | AES 키 포맷 오류 (hex vs Base64 32B) | 해결 | `openssl rand -base64 32` (T-055) |
+| D-031 | platform-svc 환경변수 14개 누락 | 해결 | ExternalSecret 11개 + ConfigMap 3개 (PR #40, T-054) |
