@@ -1,8 +1,8 @@
 # W2 핸드오프: 다음 세션 이어받기 (v8)
 
-> **최종 갱신**: 2026-05-21 (8차 세션 완료 — 3/5 Healthy + 2개 fix PR 머지)
-> **현재 상태**: 3/5 서비스 Healthy. platform-svc/learning-ai fix PR 머지 완료. terraform destroy 완료.
-> **남은 작업**: platform-svc ECR re-push → 5/5 Healthy, staging sync 검증, MSK 토픽 생성, W3 E2E
+> **최종 갱신**: 2026-05-21 (9차 세션 완료 — **5/5 Healthy** 달성)
+> **현재 상태**: **5/5 서비스 Healthy**. 전체 dev 환경 정상 운영 중.
+> **남은 작업**: staging sync 검증, MSK 토픽 생성, W3 E2E 검증
 > **브랜치**: main
 > **담당**: @VelkaressiaBlutkrone
 
@@ -66,6 +66,25 @@
 | **learning-ai fix** | 포트 8000 → 8090 통일 (gitops [PR #38](https://github.com/team-project-final/synapse-gitops/pull/38) → main 머지) |
 | TASK/WORKFLOW 문서 갱신 | W2 Step 4~7 진행 상태 업데이트 (PR #37) |
 
+### 9차 세션 (5/5 Healthy 달성 + 세션 기동 자동화 문서)
+
+| 작업 | 산출물 |
+|---|---|
+| terraform apply (46 리소스 프로비저닝) | 인프라 전체 재기동 |
+| EKS 인증 모드 + bastion access entry | API_AND_CONFIG_MAP + ClusterAdmin policy |
+| SG 수정 (D-026) | EKS cluster SG → RDS/Redis/MSK/OpenSearch 4개 SG 인바운드 추가 |
+| ArgoCD 설치 (`--server-side`) | CRD 크기 제한 해결 (T-020) |
+| ESO 설치 + OIDC trust policy 갱신 | IRSA annotation + OIDC ID 불일치 해결 (D-021 반복) |
+| ClusterSecretStore + AppProject + ApplicationSet | `curl \| kubectl apply` 패턴 (Bastion에 git 없음) |
+| **platform-svc 환경변수 14개 추가** | ExternalSecret 11개 시크릿 + ConfigMap 3개 (PR #40) |
+| **platform-svc ECR re-push** (2회) | ddl-auto fix + Flyway V28 migration 포함 |
+| **Flyway V28 migration 추가** | `provider_id` → `provider_user_id` 컬럼명 수정 (D-029) |
+| **AES 키 포맷 수정** | hex 16B → Base64 32B (FieldEncryptor 요구사항, D-030) |
+| AWS SM 시크릿 11개 생성 | JWT RSA 키페어, AES 키, Stripe/OAuth2 placeholder |
+| **5/5 Healthy 달성** | dev 환경 전체 서비스 정상 |
+| 세션 기동 runbook 작성 | `docs/runbooks/w2-session-bootstrap-runbook.md` (10단계) |
+| 인프라 트러블슈팅 가이드 작성 | `docs/runbooks/troubleshooting-infra.md` (16개 문제/해결) |
+
 ---
 
 ## 2. 현재 서비스 상태
@@ -75,19 +94,8 @@
 | **knowledge-svc** | Synced / **Healthy** | Running / Ready | 완전 정상 |
 | **engagement-svc** | Synced / **Healthy** | Running / Ready | SG 수정 후 정상 |
 | **learning-card** | Synced / **Healthy** | Running / Ready | SG + probe delay 후 정상 |
-| learning-ai | Synced / Progressing | CrashLoop | **포트 불일치 수정 완료** (PR #38 머지). 다음 apply 시 ArgoCD 자동 sync로 해결 예정 |
-| platform-svc | Synced / Progressing | CrashLoop | **ddl-auto fix 완료** (platform-svc PR #26 머지). ECR re-push 필요 |
-
-### platform-svc 다음 세션 조치
-
-`application-dev.yml`의 JPA 설정에서 `ddl-auto: validate` → `update`로 변경하거나, Flyway migration 파일 추가:
-
-```yaml
-spring:
-  jpa:
-    hibernate:
-      ddl-auto: update  # 또는 create (최초만)
-```
+| **learning-ai** | Synced / **Healthy** | Running / Ready | ✅ 포트 8090 통일 (PR #38) → 9차 세션에서 자동 해결 확인 |
+| **platform-svc** | Synced / **Healthy** | Running / Ready | ✅ 9차 세션에서 해결 (환경변수 14개 추가 + Flyway V28 + AES 키 수정) |
 
 ---
 
@@ -95,34 +103,21 @@ spring:
 
 ```
 1. terraform apply + 기본 설정 (매 세션 반복)
-   ├── terraform apply
-   ├── EKS 인증: aws eks update-cluster-config --access-config authenticationMode=API_AND_CONFIG_MAP
-   ├── Bastion access entry 추가: aws eks create-access-entry + associate-access-policy
-   ├── ArgoCD 설치: kubectl apply --server-side -f install.yaml
-   ├── ESO 설치: helm install + SA IRSA annotation
-   ├── SG 수정: EKS cluster SG를 RDS/Redis/MSK/OpenSearch SG에 추가 (D-026)
-   ├── ClusterSecretStore + AppProject + ApplicationSet apply
-   └── aws-auth 또는 access entry로 bastion role 등록
+   └── 상세 절차: docs/runbooks/w2-session-bootstrap-runbook.md (10단계)
+   └── 트러블슈팅: docs/runbooks/troubleshooting-infra.md (16개 항목)
         ↓
-2. platform-svc ECR re-push (코드 변경 반영)
-   ├── synapse-platform-svc dev 브랜치에서 docker build
-   ├── ECR push (dev-latest 태그)
-   └── ArgoCD rollout restart → Healthy 확인
+2. ✅ 5/5 Healthy 달성 (9차 세션 완료)
         ↓
-3. learning-ai 자동 해결 확인
-   ├── gitops PR #38 이미 머지 → ArgoCD 자동 sync
-   └── learning-ai Pod Ready 확인 (포트 8090)
-        ↓
-4. 5/5 Healthy 달성 후 staging sync
+3. staging sync (다음 세션)
    ├── argocd app sync synapse-*-staging (5개)
    └── synapse-staging namespace 5/5 Healthy
         ↓
-5. MSK 토픽 생성 (선행 가능)
+4. MSK 토픽 생성 (선행 가능)
    ├── scripts/create-kafka-topics.sh 실행 (Bastion에서)
    ├── Schema Registry 등록
    └── docs/guides/MSK_TOPIC_SETUP.md 참조
         ↓
-6. W3 E2E 검증 (팀원 Kafka 구현 완료 후)
+5. W3 E2E 검증 (팀원 Kafka 구현 완료 후)
    ├── kafka-e2e-test.sh --all 실행
    ├── dev → staging 프로모션 테스트
    └── 비용 관리: terraform destroy 필수
@@ -146,9 +141,14 @@ spring:
 [x] SG 수정 (RDS/Redis/MSK/OpenSearch)
 [x] staging overlay 생성 (5개 서비스)
 [x] staging ApplicationSet 추가 (manual sync)
-[ ] 서비스 안정화 (5개 중 1개 Healthy → 목표: 5/5)
-[ ] terraform state 검증 (fresh apply 후 plan clean)
+[x] 서비스 안정화 — **5/5 Healthy 달성** (9차 세션)
+[x] platform-svc 환경변수 14개 추가 (PR #40)
+[x] platform-svc Flyway V28 migration (provider_id → provider_user_id)
+[x] AWS SM 시크릿 11개 생성 (JWT RSA, AES, Stripe, OAuth2)
+[x] 세션 기동 runbook + 트러블슈팅 가이드 작성
 [ ] staging ArgoCD sync 검증
+[ ] MSK 토픽 생성
+[ ] W3 E2E 검증
 ```
 
 ---
@@ -160,10 +160,12 @@ spring:
 | 순서 | 문서 | 용도 |
 |---|---|---|
 | 0 | `docs/synapse-developer-guide.md` | **올인원 개발자 가이드 (808줄)** |
-| 1 | `docs/runbooks/w2-terraform-apply-quickstart.md` | terraform apply 전체 절차 |
-| 2 | `docs/runbooks/w2-eks-transition.md` | EKS provider swap 절차 |
-| 3 | `docs/runbooks/argocd-ui-access.md` | ArgoCD UI 접속 |
-| 4 | `docs/runbooks/bastion-ssm-access.md` | Bastion SSM 접근 절차 |
+| 1 | `docs/runbooks/w2-session-bootstrap-runbook.md` | **매 세션 인프라 기동 10단계 절차** |
+| 2 | `docs/runbooks/troubleshooting-infra.md` | **인프라 트러블슈팅 가이드 (16개 항목)** |
+| 3 | `docs/runbooks/w2-terraform-apply-quickstart.md` | terraform apply 전체 절차 |
+| 4 | `docs/runbooks/w2-eks-transition.md` | EKS provider swap 절차 |
+| 5 | `docs/runbooks/argocd-ui-access.md` | ArgoCD UI 접속 |
+| 6 | `docs/runbooks/bastion-ssm-access.md` | Bastion SSM 접근 절차 |
 
 ### 설계/계획 문서
 
@@ -185,11 +187,14 @@ spring:
 | D-021 | OIDC Provider ID 불일치 | ✅ IAM OIDC 재생성 + ESO trust policy 업데이트로 해결 |
 | D-022 | RDS/Redis/MSK/OpenSearch SG에 현재 EKS 노드 SG 미등록 | ✅ 수동으로 SG ingress 추가 |
 | D-023 | ConfigMap 환경변수와 앱 기대 변수명 불일치 | ✅ DB_URL, SPRING_DATASOURCE_URL 등 추가 (PR #30) |
-| D-024 | platform-svc: `mfa_credentials` 테이블 미존재 | Flyway migration 또는 ddl-auto 변경 필요 (서비스팀) |
+| D-024 | platform-svc: `mfa_credentials` 테이블 미존재 | ✅ ddl-auto: update (PR #26) + ECR re-push로 해결 |
 | D-025 | AWS SM 시크릿에 placeholder 값 → 실제 RDS PW로 교체 필요 | ✅ 8개 시크릿 값 업데이트 완료 |
 | D-026 | EKS managed node group은 terraform `eks_nodes` SG가 아닌 자체 `eks-cluster-sg-*` 사용 | 매 terraform apply 후 RDS/Redis/MSK/OpenSearch SG에 EKS cluster SG 수동 추가 필요. terraform 코드에 `aws_eks_cluster.main.vpc_config[0].cluster_security_group_id` 참조 추가 권장 |
 | D-027 | EKS 인증 모드 CONFIG_MAP → API_AND_CONFIG_MAP 변경 | access entry로 bastion role 등록. terraform eks.tf에 `access_config` 블록 추가 권장 |
 | D-028 | liveness probe initialDelaySeconds 30s 부족 | Spring Boot 4.0 + DB migration 기동 ~40-60초. PR #35에서 90s로 수정 |
+| D-029 | platform-svc: Flyway `provider_id` vs JPA `provider_user_id` 컬럼명 불일치 | ✅ V28 migration으로 컬럼 rename 해결 |
+| D-030 | platform-svc: AES 키 포맷 오류 (hex 16B vs Base64 32B) | ✅ FieldEncryptor가 Base64 디코딩 후 32B 검증. `openssl rand -base64 32`로 생성 |
+| D-031 | platform-svc: PR #24 이후 환경변수 14개 누락 (Stripe/OAuth2/crypto) | ✅ ExternalSecret 11개 + ConfigMap 3개 추가 (PR #40) |
 
 ---
 
@@ -210,6 +215,8 @@ spring:
 | [#36](https://github.com/team-project-final/synapse-gitops/pull/36) | `docs/session8-final` | 핸드오프 v7 D-026~D-028 | Merged |
 | [#37](https://github.com/team-project-final/synapse-gitops/pull/37) | `docs/session8-task-update` | TASK/WORKFLOW W2 갱신 | Merged |
 | [#38](https://github.com/team-project-final/synapse-gitops/pull/38) | `fix/learning-ai-port-mismatch` | learning-ai 포트 8000→8090 | Merged |
+| [#39](https://github.com/team-project-final/synapse-gitops/pull/39) | `docs/session8-handoff-final` | 핸드오프 v8 최종 | Merged |
+| [#40](https://github.com/team-project-final/synapse-gitops/pull/40) | `fix/platform-svc-env-vars` | platform-svc 환경변수 14개 + 세션 runbook + 트러블슈팅 | Merged |
 
 ### 서비스 레포
 
