@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/part-of: synapse
 data:
   LOG_LEVEL: "INFO"
-  SERVER_PORT: "8000"
+  SERVER_PORT: "8090"
   PYTHONUNBUFFERED: "1"
   MODEL_NAME: "gpt-4o-mini"
   KAFKA_TOPIC_CARDS_GENERATED: "learning.ai.cards-generated-v1"
