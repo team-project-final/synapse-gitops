@@ -168,6 +168,9 @@ spring:
 | D-023 | ConfigMap 환경변수와 앱 기대 변수명 불일치 | ✅ DB_URL, SPRING_DATASOURCE_URL 등 추가 (PR #30) |
 | D-024 | platform-svc: `mfa_credentials` 테이블 미존재 | Flyway migration 또는 ddl-auto 변경 필요 (서비스팀) |
 | D-025 | AWS SM 시크릿에 placeholder 값 → 실제 RDS PW로 교체 필요 | ✅ 8개 시크릿 값 업데이트 완료 |
+| D-026 | EKS managed node group은 terraform `eks_nodes` SG가 아닌 자체 `eks-cluster-sg-*` 사용 | 매 terraform apply 후 RDS/Redis/MSK/OpenSearch SG에 EKS cluster SG 수동 추가 필요. terraform 코드에 `aws_eks_cluster.main.vpc_config[0].cluster_security_group_id` 참조 추가 권장 |
+| D-027 | EKS 인증 모드 CONFIG_MAP → API_AND_CONFIG_MAP 변경 | access entry로 bastion role 등록. terraform eks.tf에 `access_config` 블록 추가 권장 |
+| D-028 | liveness probe initialDelaySeconds 30s 부족 | Spring Boot 4.0 + DB migration 기동 ~40-60초. PR #35에서 90s로 수정 |
 
 ---
 
@@ -183,6 +186,8 @@ spring:
 | [#28](https://github.com/team-project-final/synapse-gitops/pull/28) | `docs/developer-guide` | Developer Guide (808줄) | Merged |
 | [#29](https://github.com/team-project-final/synapse-gitops/pull/29) | `feat/pages-developer-guide` | Pages 사이트에 가이드 추가 | Merged |
 | [#30](https://github.com/team-project-final/synapse-gitops/pull/30) | `fix/configmap-db-env` | ConfigMap DB 환경변수 매핑 수정 | Merged |
+| [#34](https://github.com/team-project-final/synapse-gitops/pull/34) | `feat/w2-staging-overlay` | staging overlay + ApplicationSet + KAFKA_BROKERS 갱신 | Merged |
+| [#35](https://github.com/team-project-final/synapse-gitops/pull/35) | `fix/liveness-probe-delay` | liveness probe initialDelaySeconds 90s | Merged |
 
 ### 서비스 레포 (Dockerfile 추가 → dev 브랜치)
 
@@ -212,7 +217,7 @@ spring:
 
 | 항목 | 값 |
 |---|---|
-| **Instance ID** | `i-08399527c6f112cee` |
+| **Instance ID** | terraform apply마다 변경됨. `terraform output bastion_instance_id`로 확인 |
 | **도구** | kubectl v1.36.1, helm v3.21.0 |
 | **EKS 인증** | aws-auth `system:masters` |
 
