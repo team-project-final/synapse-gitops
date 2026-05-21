@@ -30,11 +30,16 @@
 
 ### 1.4 적용 + 검증
 - [x] git push → ArgoCD 5개 앱 모두 Synced + Healthy 확인 (kind)
-- [ ] 각 앱 Pod 로그 정상 (startup error 없음) — EKS 배포 후
-- [ ] /actuator/health 또는 동등 endpoint 200 응답 — EKS 배포 후
-- [ ] dev 도메인으로 5개 앱 도달 — EKS 배포 후
+- [x] EKS 배포: 3/5 Pod 정상 (engagement-svc, knowledge-svc, learning-card)
+- [ ] EKS 배포: platform-svc 정상 기동 (앱 코드 수정 필요 — mfa_credentials)
+- [ ] EKS 배포: learning-ai 정상 기동 (앱 코드 수정 필요 — Python 기동)
+- [ ] /actuator/health 200 응답 (3/5 확인, 2개 미확인)
+- [ ] dev 도메인으로 5개 앱 도달 — Ingress 미설정
+- [x] KAFKA_BROKERS endpoint 갱신 (PR #34, terraform re-apply 후 MSK 주소 변경)
+- [x] liveness probe initialDelaySeconds 30s → 90s (PR #35, D-028)
+- [x] EKS cluster SG를 RDS/Redis/MSK/OpenSearch SG에 추가 (D-026)
 
-**Step 4 Status**: [ ] Not Started / [ ] In Progress / [x] Done (kind 검증 완료)
+**Step 4 Status**: [ ] Not Started / [x] In Progress / [ ] Done (EKS 3/5 Healthy, 2개 앱 레벨 미해결)
 
 ---
 
@@ -48,7 +53,7 @@
 
 ### 1.2 ESO 설치 + 구성
 - [x] external-secrets helm chart 또는 매니페스트 적용 (kind: fake provider 검증)
-- [ ] IRSA 어노테이션 + IAM Policy 생성 (Secrets Manager read) — EKS 배포 시
+- [x] IRSA 어노테이션 + IAM Policy 생성 (Role: `synapse-dev-eso-role`, 8차 세션 trust policy 갱신)
 - [x] ClusterSecretStore 정의 (AWS provider) — `infra/external-secrets/cluster-secret-store.yaml`
 - [x] 테스트 ExternalSecret로 sync 동작 확인 (kind: fake provider)
 
