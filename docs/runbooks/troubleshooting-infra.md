@@ -15,6 +15,10 @@
 5. [SG (Security Group) 관련](#5-sg-security-group-관련)
 6. [서비스 Pod 관련](#6-서비스-pod-관련)
 7. [SSM Bastion 관련](#7-ssm-bastion-관련)
+8. [staging 환경 관련](#8-staging-환경-관련)
+9. [MSK / Kafka 관련](#9-msk--kafka-관련)
+6. [서비스 Pod 관련](#6-서비스-pod-관련)
+7. [SSM Bastion 관련](#7-ssm-bastion-관련)
 
 ---
 
@@ -422,6 +426,137 @@ echo "<붙여넣기>" | base64 -d | kubectl apply -f -
 
 ---
 
+## 8. staging 환경 관련
+
+### T-070: staging sync 시 `namespaces "synapse-staging" not found`
+
+```
+one or more objects failed to apply, reason: namespaces "synapse-staging" not found
+```
+
+**원인**: staging ApplicationSet에 `CreateNamespace=true` syncOption이 있지만, staging은 auto-sync가 아닌 manual sync. manual sync 시 네임스페이스 자동 생성이 동작하지 않는 경우가 있음.
+
+**해결**: 네임스페이스를 수동 생성 후 re-sync:
+```bash
+kubectl create namespace synapse-staging
+
+# 각 서비스 sync (한 줄씩 실행)
+kubectl -n argocd patch app synapse-platform-svc-staging --type merge \
+  -p '{"operation":{"initiatedBy":{"username":"admin"},"sync":{"revision":"HEAD","syncOptions":["CreateNamespace=true"]}}}'
+```
+
+---
+
+### T-071: ArgoCD CLI `port-forward` 실패 — `connection reset by peer`
+
+```
+error forwarding port 8080 to pod ...: read: connection reset by peer
+```
+
+**원인**: ArgoCD 서버가 `--insecure` 모드(HTTP)로 실행 중일 때 port-forward 대상 포트가 잘못 지정되거나, Pod가 재시작 중.
+
+**해결**: ArgoCD CLI 대신 `kubectl patch`로 직접 sync:
+```bash
+kubectl -n argocd patch app <app-name> --type merge \
+  -p '{"operation":{"initiatedBy":{"username":"admin"},"sync":{"revision":"HEAD"}}}'
+```
+
+이 방법이 ArgoCD CLI 로그인 없이도 sync 가능하며 더 안정적.
+
+---
+
+### T-072: staging에서 platform-svc CrashLoop — 구 이미지 사용
+
+**원인**: staging overlay의 이미지 태그가 `dev-latest`이지만, ECR의 `dev-latest`가 최신 코드(Flyway V28 + 환경변수 fix)를 포함하지 않는 경우. 또는 Deployment spec이 dev와 다른 ReplicaSet hash를 생성.
+
+**해결**: staging도 dev와 동일한 ECR 이미지를 사용하므로 최신 `dev-latest`가 push된 상태라면 rollout restart로 해결:
+```bash
+kubectl -n synapse-staging rollout restart deploy platform-svc
+```
+
+---
+
+### T-073: KAFKA_BROKERS 주소 불일치 — MSK 재생성 시
+
+**원인**: terraform destroy → apply 시 MSK 클러스터가 재생성되면서 브로커 도메인명이 변경됨 (예: `ejn12p` → `dchj3l`). gitops ConfigMap의 KAFKA_BROKERS가 이전 주소를 가리킴.
+
+**진단**:
+```bash
+# 현재 MSK 브로커 주소 확인
+CLUSTER_ARN=$(aws kafka list-clusters-v2 --region ap-northeast-2 \
+  --query 'ClusterInfoList[0].ClusterArn' --output text)
+aws kafka get-bootstrap-brokers --cluster-arn "$CLUSTER_ARN" \
+  --region ap-northeast-2 --query 'BootstrapBrokerStringTls' --output text
+```
+
+**해결**: 10개 overlay 파일 일괄 업데이트:
+```bash
+# 이전 주소의 고유 부분 (예: ejn12p) 확인 후
+grep -rl "<old-id>" apps/*/overlays/*/kustomization.yaml
+# sed로 일괄 교체
+sed -i 's/<old-id>/<new-id>/g' $(grep -rl "<old-id>" apps/*/overlays/*/kustomization.yaml)
+```
+
+커밋 + PR + ArgoCD auto-sync로 반영.
+
+---
+
+## 9. MSK / Kafka 관련
+
+### T-080: Bastion에서 `kafka-topics.sh: command not found`
+
+**원인**: Bastion AMI에 Kafka CLI 미설치.
+
+**해결**: Java + Kafka 바이너리 설치:
+```bash
+sudo dnf install -y java-17-amazon-corretto-headless
+curl -sL https://archive.apache.org/dist/kafka/3.7.0/kafka_2.13-3.7.0.tgz | tar xz -C /tmp
+export PATH=$PATH:/tmp/kafka_2.13-3.7.0/bin
+```
+
+> **참고**: Apache 공식 다운로드(`downloads.apache.org`)는 최신 버전만 제공하며, 구 버전은 `archive.apache.org`에서 다운로드. 최신 버전 URL이 404인 경우 archive URL 사용.
+
+---
+
+### T-081: MSK TLS 접속 시 handshake 실패
+
+**원인**: MSK가 TLS(포트 9094)를 사용하지만 Kafka CLI에 SSL 설정이 없음.
+
+**해결**: client.properties 파일 생성 후 `--command-config` 옵션 사용:
+```bash
+cat > /tmp/client.properties << 'PROPS'
+security.protocol=SSL
+PROPS
+
+kafka-topics.sh --bootstrap-server "$KAFKA_BROKERS" \
+  --list --command-config /tmp/client.properties
+```
+
+---
+
+### T-082: MSK 토픽 생성 시 replication-factor 에러
+
+```
+Error: replication factor: 3 larger than available brokers: 2
+```
+
+**원인**: dev 환경 MSK가 브로커 2대인데 replication-factor=3으로 토픽 생성 시도.
+
+**해결**: `--replication-factor 2`로 생성:
+```bash
+kafka-topics.sh --bootstrap-server "$KAFKA_BROKERS" \
+  --create --topic <topic-name> \
+  --partitions 3 --replication-factor 2 \
+  --command-config /tmp/client.properties
+```
+
+`synapse-shared/scripts/create-kafka-topics.sh` 사용 시:
+```bash
+REPLICATION_FACTOR=2 KAFKA_BROKERS="$KAFKA_BROKERS" bash scripts/create-kafka-topics.sh
+```
+
+---
+
 ## 발견 사항 이력 (Discovery Log)
 
 | ID | 내용 | 상태 | 해결 방법 |
@@ -435,3 +570,6 @@ echo "<붙여넣기>" | base64 -d | kubectl apply -f -
 | D-029 | Flyway `provider_id` vs JPA `provider_user_id` | 해결 | V28 migration 컬럼 rename (T-056) |
 | D-030 | AES 키 포맷 오류 (hex vs Base64 32B) | 해결 | `openssl rand -base64 32` (T-055) |
 | D-031 | platform-svc 환경변수 14개 누락 | 해결 | ExternalSecret 11개 + ConfigMap 3개 (PR #40, T-054) |
+| D-032 | staging namespace 미존재 | 해결 | `kubectl create namespace synapse-staging` (T-070) |
+| D-033 | KAFKA_BROKERS MSK 재생성 시 주소 변경 | 반복 | 매 apply 후 10개 overlay 일괄 업데이트 (T-073, PR #42) |
+| D-034 | ArgoCD CLI port-forward 실패 | 해결 | `kubectl patch app` 방식으로 sync (T-071) |

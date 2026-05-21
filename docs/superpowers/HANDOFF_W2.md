@@ -82,8 +82,11 @@
 | **AES 키 포맷 수정** | hex 16B → Base64 32B (FieldEncryptor 요구사항, D-030) |
 | AWS SM 시크릿 11개 생성 | JWT RSA 키페어, AES 키, Stripe/OAuth2 placeholder |
 | **5/5 Healthy 달성** | dev 환경 전체 서비스 정상 |
-| 세션 기동 runbook 작성 | `docs/runbooks/w2-session-bootstrap-runbook.md` (10단계) |
-| 인프라 트러블슈팅 가이드 작성 | `docs/runbooks/troubleshooting-infra.md` (16개 문제/해결) |
+| **staging 4/5 Healthy** | staging sync 완료 (platform-svc는 staging 프로필 수정 필요) |
+| **MSK 토픽 5개 생성** | kafka-client Pod 경유, replication-factor=2 |
+| **KAFKA_BROKERS 갱신** (PR #42) | MSK 재생성으로 브로커 주소 변경 (ejn12p → dchj3l) |
+| 세션 기동 runbook 작성 | `docs/runbooks/w2-session-bootstrap-runbook.md` (12단계) |
+| 인프라 트러블슈팅 가이드 작성 | `docs/runbooks/troubleshooting-infra.md` (22개 문제/해결) |
 
 ---
 
@@ -146,9 +149,11 @@
 [x] platform-svc Flyway V28 migration (provider_id → provider_user_id)
 [x] AWS SM 시크릿 11개 생성 (JWT RSA, AES, Stripe, OAuth2)
 [x] 세션 기동 runbook + 트러블슈팅 가이드 작성
-[ ] staging ArgoCD sync 검증
-[ ] MSK 토픽 생성
-[ ] W3 E2E 검증
+[x] staging ArgoCD sync — 4/5 Healthy (platform-svc staging 프로필 미존재)
+[x] MSK 토픽 5개 생성 (kafka-client Pod 경유)
+[x] KAFKA_BROKERS 주소 갱신 (PR #42)
+[ ] staging platform-svc: application-staging.yml 추가 필요
+[ ] W3 E2E 검증 (팀원 Kafka 구현 완료 후)
 ```
 
 ---
@@ -217,6 +222,8 @@
 | [#38](https://github.com/team-project-final/synapse-gitops/pull/38) | `fix/learning-ai-port-mismatch` | learning-ai 포트 8000→8090 | Merged |
 | [#39](https://github.com/team-project-final/synapse-gitops/pull/39) | `docs/session8-handoff-final` | 핸드오프 v8 최종 | Merged |
 | [#40](https://github.com/team-project-final/synapse-gitops/pull/40) | `fix/platform-svc-env-vars` | platform-svc 환경변수 14개 + 세션 runbook + 트러블슈팅 | Merged |
+| [#41](https://github.com/team-project-final/synapse-gitops/pull/41) | `docs/session9-handoff` | 핸드오프 v9 (5/5 Healthy) | Merged |
+| [#42](https://github.com/team-project-final/synapse-gitops/pull/42) | `fix/kafka-brokers-and-docs` | KAFKA_BROKERS 갱신 + 트러블슈팅 추가 | Merged |
 
 ### 서비스 레포
 
