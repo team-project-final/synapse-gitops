@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:synapse_runbooks/models/doc.dart';
 import 'package:synapse_runbooks/models/runbook.dart';
 
 class Sidebar extends StatefulWidget {
@@ -12,24 +13,37 @@ class Sidebar extends StatefulWidget {
 }
 
 class _SidebarState extends State<Sidebar> {
+  List<DocIndex> _docs = [];
   List<RunbookIndex> _runbooks = [];
   bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadIndex();
+    _load();
   }
 
-  Future<void> _loadIndex() async {
-    final jsonStr = await rootBundle.loadString('assets/runbooks/index.json');
-    final list = json.decode(jsonStr) as List;
-    setState(() {
-      _runbooks = list
-          .map((e) => RunbookIndex.fromJson(e as Map<String, dynamic>))
+  Future<void> _load() async {
+    try {
+      final docsJson =
+          await rootBundle.loadString('assets/docs/index.json');
+      final docsList = json.decode(docsJson) as List;
+      _docs = docsList
+          .map((e) => DocIndex.fromJson(e as Map<String, dynamic>))
           .toList();
-      _loading = false;
-    });
+    } catch (_) {}
+
+    try {
+      final runbooksJson =
+          await rootBundle.loadString('assets/runbooks/index.json');
+      final runbooksList = json.decode(runbooksJson) as List;
+      _runbooks = runbooksList
+          .map((e) =>
+              RunbookIndex.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (_) {}
+
+    setState(() => _loading = false);
   }
 
   @override
@@ -38,61 +52,65 @@ class _SidebarState extends State<Sidebar> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final grouped = <RunbookCategory, List<RunbookIndex>>{};
-    for (final r in _runbooks) {
-      grouped.putIfAbsent(r.category, () => []).add(r);
+    final grouped = <DocCategory, List<DocIndex>>{};
+    for (final d in _docs) {
+      grouped.putIfAbsent(d.category, () => []).add(d);
     }
-
-    final categories = [
-      RunbookCategory.onboarding,
-      RunbookCategory.steps,
-      RunbookCategory.weekly,
-    ];
 
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: TextButton.icon(
-            onPressed: () => context.go('/onboarding'),
-            icon: const Icon(Icons.school),
-            label: const Text('온보딩 워크스루'),
-          ),
+        ListTile(
+          leading: const Icon(Icons.home),
+          title: const Text('홈'),
+          onTap: () => context.go('/'),
+        ),
+        ListTile(
+          leading: const Icon(Icons.search),
+          title: const Text('검색'),
+          onTap: () => context.go('/search'),
+        ),
+        ListTile(
+          leading: const Icon(Icons.dashboard),
+          title: const Text('현황'),
+          onTap: () => context.go('/dashboard'),
         ),
         const Divider(),
-        for (final category in categories)
-          if (grouped.containsKey(category)) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: Text(
-                category.displayName,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
+        for (final cat in DocCategory.values)
+          if (grouped.containsKey(cat))
+            ExpansionTile(
+              leading:
+                  Text(cat.icon, style: const TextStyle(fontSize: 16)),
+              title: Text('${cat.displayName} (${grouped[cat]!.length})'),
+              children: [
+                for (final doc in grouped[cat]!)
+                  ListTile(
+                    title: Text(doc.title,
+                        style: Theme.of(context).textTheme.bodySmall),
+                    dense: true,
+                    contentPadding: const EdgeInsets.only(left: 56),
+                    onTap: () => context.go(
+                        '/docs/${doc.category.id}/${doc.slug}'),
+                  ),
+              ],
             ),
-            for (final runbook in grouped[category]!)
-              ListTile(
-                dense: true,
-                title: Text(
-                  runbook.title,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+        if (_runbooks.isNotEmpty) ...[
+          const Divider(),
+          ExpansionTile(
+            leading: const Icon(Icons.menu_book, size: 16),
+            title: Text('런북 (${_runbooks.length})'),
+            children: [
+              for (final r in _runbooks)
+                ListTile(
+                  title: Text(r.title,
+                      style: Theme.of(context).textTheme.bodySmall),
+                  dense: true,
+                  contentPadding: const EdgeInsets.only(left: 56),
+                  onTap: () => context.go('/runbook/${r.slug}'),
                 ),
-                subtitle: runbook.duration != null
-                    ? Text(runbook.duration!,
-                        style: Theme.of(context).textTheme.bodySmall)
-                    : null,
-                onTap: () {
-                  context.go('/runbook/${runbook.slug}');
-                  if (Scaffold.of(context).isDrawerOpen) {
-                    Navigator.of(context).pop();
-                  }
-                },
-              ),
-          ],
+            ],
+          ),
+        ],
       ],
     );
   }
