@@ -1,0 +1,151 @@
+{
+  "slug": "03-technical",
+  "title": "3. 기술 구현 RULE — Technical Implementation\r",
+  "category": "rules",
+  "source": "synapse-shared",
+  "tags": [],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-14",
+    "status": "active",
+    "completionRate": null
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "3.1 메서드 크기 [SHOULD]",
+      "anchor": "31-메서드-크기-should"
+    },
+    {
+      "level": 3,
+      "text": "규칙",
+      "anchor": "규칙"
+    },
+    {
+      "level": 3,
+      "text": "✅ Good — 적절히 분리된 메서드",
+      "anchor": "-good-적절히-분리된-메서드"
+    },
+    {
+      "level": 3,
+      "text": "❌ Bad — 80줄짜리 god method",
+      "anchor": "-bad-80줄짜리-god-method"
+    },
+    {
+      "level": 2,
+      "text": "3.2 N+1 방지 [MUST]",
+      "anchor": "32-n1-방지-must"
+    },
+    {
+      "level": 3,
+      "text": "규칙",
+      "anchor": "규칙"
+    },
+    {
+      "level": 3,
+      "text": "❌ Bad — N+1 발생 코드",
+      "anchor": "-bad-n1-발생-코드"
+    },
+    {
+      "level": 3,
+      "text": "✅ Good — fetchJoin으로 한 방 쿼리",
+      "anchor": "-good-fetchjoin으로-한-방-쿼리"
+    },
+    {
+      "level": 2,
+      "text": "3.3 트랜잭션 [MUST]",
+      "anchor": "33-트랜잭션-must"
+    },
+    {
+      "level": 3,
+      "text": "규칙",
+      "anchor": "규칙"
+    },
+    {
+      "level": 3,
+      "text": "✅ Good — 적절한 트랜잭션 설정",
+      "anchor": "-good-적절한-트랜잭션-설정"
+    },
+    {
+      "level": 3,
+      "text": "❌ Bad — Controller에 트랜잭션 / readOnly 미설정",
+      "anchor": "-bad-controller에-트랜잭션-readonly-미설정"
+    },
+    {
+      "level": 2,
+      "text": "3.4 AOP [MUST]",
+      "anchor": "34-aop-must"
+    },
+    {
+      "level": 3,
+      "text": "규칙",
+      "anchor": "규칙"
+    },
+    {
+      "level": 3,
+      "text": "✅ Good — cross-cutting concern",
+      "anchor": "-good-cross-cutting-concern"
+    },
+    {
+      "level": 3,
+      "text": "❌ Bad — 비즈니스 로직을 AOP로 처리",
+      "anchor": "-bad-비즈니스-로직을-aop로-처리"
+    },
+    {
+      "level": 2,
+      "text": "3.5 Modulith 경계 [MUST]",
+      "anchor": "35-modulith-경계-must"
+    },
+    {
+      "level": 3,
+      "text": "규칙",
+      "anchor": "규칙"
+    },
+    {
+      "level": 3,
+      "text": "✅ Good — package-info.java 선언",
+      "anchor": "-good-package-infojava-선언"
+    },
+    {
+      "level": 3,
+      "text": "❌ Bad — 순환 의존",
+      "anchor": "-bad-순환-의존"
+    },
+    {
+      "level": 3,
+      "text": "ArchUnit 검증 예시",
+      "anchor": "archunit-검증-예시"
+    },
+    {
+      "level": 2,
+      "text": "3.6 예외 처리 [SHOULD]",
+      "anchor": "36-예외-처리-should"
+    },
+    {
+      "level": 3,
+      "text": "규칙",
+      "anchor": "규칙"
+    },
+    {
+      "level": 3,
+      "text": "✅ Good — 도메인 예외 계층",
+      "anchor": "-good-도메인-예외-계층"
+    },
+    {
+      "level": 3,
+      "text": "❌ Bad — catch 후 무로깅 rethrow",
+      "anchor": "-bad-catch-후-무로깅-rethrow"
+    },
+    {
+      "level": 3,
+      "text": "❌ Bad — 서비스에서 HTTP 상태 지정",
+      "anchor": "-bad-서비스에서-http-상태-지정"
+    },
+    {
+      "level": 2,
+      "text": "요약 체크리스트",
+      "anchor": "요약-체크리스트"
+    }
+  ],
+  "body": "# 3. 기술 구현 RULE — Technical Implementation\r\n\r\n> **프로젝트**: Synapse — 통합 학습-지식 그래프 SaaS  \r\n> **버전**: v1.0 | 2026-05-12  \r\n> **대상**: 백엔드 개발자 전원  \r\n> **준수 수준**: [MUST] 반드시 / [SHOULD] 권장 / [MAY] 선택\r\n\r\n---\r\n\r\n## 3.1 메서드 크기 [SHOULD]\r\n\r\n### 규칙\r\n\r\n- 메서드 하나는 **30~40줄** 이내로 작성\r\n- 초과하면 의미 단위로 private 메서드로 분리\r\n- 분리 기준: \"이 블록에 이름을 붙일 수 있는가?\" — 붙일 수 있으면 분리 대상\r\n\r\n### ✅ Good — 적절히 분리된 메서드\r\n\r\n```java\r\n@Service\r\npublic class CardReviewService {\r\n\r\n    public ReviewResult review(UUID cardId, ReviewGrade grade) {\r\n        Card card = findCard(cardId);\r\n        SrsSchedule schedule = calculateNextSchedule(card, grade);\r\n        card.applySchedule(schedule);\r\n        cardRepository.save(card);\r\n        publishReviewEvent(card, grade);\r\n        return ReviewResult.from(card, schedule);\r\n    }\r\n\r\n    private Card findCard(UUID cardId) {\r\n        return cardRepository.findById(cardId)\r\n            .orElseThrow(() -> new CardNotFoundException(cardId));\r\n    }\r\n\r\n    private SrsSchedule calculateNextSchedule(Card card, ReviewGrade grade) {\r\n        return srsAlgorithm.calculate(card.currentInterval(), grade);\r\n    }\r\n\r\n    private void publishReviewEvent(Card card, ReviewGrade grade) {\r\n        eventPublisher.publish(new CardReviewedEvent(card.getId(), grade));\r\n    }\r\n}\r\n```\r\n\r\n### ❌ Bad — 80줄짜리 god method\r\n\r\n```java\r\npublic ReviewResult review(UUID cardId, ReviewGrade grade) {\r\n    // 카드 조회, 유효성 검증, SRS 계산, 저장, 이벤트 발행,\r\n    // 감사 로그, 통계 업데이트, 알림 발송...\r\n    // 80줄 이상의 로직이 한 메서드에 전부 들어있음\r\n}\r\n```\r\n\r\n> **이유**: 30~40줄 제한은 한 화면에 메서드 전체가 보이는 수준이야. 이걸 넘으면 코드 리뷰 때 맥락 파악이 어렵고, 단위 테스트 작성도 힘들어짐.\r\n\r\n---\r\n\r\n## 3.2 N+1 방지 [MUST]\r\n\r\n### 규칙\r\n\r\n- 연관 엔티티 조회 시 반드시 **fetchJoin()** 또는 **@EntityGraph** 사용\r\n- `findAll()` 후 loop에서 lazy 접근하는 패턴 절대 금지\r\n- QueryDSL `fetchJoin()` 또는 Spring Data JPA `@EntityGraph` 둘 중 하나 선택\r\n\r\n### ❌ Bad — N+1 발생 코드\r\n\r\n```java\r\n// 노트 100개 조회 -> 각 노트의 tags를 lazy로 접근 -> 101번 쿼리 발생!\r\npublic List<NoteWithTagsDto> getAllNotesWithTags(UUID userId) {\r\n    List<Note> notes = noteRepository.findAllByUserId(userId);\r\n\r\n    return notes.stream()\r\n        .map(note -> new NoteWithTagsDto(\r\n            note.getId(),\r\n            note.getTitle(),\r\n            note.getTags()  // Lazy 로딩 -> 매번 SELECT!\r\n        ))\r\n        .toList();\r\n}\r\n```\r\n\r\n### ✅ Good — fetchJoin으로 한 방 쿼리\r\n\r\n```java\r\n// QueryDSL fetchJoin\r\npublic List<NoteWithTagsDto> getAllNotesWithTags(UUID userId) {\r\n    List<Note> notes = queryFactory\r\n        .selectFrom(note)\r\n        .leftJoin(note.tags, tag).fetchJoin()\r\n        .where(note.userId.eq(userId))\r\n        .fetch();\r\n\r\n    return notes.stream()\r\n        .map(NoteWithTagsDto::from)\r\n        .toList();\r\n}\r\n```\r\n\r\n```java\r\n// 또는 @EntityGraph 사용\r\npublic interface NoteRepository extends JpaRepository<Note, UUID> {\r\n\r\n    @EntityGraph(attributePaths = {\"tags\"})\r\n    List<Note> findAllByUserId(UUID userId);\r\n}\r\n```\r\n\r\n> **이유**: N+1은 데이터 10개일 땐 티 안 나는데, 프로덕션에서 1000개 넘어가면 응답시간이 수십 배로 뻥튀기됨. 초기에 잡지 않으면 나중에 찾기도 힘들어.\r\n\r\n---\r\n\r\n## 3.3 트랜잭션 [MUST]\r\n\r\n### 규칙\r\n\r\n- 읽기 전용 메서드에는 **`@Transactional(readOnly = true)`** 필수\r\n- 쓰기 메서드에는 전파 레벨을 명시적으로 작성 (기본값에 의존하지 않기)\r\n- 트랜잭션은 **서비스(application) 계층에서만** 선언 — Controller, Repository에 걸지 않음\r\n- 하나의 트랜잭션에서 외부 API 호출 금지 (트랜잭션 밖에서 호출 후 결과를 넘길 것)\r\n\r\n### ✅ Good — 적절한 트랜잭션 설정\r\n\r\n```java\r\n@Service\r\n@RequiredArgsConstructor\r\npublic class NoteService {\r\n\r\n    @Transactional(readOnly = true)\r\n    public NoteDto findById(UUID noteId) {\r\n        Note note = noteRepository.findById(noteId)\r\n            .orElseThrow(() -> new NoteNotFoundException(noteId));\r\n        return NoteDto.from(note);\r\n    }\r\n\r\n    @Transactional(propagation = Propagation.REQUIRED)\r\n    public NoteDto create(NoteCreateCommand command) {\r\n        Note note = Note.create(command.title(), command.content());\r\n        noteRepository.save(note);\r\n        eventPublisher.publish(new NoteCreatedEvent(note.getId()));\r\n        return NoteDto.from(note);\r\n    }\r\n}\r\n```\r\n\r\n### ❌ Bad — Controller에 트랜잭션 / readOnly 미설정\r\n\r\n```java\r\n@RestController\r\npublic class NoteController {\r\n\r\n    @Transactional  // Controller에 트랜잭션 금지!\r\n    @GetMapping(\"/api/v1/notes/{id}\")\r\n    public NoteDto getNote(@PathVariable UUID id) {\r\n        return noteService.findById(id);  // readOnly도 아님\r\n    }\r\n}\r\n```\r\n\r\n> **이유**: `readOnly = true`는 JPA flush를 건너뛰고 DB 커넥션을 replica로 라우팅할 수 있게 해줘서 성능에 직결됨. Controller에 트랜잭션을 걸면 요청 전체가 하나의 트랜잭션이 되어 커넥션 점유 시간이 늘어남.\r\n\r\n---\r\n\r\n## 3.4 AOP [MUST]\r\n\r\n### 규칙\r\n\r\n- AOP는 **cross-cutting concern에만** 사용: 로깅, 감사(audit), 성능 측정, 보안 검증\r\n- **비즈니스 로직에 AOP 적용 절대 금지** — 디버깅이 불가능해짐\r\n- Aspect 클래스는 `infrastructure` 패키지에 위치\r\n\r\n### ✅ Good — cross-cutting concern\r\n\r\n```java\r\n@Aspect\r\n@Component\r\npublic class AuditAspect {\r\n\r\n    @AfterReturning(pointcut = \"@annotation(Auditable)\", returning = \"result\")\r\n    public void auditAction(JoinPoint joinPoint, Object result) {\r\n        String method = joinPoint.getSignature().getName();\r\n        auditLogger.log(method, result);\r\n    }\r\n}\r\n```\r\n\r\n### ❌ Bad — 비즈니스 로직을 AOP로 처리\r\n\r\n```java\r\n@Aspect\r\n@Component\r\npublic class CardExpirationAspect {\r\n\r\n    // 비즈니스 로직(만료 처리)을 AOP로 -> 디버깅 지옥\r\n    @Before(\"execution(* com.synapse.learning.card..*Service.*(..))\")\r\n    public void checkCardExpiration(JoinPoint joinPoint) {\r\n        Object[] args = joinPoint.getArgs();\r\n        UUID cardId = (UUID) args[0];\r\n        Card card = cardRepository.findById(cardId).orElseThrow();\r\n\r\n        if (card.isExpired()) {\r\n            card.markAsExpired();\r\n            cardRepository.save(card);\r\n            // 호출자는 이 로직이 실행되는지 코드만 봐서는 알 수 없음!\r\n        }\r\n    }\r\n}\r\n```\r\n\r\n> **이유**: AOP는 코드에 안 보이는 곳에서 실행되니까, 비즈니스 로직을 넣으면 \"왜 이게 실행되지?\" 하고 코드 전체를 뒤져야 함. cross-cutting만 쓰면 \"아 로깅이겠지\" 하고 넘어갈 수 있어.\r\n\r\n---\r\n\r\n## 3.5 Modulith 경계 [MUST]\r\n\r\n### 규칙\r\n\r\n- 모듈은 `allowedDependencies`에 `\"shared\"`만 공통 허용\r\n- 모듈 간 직접 import 금지 — **이벤트** 또는 **exposed interface**로 통신\r\n- **순환 의존 절대 금지** — ArchUnit 테스트로 CI에서 검증\r\n- 모듈 경계는 `package-info.java`로 선언\r\n\r\n### ✅ Good — package-info.java 선언\r\n\r\n```java\r\n// com/synapse/knowledge/note/package-info.java\r\n@ApplicationModule(\r\n    allowedDependencies = {\"shared\"}\r\n)\r\npackage com.synapse.knowledge.note;\r\n\r\nimport org.springframework.modulith.ApplicationModule;\r\n```\r\n\r\n```java\r\n// com/synapse/knowledge/graph/package-info.java\r\n@ApplicationModule(\r\n    allowedDependencies = {\"shared\", \"note\"}  // 같은 서비스 내 note 모듈 참조 허용\r\n)\r\npackage com.synapse.knowledge.graph;\r\n\r\nimport org.springframework.modulith.ApplicationModule;\r\n```\r\n\r\n### ❌ Bad — 순환 의존\r\n\r\n```java\r\n// note 모듈이 graph를 참조하고, graph 모듈이 note를 참조 -> 순환!\r\n// note/package-info.java\r\n@ApplicationModule(allowedDependencies = {\"shared\", \"graph\"})\r\npackage com.synapse.knowledge.note;\r\n\r\n// graph/package-info.java\r\n@ApplicationModule(allowedDependencies = {\"shared\", \"note\"})\r\npackage com.synapse.knowledge.graph;\r\n// -> 빌드 시 ModulithVerificationFailedException 발생!\r\n```\r\n\r\n### ArchUnit 검증 예시\r\n\r\n```java\r\n@AnalyzeClasses(packages = \"com.synapse.knowledge\")\r\nclass ModulithArchTest {\r\n\r\n    @ArchTest\r\n    static final ArchRule noCyclicDependencies =\r\n        slices().matching(\"com.synapse.knowledge.(*)..\")\r\n            .should().beFreeOfCycles();\r\n}\r\n```\r\n\r\n> **이유**: 순환 의존이 생기면 모듈을 독립적으로 테스트/빌드할 수 없고, 나중에 마이크로서비스로 분리할 때 불가능해짐. Modulith의 존재 의미 자체가 경계 강제야.\r\n\r\n---\r\n\r\n## 3.6 예외 처리 [SHOULD]\r\n\r\n### 규칙\r\n\r\n- 도메인별 **커스텀 예외 계층**을 정의 (공통 BusinessException 상속)\r\n- catch 후 **아무 로깅 없이 rethrow 금지** — 최소한 warn 레벨 로그 남기기\r\n- 예외 메시지에 디버깅 컨텍스트(ID, 상태 등) 포함\r\n- `GlobalExceptionHandler`에서 최종 변환 (서비스에서 HTTP 상태코드 지정 금지)\r\n\r\n### ✅ Good — 도메인 예외 계층\r\n\r\n```java\r\n// 공통 Base Exception\r\npublic abstract class BusinessException extends RuntimeException {\r\n    private final String errorCode;\r\n\r\n    protected BusinessException(String errorCode, String message) {\r\n        super(message);\r\n        this.errorCode = errorCode;\r\n    }\r\n\r\n    public String getErrorCode() { return errorCode; }\r\n}\r\n\r\n// Knowledge 도메인 예외\r\npublic class NoteNotFoundException extends BusinessException {\r\n    public NoteNotFoundException(UUID noteId) {\r\n        super(\"KNOW-003\", \"노트를 찾을 수 없음: \" + noteId);\r\n    }\r\n}\r\n\r\npublic class GraphCycleDetectedException extends BusinessException {\r\n    public GraphCycleDetectedException(UUID fromNode, UUID toNode) {\r\n        super(\"KNOW-007\", \"순환 참조 감지: \" + fromNode + \" -> \" + toNode);\r\n    }\r\n}\r\n```\r\n\r\n### ❌ Bad — catch 후 무로깅 rethrow\r\n\r\n```java\r\npublic NoteDto findNote(UUID noteId) {\r\n    try {\r\n        return noteRepository.findById(noteId)\r\n            .map(NoteDto::from)\r\n            .orElseThrow();\r\n    } catch (Exception e) {\r\n        throw new RuntimeException(e);  // 로그도 없이 감싸서 던짐 -> 디버깅 불가!\r\n    }\r\n}\r\n```\r\n\r\n### ❌ Bad — 서비스에서 HTTP 상태 지정\r\n\r\n```java\r\n@Service\r\npublic class NoteService {\r\n    public NoteDto findById(UUID noteId) {\r\n        // 서비스 계층에서 HTTP 404를 알면 안 됨!\r\n        throw new ResponseStatusException(HttpStatus.NOT_FOUND, \"note not found\");\r\n    }\r\n}\r\n```\r\n\r\n> **이유**: 예외에 컨텍스트가 없으면 프로덕션에서 \"뭐가 없다는 거야?\"가 됨. 커스텀 예외 계층이 있어야 GlobalExceptionHandler에서 에러 코드를 자동 매핑할 수 있고, 로그 없는 rethrow는 스택 트레이스가 끊겨서 장애 추적이 불가능해짐.\r\n\r\n---\r\n\r\n## 요약 체크리스트\r\n\r\n| # | 규칙 | 수준 |\r\n|---|------|------|\r\n| 3.1 | 메서드 30~40줄 이내, 초과 시 분리 | [SHOULD] |\r\n| 3.2 | N+1 방지 — fetchJoin / @EntityGraph 필수 | [MUST] |\r\n| 3.3 | 트랜잭션 — readOnly, 전파 레벨 명시, 서비스만 | [MUST] |\r\n| 3.4 | AOP — cross-cutting만, 비즈니스 로직 금지 | [MUST] |\r\n| 3.5 | Modulith 경계 — allowedDependencies, 순환 금지 | [MUST] |\r\n| 3.6 | 예외 처리 — 커스텀 계층, 무로깅 rethrow 금지 | [SHOULD] |\r\n"
+}

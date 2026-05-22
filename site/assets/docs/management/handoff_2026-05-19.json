@@ -1,0 +1,107 @@
+{
+  "slug": "handoff_2026-05-19",
+  "title": "HANDOFF — 2026-05-19 → 05-22 (W2 Day 1~4)\r",
+  "category": "management",
+  "source": "synapse-shared",
+  "tags": [
+    "kafka",
+    "argocd",
+    "terraform",
+    "eks",
+    "msk"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-22",
+    "status": "active",
+    "completionRate": null
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "현재 상태",
+      "anchor": "현재-상태"
+    },
+    {
+      "level": 3,
+      "text": "W1/W2 전체 Step 완료",
+      "anchor": "w1w2-전체-step-완료"
+    },
+    {
+      "level": 3,
+      "text": "CI/CD 파이프라인 검증 완료",
+      "anchor": "cicd-파이프라인-검증-완료"
+    },
+    {
+      "level": 3,
+      "text": "주요 커밋",
+      "anchor": "주요-커밋"
+    },
+    {
+      "level": 2,
+      "text": "발견 사항 (다음 세션 참고)",
+      "anchor": "발견-사항-다음-세션-참고"
+    },
+    {
+      "level": 2,
+      "text": "05-20 세션 작업 내역",
+      "anchor": "05-20-세션-작업-내역"
+    },
+    {
+      "level": 3,
+      "text": "완료: 운영 정비",
+      "anchor": "완료-운영-정비"
+    },
+    {
+      "level": 3,
+      "text": "완료: W3 사전 준비 산출물",
+      "anchor": "완료-w3-사전-준비-산출물"
+    },
+    {
+      "level": 3,
+      "text": "완료: 05-21 세션 (gitops 8차)",
+      "anchor": "완료-05-21-세션-gitops-8차"
+    },
+    {
+      "level": 3,
+      "text": "완료: 05-21 세션 (shared 선제 준비)",
+      "anchor": "완료-05-21-세션-shared-선제-준비"
+    },
+    {
+      "level": 2,
+      "text": "다음 작업",
+      "anchor": "다음-작업"
+    },
+    {
+      "level": 3,
+      "text": "gitops 세션 합류 조건",
+      "anchor": "gitops-세션-합류-조건"
+    },
+    {
+      "level": 3,
+      "text": "dev 환경 검증 결과",
+      "anchor": "dev-환경-검증-결과"
+    },
+    {
+      "level": 3,
+      "text": "W3 작업 계획 (05-26 ~ 05-29, 4영업일)",
+      "anchor": "w3-작업-계획-05-26-05-29-4영업일"
+    },
+    {
+      "level": 3,
+      "text": "gitops 세션 (Day 1): MSK 토픽 + 보안 설정",
+      "anchor": "gitops-세션-day-1-msk-토픽-보안-설정"
+    },
+    {
+      "level": 3,
+      "text": "팀원 전달 사항",
+      "anchor": "팀원-전달-사항"
+    },
+    {
+      "level": 2,
+      "text": "미해결 항목",
+      "anchor": "미해결-항목"
+    }
+  ],
+  "body": "# HANDOFF — 2026-05-19 → 05-22 (W2 Day 1~4)\r\n\r\n> **작성자**: @team-lead\r\n> **대상**: 다음 세션 / 팀원\r\n> **최종 갱신**: 2026-05-22\r\n\r\n---\r\n\r\n## 현재 상태\r\n\r\n### W1/W2 전체 Step 완료\r\n\r\n| Step | 내용 | 상태 | 레포 |\r\n|:----:|------|:----:|:----:|\r\n| 1 | AWS 인프라 프로비저닝 | Done | — |\r\n| 2 | Docker Compose 전체 로컬 환경 | Done | synapse-shared |\r\n| 3 | CI/CD 파이프라인 (mirror + ci + deploy) | Done | synapse-shared + synapse-gateway |\r\n| 4 | Kafka 토픽 설계/생성 | Done | synapse-shared |\r\n| 5 | Schema Registry BACKWARD 호환성 | Done | synapse-shared |\r\n| 6 | Gateway 라우팅 + Rate Limit + CORS | Done | synapse-gateway |\r\n\r\n**W1 진행률**: 3/3 Steps 완료\r\n**W2 진행률**: 5/5 Steps 완료 (이월분 포함)\r\n\r\n### CI/CD 파이프라인 검증 완료\r\n\r\n| 레포 | 워크플로 | 상태 |\r\n|------|----------|:----:|\r\n| synapse-shared | ci-java.yml (PR → build + Modulith verify) | PASS |\r\n| synapse-shared | mirror.yml (push → synapse-mirror 동기화) | PASS |\r\n| synapse-shared | schema-check.yml (*.avsc 변경 → 호환성 검증) | PASS |\r\n| synapse-gateway | ci.yml (PR/push → Gradle build + test) | PASS |\r\n| synapse-gateway | deploy.yml (push → ECR push + gitops tag) | PASS |\r\n\r\n### 주요 커밋\r\n\r\n**synapse-shared** (`main` → `4136883`):\r\n- Docker Compose 13개 서비스 + .env.example + README\r\n- deploy.yml 삭제 (라이브러리 레포, 배포 대상 아님)\r\n- docker-compose.yml gateway stub → 실제 빌드 이미지 교체\r\n- 문서 갱신 (TASK/WORKFLOW/HISTORY Step 1~6)\r\n\r\n**synapse-gateway** (`main` → `e8843f7`):\r\n- Spring Boot 4.0.6 + Spring Cloud 2025.1.1 + Gateway 5.0.1\r\n- 프로그래밍 방식 라우트 4개 + RedisRateLimiter + CorsWebFilter\r\n- Multi-stage Dockerfile + ci.yml + deploy.yml\r\n- ECR 레포지토리 생성 완료\r\n\r\n---\r\n\r\n## 발견 사항 (다음 세션 참고)\r\n\r\n1. **Spring Boot 4.0.6 YAML 라우트 버그**: `spring.cloud.gateway.routes` YAML 설정이 로드되지 않음 → `RouteLocatorBuilder`로 프로그래밍 방식 사용\r\n2. **YAML globalcors 미동작**: `CorsWebFilter` 빈으로 대체\r\n3. **Gradle 8.14+ 필수**: Boot 4.0.6이 8.14 이상 요구\r\n4. **Dockerfile CRLF**: Windows 환경에서 `dos2unix` + `bash` 필요\r\n5. ~~**synapse-gateway 브랜치**: `master` 사용 중~~ → ✅ `main`으로 통일 완료\r\n\r\n---\r\n\r\n## 05-20 세션 작업 내역\r\n\r\n### 완료: 운영 정비\r\n\r\n| 작업 | 상태 | PR |\r\n|------|:----:|-----|\r\n| gateway `master` → `main` 브랜치 통일 | ✅ | [synapse-gateway#1](https://github.com/team-project-final/synapse-gateway/pull/1) — merged, default branch 변경 완료, master 삭제 |\r\n| GitHub Actions Node.js 20 deprecation 수정 (7개 레포) | ✅ | [gitops#26](https://github.com/team-project-final/synapse-gitops/pull/26), [documents#2](https://github.com/team-project-final/documents/pull/2), [schedule#1](https://github.com/team-project-final/schedule/pull/1), [data-mocking#1](https://github.com/team-project-final/synapse-data-mocking/pull/1), [dashboard#2](https://github.com/team-project-final/workflow-dashboard/pull/2) — all merged |\r\n| engagement-svc `KAFKA_BROKERS` 누락 수정 | ✅ | [gitops#32](https://github.com/team-project-final/synapse-gitops/pull/32) — merged |\r\n| MSK 토픽 스크립트 보강 (연결 확인, 멱등성, 로깅) | ✅ | [synapse-shared#4](https://github.com/team-project-final/synapse-shared/pull/4) — merged |\r\n| Kafka E2E 로컬 smoke test (produce/consume) | ✅ | 5개 토픽 검증 완료 |\r\n\r\n### 완료: W3 사전 준비 산출물\r\n\r\n| 산출물 | 경로 |\r\n|--------|------|\r\n| MSK 토픽 실행 가이드 | `docs/guides/MSK_TOPIC_SETUP.md` |\r\n| Kafka E2E 검증 가이드 | `docs/guides/KAFKA_E2E_TEST.md` |\r\n| ArgoCD 배포/검증/롤백 가이드 | `docs/guides/ARGOCD_DEPLOY_VERIFICATION.md` |\r\n| 팀원 Kafka 구현 체크리스트 | `docs/guides/TEAM_CHECKLIST_W3.md` |\r\n| E2E 샘플 이벤트 데이터 | `src/test/resources/e2e-samples/*.json` |\r\n| 테스트 데이터 SQL 시드 | `src/test/resources/seed/V00*.sql` |\r\n| E2E 테스트 스크립트 | `scripts/kafka-e2e-test.sh` |\r\n| DB 시드 스크립트 | `scripts/seed-test-data.sh` |\r\n| 설계 문서 | `docs/superpowers/specs/2026-05-20-w2w3-ops-and-prep-design.md` |\r\n| 구현 계획 | `docs/superpowers/plans/2026-05-20-w2w3-ops-and-prep.md` |\r\n\r\n---\r\n\r\n### 완료: 05-21 세션 (gitops 8차)\r\n\r\n| 작업 | 상태 | 레포 |\r\n|------|:----:|------|\r\n| terraform re-apply (인프라 재기동) | ✅ | synapse-gitops |\r\n| EKS SG 문제 해결 (managed node group SG → 4개 인프라 SG 수동 추가) | ✅ | synapse-gitops |\r\n| liveness probe initialDelaySeconds 30s → 90s | ✅ | synapse-gitops (PR #35) |\r\n| 서비스 안정화: engagement/knowledge/learning-card | ✅ (3/5 Healthy) | synapse-gitops |\r\n| platform-svc: mfa_credentials 테이블 미존재 (Flyway/ddl-auto 수정 필요) | ❌ 앱 레벨 | synapse-platform |\r\n| learning-ai: uvicorn restart 반복 (코드 레벨 문제) | ❌ 앱 레벨 | synapse-learning-ai |\r\n| staging overlay 생성 (5개 서비스) | ✅ | synapse-gitops |\r\n| staging ApplicationSet 추가 (manual sync) | ✅ | synapse-gitops (PR #34) |\r\n| ExternalSecret 5/5 SecretSynced (dev) | ✅ | synapse-gitops |\r\n| ClusterSecretStore + ESO IRSA 설정 | ✅ | synapse-gitops |\r\n| synapse-shared 브랜치 정리 (2개 삭제) | ✅ | synapse-shared |\r\n| 핸드오프 + 가이드 문서 현행화 | ✅ | synapse-shared |\r\n\r\n### 완료: 05-21 세션 (shared 선제 준비)\r\n\r\n> synapse-gitops 별도 세션에서 서비스 안정화 + W3 staging/Observability 진행 중.\r\n> 이 세션에서는 gitops 영역과 겹치지 않는 선제 준비 작업 수행.\r\n\r\n| 작업 | 상태 |\r\n|------|:----:|\r\n| note-updated 샘플 이벤트 추가 | ✅ |\r\n| 에러 케이스 샘플 3개 추가 (missing field, invalid tenant, empty data) | ✅ |\r\n| 멀티테넌트 샘플 추가 (tenant-e2e-002) | ✅ |\r\n| DB 시드: engagement 프로필 + XP (V004) | ✅ |\r\n| DB 시드: learning-ai 생성 이력 (V005) | ✅ |\r\n| kafka-e2e-test.sh 보강 (자동 판정, 리포트, --error-cases, --full) | ✅ |\r\n| ArgoCD 배포 검증 자동화 스크립트 (verify-argocd-deploy.sh) | ✅ |\r\n| 서비스 헬스체크 통합 스크립트 (verify-service-health.sh) | ✅ |\r\n| staging 환경 검증 가이드 (STAGING_VERIFICATION.md) | ✅ |\r\n\r\n**추가 산출물:**\r\n\r\n| 산출물 | 경로 |\r\n|--------|------|\r\n| E2E 에러 샘플 | `src/test/resources/e2e-samples/error/*.json` |\r\n| 멀티테넌트 샘플 | `src/test/resources/e2e-samples/multi-tenant/*.json` |\r\n| note-updated 샘플 | `src/test/resources/e2e-samples/note-updated.json` |\r\n| Engagement 시드 | `src/test/resources/seed/V004__test_engagement_profiles.sql` |\r\n| Learning-AI 시드 | `src/test/resources/seed/V005__test_learning_ai.sql` |\r\n| ArgoCD 검증 스크립트 | `scripts/verify-argocd-deploy.sh` |\r\n| 서비스 헬스체크 스크립트 | `scripts/verify-service-health.sh` |\r\n| Staging 검증 가이드 | `docs/guides/STAGING_VERIFICATION.md` |\r\n| 설계 문서 | `docs/superpowers/specs/2026-05-21-shared-preemptive-prep-design.md` |\r\n| 구현 계획 | `docs/superpowers/plans/2026-05-21-shared-preemptive-prep.md` |\r\n\r\n---\r\n\r\n## 다음 작업\r\n\r\n### gitops 세션 합류 조건\r\n\r\n| 조건 | 상태 |\r\n|------|:----:|\r\n| 5개 서비스 모두 ArgoCD Healthy | ✅ 5/5 달성 (05-22 확인) |\r\n| staging namespace + ApplicationSet 포함 | ✅ manual sync 대기 |\r\n| ExternalSecret 5/5 SecretSynced (dev) | ✅ |\r\n| ExternalSecret staging | ⏸ staging sync 후 확인 가능 |\r\n\r\n**결론**: 인프라/GitOps + 앱 코드 문제 모두 해결 완료. **5/5 Healthy 달성**으로 staging 배포 + E2E 검증 진행 가능.\r\n\r\n### dev 환경 검증 결과\r\n\r\n#### 05-21 기준 (gitops 8차)\r\n\r\n| 항목 | 결과 | 세부 |\r\n|------|:----:|------|\r\n| engagement-svc | PASS | Synced + Healthy |\r\n| knowledge-svc | PASS | Synced + Healthy |\r\n| learning-card | PASS | Synced + Healthy |\r\n| platform-svc | ~~WARN~~ → ✅ PASS | 수정 완료 (05-22) |\r\n| learning-ai | ~~WARN~~ → ✅ PASS | 수정 완료 (05-22) |\r\n| ExternalSecret 5/5 | PASS | SecretSynced |\r\n\r\n**RESULT**: ALL PASSED (5/5 Healthy)\r\n\r\n#### fix-request 해결 이력\r\n\r\n| 서비스 | 원인 | 해결 | 완료일 |\r\n|--------|------|------|--------|\r\n| platform-svc | `mfa_credentials` 테이블 미존재 | 앱 코드 수정 완료 | 05-22 |\r\n| learning-ai | uvicorn restart 반복 | 앱 코드 수정 완료 | 05-22 |\r\n\r\n### W3 작업 계획 (05-26 ~ 05-29, 4영업일)\r\n\r\n> 팀원 Kafka Producer/Consumer 구현: W3 진행 예정\r\n\r\n#### Day 1 (05-26) — 인프라 선행 + 설계\r\n\r\n| 작업 | 비고 |\r\n|------|------|\r\n| gitops 세션: terraform apply → MSK 토픽 생성 → TLS/보안 확인 | `MSK_TOPIC_SETUP.md` 절차 |\r\n| Step 8: `verify-argocd-deploy.sh synapse-dev` → 5/5 재확인 | terraform apply 후 endpoint 변경 가능 |\r\n| Step 7.1~7.3: 이벤트 흐름 매트릭스 + 보안 1차 검토 | |\r\n| 팀원: Kafka 구현 착수 (TEAM_CHECKLIST_W3 배포) | |\r\n\r\n#### Day 2 (05-27) — staging 검증 + 코드 리뷰 시작\r\n\r\n| 작업 | 비고 |\r\n|------|------|\r\n| Step 8: staging Sync → `STAGING_VERIFICATION.md` 체크리스트 수행 | |\r\n| Step 8: ExternalSecret staging 확인 + 헬스체크 | |\r\n| Step 7.4~7.5: E2E 시나리오 설계 + 보안 2차 검토 | |\r\n| 팀원 PR 코드 리뷰 1차 착수 | |\r\n\r\n#### Day 3 (05-28) — E2E 검증 (구현 완료 서비스부터)\r\n\r\n| 작업 | 비고 |\r\n|------|------|\r\n| Step 7.7: 로컬 E2E 검증 (`kafka-e2e-test.sh --all`) | 구현 완료 서비스 순서 |\r\n| Step 7.8~7.9: 코드 리뷰 피드백 반영 + PR 머지 조율 | |\r\n| Step 8: 롤백 시나리오 1회 테스트 | |\r\n\r\n#### Day 4 (05-29) — 전체 E2E + 결과 정리\r\n\r\n| 작업 | 비고 |\r\n|------|------|\r\n| Step 7: 전체 E2E 실행 (`--full`: 정상 + 에러 + 멀티테넌트) | |\r\n| dev 환경 EKS E2E 검증 | |\r\n| Step 7.10 + 8.10: 결과 리포트 + 문서 업데이트 | |\r\n| HANDOFF 갱신 → W4 인수인계 | |\r\n\r\n### gitops 세션 (Day 1): MSK 토픽 + 보안 설정\r\n\r\n> 절차서: `docs/guides/MSK_TOPIC_SETUP.md` — \"다음 세션 실행 절차\" 섹션\r\n\r\n```\r\n1. terraform apply (인프라 재기동)\r\n2. aws eks update-kubeconfig (kubeconfig 갱신)\r\n3. aws kafka get-bootstrap-brokers (브로커 주소 확인)\r\n4. bastion SSM 접속\r\n5. create-kafka-topics.sh 실행 (5개 토픽 생성)\r\n6. openssl s_client (TLS 통신 확인)\r\n7. kafka-console-producer/consumer (송수신 테스트)\r\n8. (선택) ACL 설정 또는 IAM Policy 확인\r\n9. verify-argocd-deploy.sh synapse-dev (5/5 Healthy 재확인)\r\n10. verify-service-health.sh --env eks (5/5 헬스체크)\r\n```\r\n\r\n### 팀원 전달 사항\r\n- Kafka 구현 체크리스트 → `docs/guides/TEAM_CHECKLIST_W3.md` 참조\r\n- 공통 application.yml 설정 예시 포함\r\n- **기한: W3 Day 2(05-27)까지 PR 생성** → Day 3부터 E2E 검증 진행\r\n\r\n---\r\n\r\n## 미해결 항목\r\n\r\n| 항목 | 우선순위 | 비고 |\r\n|------|:--------:|------|\r\n| ~~synapse-gateway `master` → `main` 변경~~ | ~~Low~~ | ✅ 완료 — default branch 변경 + master 삭제 |\r\n| ~~deploy.yml Node.js 20 deprecation 경고~~ | ~~Low~~ | ✅ 완료 — 7개 레포 전부 머지 |\r\n| ~~engagement-svc KAFKA_BROKERS 누락~~ | ~~Medium~~ | ✅ 완료 — gitops#32 머지 |\r\n| ~~platform-svc CrashLoop~~ | ~~High~~ | ✅ 완료 (05-22) — 앱 코드 수정 |\r\n| ~~learning-ai CrashLoop~~ | ~~High~~ | ✅ 완료 (05-22) — 앱 코드 수정 |\r\n| MSK dev 클러스터 토픽 생성 | **Medium** | W3 Day 1 gitops 세션에서 실행 → `docs/guides/MSK_TOPIC_SETUP.md` |\r\n| synapse-gateway ApplicationSet 미포함 | Low | 현재 5개 서비스만 포함, gateway는 별도 Application 필요 |\r\n| ~~staging 오버레이 미생성~~ | ~~Medium~~ | ✅ 완료 — gitops에 5개 서비스 staging overlay + ApplicationSet 추가 |\r\n| 팀원 Kafka Producer/Consumer 구현 | **High** | W3 진행 예정 — `docs/guides/TEAM_CHECKLIST_W3.md` 참조 |\r\n| staging 실제 Sync + 검증 | **Medium** | W3 Day 2 실행 예정 — `docs/guides/STAGING_VERIFICATION.md` |\r\n"
+}

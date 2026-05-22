@@ -1,0 +1,182 @@
+{
+  "slug": "dev-machine-setup",
+  "title": "Runbook: 새 PC / 환경 온보딩 (작업 이어받기)\r",
+  "category": "infra",
+  "source": "synapse-gitops",
+  "tags": [
+    "argocd",
+    "terraform",
+    "eks",
+    "docker",
+    "cd"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-18",
+    "status": "active",
+    "completionRate": 0
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "0. 작업 진행 상태 파악 (가장 먼저)",
+      "anchor": "0-작업-진행-상태-파악-가장-먼저"
+    },
+    {
+      "level": 3,
+      "text": "0-1. 핵심 문서 위치",
+      "anchor": "0-1-핵심-문서-위치"
+    },
+    {
+      "level": 3,
+      "text": "0-2. 최근 활동 확인",
+      "anchor": "0-2-최근-활동-확인"
+    },
+    {
+      "level": 3,
+      "text": "0-3. 다음 작업 path 결정",
+      "anchor": "0-3-다음-작업-path-결정"
+    },
+    {
+      "level": 2,
+      "text": "1. 필수 도구 통합 설치 (OS별)",
+      "anchor": "1-필수-도구-통합-설치-os별"
+    },
+    {
+      "level": 3,
+      "text": "일괄 설치 (Windows PowerShell 관리자)",
+      "anchor": "일괄-설치-windows-powershell-관리자"
+    },
+    {
+      "level": 3,
+      "text": "일괄 설치 (macOS)",
+      "anchor": "일괄-설치-macos"
+    },
+    {
+      "level": 3,
+      "text": "일괄 설치 (Linux Debian/Ubuntu)",
+      "anchor": "일괄-설치-linux-debianubuntu"
+    },
+    {
+      "level": 3,
+      "text": "도구별 검증 명령 (일괄)",
+      "anchor": "도구별-검증-명령-일괄"
+    },
+    {
+      "level": 2,
+      "text": "2. 레포 clone + GitHub 인증",
+      "anchor": "2-레포-clone-github-인증"
+    },
+    {
+      "level": 3,
+      "text": "2-1. gh CLI 인증",
+      "anchor": "2-1-gh-cli-인증"
+    },
+    {
+      "level": 3,
+      "text": "2-2. 레포 clone",
+      "anchor": "2-2-레포-clone"
+    },
+    {
+      "level": 3,
+      "text": "2-3. git 사용자 설정 (글로벌이면 생략)",
+      "anchor": "2-3-git-사용자-설정-글로벌이면-생략"
+    },
+    {
+      "level": 2,
+      "text": "3. AWS 자격증명 (B-1 또는 B-2의 일부 단계에서 필요)",
+      "anchor": "3-aws-자격증명-b-1-또는-b-2의-일부-단계에서-필요"
+    },
+    {
+      "level": 3,
+      "text": "3-1. IAM 사용자가 이미 있을 때 (이전 PC에서 만들었음)",
+      "anchor": "3-1-iam-사용자가-이미-있을-때-이전-pc에서-만들었음"
+    },
+    {
+      "level": 3,
+      "text": "3-2. 새 IAM 사용자가 필요할 때 (첫 셋업)",
+      "anchor": "3-2-새-iam-사용자가-필요할-때-첫-셋업"
+    },
+    {
+      "level": 3,
+      "text": "3-3. Access Key를 잃어버렸을 때",
+      "anchor": "3-3-access-key를-잃어버렸을-때"
+    },
+    {
+      "level": 3,
+      "text": "3-4. AWS Secrets Manager의 ArgoCD admin 비번",
+      "anchor": "3-4-aws-secrets-manager의-argocd-admin-비번"
+    },
+    {
+      "level": 2,
+      "text": "4. 시크릿 / state 인계",
+      "anchor": "4-시크릿-state-인계"
+    },
+    {
+      "level": 3,
+      "text": "4-1. Terraform state",
+      "anchor": "4-1-terraform-state"
+    },
+    {
+      "level": 3,
+      "text": "4-2. `terraform.tfvars`",
+      "anchor": "4-2-terraformtfvars"
+    },
+    {
+      "level": 3,
+      "text": "4-3. kubeconfig",
+      "anchor": "4-3-kubeconfig"
+    },
+    {
+      "level": 3,
+      "text": "4-4. ArgoCD 자체 로그인",
+      "anchor": "4-4-argocd-자체-로그인"
+    },
+    {
+      "level": 3,
+      "text": "4-5. 1Password / 비밀 저장소 추천 항목",
+      "anchor": "4-5-1password-비밀-저장소-추천-항목"
+    },
+    {
+      "level": 2,
+      "text": "5. 작업 path별 entry point",
+      "anchor": "5-작업-path별-entry-point"
+    },
+    {
+      "level": 2,
+      "text": "6. 자주 만나는 OS별 차이",
+      "anchor": "6-자주-만나는-os별-차이"
+    },
+    {
+      "level": 3,
+      "text": "Windows PowerShell vs Git Bash",
+      "anchor": "windows-powershell-vs-git-bash"
+    },
+    {
+      "level": 3,
+      "text": "macOS vs Linux",
+      "anchor": "macos-vs-linux"
+    },
+    {
+      "level": 3,
+      "text": "권한 (Linux/macOS)",
+      "anchor": "권한-linuxmacos"
+    },
+    {
+      "level": 2,
+      "text": "7. 새 PC에서 작업 시작 체크리스트",
+      "anchor": "7-새-pc에서-작업-시작-체크리스트"
+    },
+    {
+      "level": 2,
+      "text": "8. 도움 요청 / 문제 해결",
+      "anchor": "8-도움-요청-문제-해결"
+    },
+    {
+      "level": 2,
+      "text": "9. 정기 점검 (PC 사용 끝낼 때)",
+      "anchor": "9-정기-점검-pc-사용-끝낼-때"
+    }
+  ],
+  "body": "# Runbook: 새 PC / 환경 온보딩 (작업 이어받기)\r\n\r\n> **목적**: 다른 PC 또는 새 환경에서 synapse-gitops 작업을 그대로 이어갈 수 있도록 동일 환경 + 도구 + 자격증명을 갖추는 절차.\r\n> **소요 시간**: 약 1~2시간 (도구 설치 포함)\r\n> **결과**: 현재 PC와 동일한 작업 상태에서 다음 step부터 즉시 진행 가능\r\n\r\n본 문서는 W1 작업 중 발견된 모든 환경 셋업 요건을 통합한다. step별 상세 가이드는 각 `docs/runbooks/*.md` 문서를 참조하고, 본 문서는 entry point + 종합 체크리스트 역할.\r\n\r\n---\r\n\r\n## 0. 작업 진행 상태 파악 (가장 먼저)\r\n\r\n새 PC에서 무엇부터 시작할지 정하려면 현재 진행 상태를 먼저 확인.\r\n\r\n### 0-1. 핵심 문서 위치\r\n- 트랙 정의: [docs/project-management/task/TASK_gitops.md](../project-management/task/TASK_gitops.md) — 12 Step Status\r\n- 주차별 체크: [docs/project-management/workflow/WORKFLOW_gitops_W*.md](../project-management/workflow/) — Step별 체크박스\r\n- 의사결정/이벤트 이력: [docs/project-management/history/HISTORY_gitops.md](../project-management/history/HISTORY_gitops.md) — D-001 ~ D-008\r\n- 트랙 범위: [docs/project-management/scope/SCOPE_gitops.md](../project-management/scope/SCOPE_gitops.md)\r\n\r\n### 0-2. 최근 활동 확인\r\n```bash\r\ngit log --oneline -20\r\ngh pr list --state merged --limit 15\r\ngh pr list --state open\r\n```\r\n\r\n### 0-3. 다음 작업 path 결정\r\nHISTORY 가장 최근 섹션을 읽고 다음 path 선택:\r\n- **B-1 (EKS 실 환경)**: AWS 결제수단 verification 완료된 후 → [w1-argocd-bootstrap-runbook.md](./w1-argocd-bootstrap-runbook.md) Step 1~7 그대로 진행\r\n- **B-2 (kind 로컬)**: 비용 없이 실증 또는 학습 → [kind-local-bootstrap.md](./kind-local-bootstrap.md)\r\n- **W2 진행**: [docs/project-management/prd/PRD_W2.md](../project-management/prd/PRD_W2.md)부터 시작\r\n\r\n---\r\n\r\n## 1. 필수 도구 통합 설치 (OS별)\r\n\r\nW1 모든 step에서 등장한 도구를 OS별로 통합 정리. 새 PC에서는 다음 모두 설치되어 있어야 함.\r\n\r\n| 도구 | 용도 | Windows (winget) | macOS (brew) | Linux |\r\n|---|---|---|---|---|\r\n| Git | 버전관리 | `winget install --id Git.Git` | `brew install git` | apt/yum |\r\n| Git Bash | bash 환경 | Git for Windows에 번들 | (기본 bash) | (기본 bash) |\r\n| GitHub CLI | PR/이슈/Actions | `winget install --id GitHub.cli` | `brew install gh` | apt/yum |\r\n| AWS CLI v2 | AWS 자원 관리 | `winget install --id Amazon.AWSCLI` | `brew install awscli` | curl install |\r\n| Terraform | IaC | `winget install --id Hashicorp.Terraform` | `brew install hashicorp/tap/terraform` | apt (HashiCorp repo) |\r\n| kubectl | K8s CLI | `winget install --id Kubernetes.kubectl` | `brew install kubectl` | apt/curl |\r\n| Docker Desktop | 컨테이너 런타임 | https://docker.com/products/docker-desktop | https://docker.com/... | docker engine |\r\n| kind | 로컬 K8s | `winget install --id Kubernetes.kind` | `brew install kind` | curl |\r\n| argocd CLI | ArgoCD 조작 | https://github.com/argoproj/argo-cd/releases | `brew install argocd` | curl |\r\n| jq | JSON 처리 | `winget install --id jqlang.jq` | `brew install jq` | apt/yum |\r\n| openssl | 비번 생성 | Git Bash에 번들 | (기본) | (기본) |\r\n\r\n### 일괄 설치 (Windows PowerShell 관리자)\r\n```powershell\r\nwinget install --id Git.Git -e\r\nwinget install --id GitHub.cli -e\r\nwinget install --id Amazon.AWSCLI -e\r\nwinget install --id Hashicorp.Terraform -e\r\nwinget install --id Kubernetes.kubectl -e\r\nwinget install --id Kubernetes.kind -e\r\nwinget install --id jqlang.jq -e\r\n# Docker Desktop은 GUI 인스톨러\r\n# argocd CLI는 GitHub Release에서 binary 직접 다운로드\r\n```\r\n\r\n### 일괄 설치 (macOS)\r\n```bash\r\nbrew install git gh awscli hashicorp/tap/terraform kubectl kind argocd jq\r\n# Docker Desktop: https://docker.com/products/docker-desktop\r\n```\r\n\r\n### 일괄 설치 (Linux Debian/Ubuntu)\r\n```bash\r\nsudo apt-get update\r\nsudo apt-get install -y git curl jq\r\n# 각 도구별 공식 가이드:\r\n# - gh: https://cli.github.com/\r\n# - aws cli: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html\r\n# - terraform: https://developer.hashicorp.com/terraform/install\r\n# - kubectl: https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/\r\n# - kind: https://kind.sigs.k8s.io/docs/user/quick-start/\r\n# - argocd: https://github.com/argoproj/argo-cd/releases\r\n# - docker: https://docs.docker.com/engine/install/\r\n```\r\n\r\n### 도구별 검증 명령 (일괄)\r\n```bash\r\ngit --version\r\ngh --version\r\naws --version\r\nterraform version\r\nkubectl version --client\r\nkind version\r\nargocd version --client\r\njq --version\r\ndocker version\r\nopenssl version\r\n```\r\n\r\n모두 정상 출력되면 도구 셋업 완료.\r\n\r\n---\r\n\r\n## 2. 레포 clone + GitHub 인증\r\n\r\n### 2-1. gh CLI 인증\r\n```bash\r\ngh auth login\r\n```\r\n인터랙티브 prompt:\r\n- GitHub.com 선택\r\n- HTTPS 프로토콜 선택\r\n- Git credential helper 사용 Yes\r\n- 브라우저로 device flow 인증 (또는 Personal Access Token)\r\n- 권한: `repo`, `read:org`, `workflow` 포함\r\n\r\n검증:\r\n```bash\r\ngh auth status\r\n```\r\n\r\n`Logged in to github.com as <username>` + token scopes에 `repo`, `workflow` 표시.\r\n\r\n### 2-2. 레포 clone\r\n```bash\r\ngh repo clone team-project-final/synapse-gitops\r\ncd synapse-gitops\r\ngit remote -v\r\n```\r\n\r\n`origin https://github.com/team-project-final/synapse-gitops.git` 확인.\r\n\r\n### 2-3. git 사용자 설정 (글로벌이면 생략)\r\n```bash\r\ngit config user.name \"VelkaressiaBlutkrone\"\r\ngit config user.email \"<본인 GitHub 이메일>\"\r\n```\r\n\r\n---\r\n\r\n## 3. AWS 자격증명 (B-1 또는 B-2의 일부 단계에서 필요)\r\n\r\n### 3-1. IAM 사용자가 이미 있을 때 (이전 PC에서 만들었음)\r\nAccess Key는 PC당 새로 만들 필요 없음. 이전 PC의 `.csv` 백업이나 1Password에서 복원 후:\r\n```bash\r\naws configure\r\n# Access Key ID:     <기존 키>\r\n# Secret Access Key: <기존 비번>\r\n# region:            ap-northeast-2\r\n# output:            json\r\n```\r\n\r\n검증:\r\n```bash\r\naws sts get-caller-identity\r\n```\r\n`Arn`이 `arn:aws:iam::<ACCOUNT>:user/synapse-admin` 확인.\r\n\r\n### 3-2. 새 IAM 사용자가 필요할 때 (첫 셋업)\r\n[step1-aws-account-setup.md](./step1-aws-account-setup.md) 1-A ~ 1-F 그대로 따라 진행.\r\n\r\n### 3-3. Access Key를 잃어버렸을 때\r\n1. AWS 콘솔 → IAM → Users → `synapse-admin`\r\n2. Security credentials → 기존 Access key 비활성화 또는 삭제\r\n3. Create access key (1-C 다시) → 새 Key를 새 PC `aws configure`에 입력\r\n\r\n### 3-4. AWS Secrets Manager의 ArgoCD admin 비번\r\nEKS 부트스트랩 후 admin 비번은 `synapse/argocd/admin` secret에 저장됨. 새 PC에서 조회:\r\n```bash\r\naws secretsmanager get-secret-value --secret-id synapse/argocd/admin \\\r\n  --region ap-northeast-2 --query SecretString --output text | jq -r .password\r\n```\r\n이 값으로 ArgoCD CLI 로그인 가능. 이전 PC의 로컬 백업은 불필요.\r\n\r\n---\r\n\r\n## 4. 시크릿 / state 인계\r\n\r\n### 4-1. Terraform state\r\n**중요**: state는 S3 backend(`synapse-terraform-state`)에 있어 PC 이동과 무관. 새 PC에서 `terraform init`만 하면 자동으로 state 가져옴. 별도 인계 불필요.\r\n\r\n### 4-2. `terraform.tfvars`\r\n시크릿(rds_password, redis_auth_token)이 들어있어 git에 안 들어감(.gitignore). 새 PC에서 다시 생성:\r\n- 이미 자원이 있는 경우(부분 또는 전체 apply 됨): 같은 비번을 다시 입력해야 함. 1Password / Bitwarden에서 복원.\r\n- 자원 없는 새 시작: [step2-terraform-tfvars.md](./step2-terraform-tfvars.md)로 새 비번 생성.\r\n\r\n### 4-3. kubeconfig\r\nEKS 클러스터 접근용. 새 PC에서:\r\n```bash\r\naws eks update-kubeconfig --name synapse-dev --region ap-northeast-2\r\n```\r\n이전 PC의 kubeconfig 복사는 불필요. 위 명령이 새 entry를 `~/.kube/config`에 추가.\r\n\r\n### 4-4. ArgoCD 자체 로그인\r\nArgoCD CLI에 새 PC에서 다시 로그인:\r\n```bash\r\nNLB_HOST=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')\r\nPW=$(aws secretsmanager get-secret-value --secret-id synapse/argocd/admin \\\r\n       --query SecretString --output text | jq -r .password)\r\nargocd login \"$NLB_HOST\" --username admin --password \"$PW\" --insecure --grpc-web\r\n```\r\n\r\n### 4-5. 1Password / 비밀 저장소 추천 항목\r\n\r\n다른 PC로 이동 시 다음을 미리 1Password 등에 백업:\r\n- AWS IAM `synapse-admin` Access Key + Secret\r\n- 학습 destroy 후 자원이 다시 만들어졌을 때의 새 RDS / Redis 비번\r\n- GitHub Personal Access Token (gh CLI device flow 안 쓸 때만)\r\n\r\n⚠️ git에 직접 commit 금지 — 모두 `.gitignore` 처리되어 있음.\r\n\r\n---\r\n\r\n## 5. 작업 path별 entry point\r\n\r\n| Path | 진입 문서 | 사전 조건 |\r\n|---|---|---|\r\n| **W1 마무리 / 검수** | [w1-argocd-bootstrap-runbook.md](./w1-argocd-bootstrap-runbook.md) | 도구 설치 + AWS 인증 + 자원 destroy 안 됐으면 그대로 |\r\n| **B-1 EKS 실 환경 재시도** | [step1-aws-account-setup.md](./step1-aws-account-setup.md) → [step2-terraform-tfvars.md](./step2-terraform-tfvars.md) → [step3-terraform-apply.md](./step3-terraform-apply.md) | 결제수단 verification 완료 |\r\n| **B-2 kind 로컬 학습** | [kind-local-bootstrap.md](./kind-local-bootstrap.md) | Docker Desktop 실행 중 |\r\n| **W2 시작** | [PRD_W2.md](../project-management/prd/PRD_W2.md) → [WORKFLOW_gitops_W2.md](../project-management/workflow/WORKFLOW_gitops_W2.md) | W1 검수 결론 확인 (HISTORY) |\r\n\r\n---\r\n\r\n## 6. 자주 만나는 OS별 차이\r\n\r\n### Windows PowerShell vs Git Bash\r\n- 본 레포의 bash 스크립트(`scripts/*.sh`): Git Bash에서 직접 실행, PowerShell에서는 `bash scripts/...` 형태로 호출\r\n- `openssl` 등 unix 도구: PowerShell에 없음, Git Bash에서 동작\r\n- 경로 구분자: PowerShell은 `\\`, Git Bash는 `/` (단 modern 도구는 둘 다 허용)\r\n\r\n### macOS vs Linux\r\n- 대부분 동일. `sed -i`는 macOS에서 인자 다름 (`sed -i ''` 필요)\r\n- Homebrew (macOS) vs apt/yum (Linux) 차이\r\n\r\n### 권한 (Linux/macOS)\r\n- 스크립트 실행 전: `chmod +x scripts/*.sh`\r\n\r\n---\r\n\r\n## 7. 새 PC에서 작업 시작 체크리스트\r\n\r\n복사해서 한 줄씩 체크:\r\n\r\n```\r\n[ ] 도구 설치 완료: git/gh/aws/terraform/kubectl/kind/argocd/jq/docker\r\n[ ] 각 도구 버전 명령으로 검증 통과\r\n[ ] gh CLI 로그인 (repo + workflow scope)\r\n[ ] 레포 clone + main 최신 sync (git pull)\r\n[ ] HISTORY/TASK/WORKFLOW 최근 섹션 읽고 다음 path 결정\r\n[ ] AWS 인증 (필요 시 Access Key 복원 또는 새 발급)\r\n[ ] AWS Secrets Manager에서 비번 복원 (이전 자원 살아있을 때)\r\n[ ] 진입 문서(path별) 첫 단계부터 진행\r\n[ ] 발생하는 문제는 HISTORY + 해당 step runbook 트러블슈팅 섹션 참조\r\n```\r\n\r\n---\r\n\r\n## 8. 도움 요청 / 문제 해결\r\n\r\n- 도구 설치 / 환경 차이: 본 문서 1~3절\r\n- 작업 step별 막힘: 각 step 가이드의 트러블슈팅 섹션\r\n- AWS 비용 / 청구 우려: [step1-aws-account-setup.md](./step1-aws-account-setup.md) Budget 알람 / 비용 추정\r\n- ArgoCD 자체: https://argo-cd.readthedocs.io/\r\n- Terraform AWS provider: https://registry.terraform.io/providers/hashicorp/aws/latest/docs\r\n- HISTORY에 \"도움 요청\" 항목 기록 (다음 작업자가 참고할 수 있도록)\r\n\r\n---\r\n\r\n## 9. 정기 점검 (PC 사용 끝낼 때)\r\n\r\nPC 사용 종료 직전:\r\n- [ ] 작업 결과를 PR로 main에 머지하거나 feature 브랜치로 push (로컬 commit이 남지 않도록)\r\n- [ ] `terraform destroy` (학습용 자원이 떠있으면 비용 출혈)\r\n- [ ] kind cluster 정리: `kind delete cluster --name synapse-dev`\r\n- [ ] `terraform.tfvars` 파일의 비번이 1Password에 저장돼 있는지 재확인\r\n- [ ] HISTORY에 오늘 진행 내용 한 줄 추가 (다음 작업자/본인의 참고용)\r\n"
+}

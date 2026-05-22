@@ -1,0 +1,196 @@
+{
+  "slug": "step7-staging-overlay",
+  "title": "Runbook: Staging Overlay + ApplicationSet 확장 (Step 7 상세)",
+  "category": "infra",
+  "source": "synapse-gitops",
+  "tags": [
+    "argocd",
+    "redis",
+    "staging",
+    "dev"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-18",
+    "status": "active",
+    "completionRate": 0
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "7-A. 사전 분석 (30분)",
+      "anchor": "7-a-사전-분석-30분"
+    },
+    {
+      "level": 3,
+      "text": "네임스페이스 분리 전략",
+      "anchor": "네임스페이스-분리-전략"
+    },
+    {
+      "level": 3,
+      "text": "승격 트리거 결정",
+      "anchor": "승격-트리거-결정"
+    },
+    {
+      "level": 3,
+      "text": "staging 도메인 패턴",
+      "anchor": "staging-도메인-패턴"
+    },
+    {
+      "level": 3,
+      "text": "리소스 산정",
+      "anchor": "리소스-산정"
+    },
+    {
+      "level": 2,
+      "text": "7-B. Staging Overlay 작성 (3시간)",
+      "anchor": "7-b-staging-overlay-작성-3시간"
+    },
+    {
+      "level": 3,
+      "text": "네임스페이스 생성",
+      "anchor": "네임스페이스-생성"
+    },
+    {
+      "level": 3,
+      "text": "overlay 디렉토리 구조 (5개 앱 반복)",
+      "anchor": "overlay-디렉토리-구조-5개-앱-반복"
+    },
+    {
+      "level": 3,
+      "text": "kustomization.yaml 템플릿 (platform-svc 예시)",
+      "anchor": "kustomizationyaml-템플릿-platform-svc-예시"
+    },
+    {
+      "level": 3,
+      "text": "replicas-patch.yaml 템플릿",
+      "anchor": "replicas-patchyaml-템플릿"
+    },
+    {
+      "level": 3,
+      "text": "resources-patch.yaml 템플릿",
+      "anchor": "resources-patchyaml-템플릿"
+    },
+    {
+      "level": 3,
+      "text": "ExternalSecret 템플릿",
+      "anchor": "externalsecret-템플릿"
+    },
+    {
+      "level": 3,
+      "text": "Ingress 템플릿",
+      "anchor": "ingress-템플릿"
+    },
+    {
+      "level": 3,
+      "text": "5개 앱 일괄 생성 스크립트",
+      "anchor": "5개-앱-일괄-생성-스크립트"
+    },
+    {
+      "level": 3,
+      "text": "kustomize 빌드 검증",
+      "anchor": "kustomize-빌드-검증"
+    },
+    {
+      "level": 3,
+      "text": "Secrets Manager에 staging 시크릿 등록",
+      "anchor": "secrets-manager에-staging-시크릿-등록"
+    },
+    {
+      "level": 2,
+      "text": "7-C. ApplicationSet 확장 (1시간)",
+      "anchor": "7-c-applicationset-확장-1시간"
+    },
+    {
+      "level": 3,
+      "text": "현재 ApplicationSet 확인",
+      "anchor": "현재-applicationset-확인"
+    },
+    {
+      "level": 3,
+      "text": "ApplicationSet 수정",
+      "anchor": "applicationset-수정"
+    },
+    {
+      "level": 3,
+      "text": "적용 + 검증",
+      "anchor": "적용-검증"
+    },
+    {
+      "level": 2,
+      "text": "7-D. 승격 시뮬레이션 + 검증 (2시간)",
+      "anchor": "7-d-승격-시뮬레이션-검증-2시간"
+    },
+    {
+      "level": 3,
+      "text": "시뮬레이션 절차",
+      "anchor": "시뮬레이션-절차"
+    },
+    {
+      "level": 3,
+      "text": "merge 후 검증",
+      "anchor": "merge-후-검증"
+    },
+    {
+      "level": 3,
+      "text": "staging 도메인 헬스체크",
+      "anchor": "staging-도메인-헬스체크"
+    },
+    {
+      "level": 3,
+      "text": "annotation 정리",
+      "anchor": "annotation-정리"
+    },
+    {
+      "level": 2,
+      "text": "7-E. 문서화 (30분)",
+      "anchor": "7-e-문서화-30분"
+    },
+    {
+      "level": 3,
+      "text": "승격 절차 README 작성",
+      "anchor": "승격-절차-readme-작성"
+    },
+    {
+      "level": 3,
+      "text": "HISTORY 갱신",
+      "anchor": "history-갱신"
+    },
+    {
+      "level": 2,
+      "text": "검증",
+      "anchor": "검증"
+    },
+    {
+      "level": 2,
+      "text": "자주 막히는 지점",
+      "anchor": "자주-막히는-지점"
+    },
+    {
+      "level": 3,
+      "text": "네임스페이스 생성 누락",
+      "anchor": "네임스페이스-생성-누락"
+    },
+    {
+      "level": 3,
+      "text": "ApplicationSet generator 오류",
+      "anchor": "applicationset-generator-오류"
+    },
+    {
+      "level": 3,
+      "text": "Ingress 충돌",
+      "anchor": "ingress-충돌"
+    },
+    {
+      "level": 3,
+      "text": "ExternalSecret staging 경로 미등록",
+      "anchor": "externalsecret-staging-경로-미등록"
+    },
+    {
+      "level": 2,
+      "text": "다음 단계",
+      "anchor": "다음-단계"
+    }
+  ],
+  "body": "# Runbook: Staging Overlay + ApplicationSet 확장 (Step 7 상세)\n\n> **소요 시간**: 약 7시간 (2일 배분)\n> **결과**: 10 Application (5앱 x 2환경) 모두 Synced+Healthy, staging 도메인 헬스체크 통과\n> **상위 문서**: [w3-staging-observability-runbook.md](./w3-staging-observability-runbook.md) Step 7\n> **사전 조건**: W2 완료 — dev 5개 앱 Synced+Healthy, ESO 동작, 이미지 태그 자동 싱크 정상\n\n---\n\n## 7-A. 사전 분석 (30분)\n\nstaging 환경 확장 전에 아키텍처 결정 사항을 확인한다.\n\n### 네임스페이스 분리 전략\n\n```bash\n# 현재 dev 네임스페이스 확인\nkubectl get ns synapse-dev -o yaml\nkubectl get all -n synapse-dev\n```\n\n```powershell\n# PowerShell\nkubectl get ns synapse-dev -o yaml\nkubectl get all -n synapse-dev\n```\n\n- dev: `synapse-dev` 네임스페이스\n- staging: `synapse-staging` 네임스페이스 (신규 생성)\n- 네임스페이스 간 네트워크 격리: NetworkPolicy로 cross-ns 트래픽 차단 (향후)\n\n### 승격 트리거 결정\n\n- **자동 승격**: main 브랜치 merge -> ArgoCD auto-sync -> dev + staging 동시 반영\n- dev와 staging이 같은 Git 브랜치(main)를 바라보되, overlay에서 환경별 설정을 분리\n- 향후 prod는 수동 승격(manual sync)으로 전환 예정\n\n### staging 도메인 패턴\n\n| 앱 | staging 도메인 |\n|-----|---------------|\n| platform-svc | `staging-platform-svc.<domain>` |\n| engagement-svc | `staging-engagement-svc.<domain>` |\n| knowledge-svc | `staging-knowledge-svc.<domain>` |\n| learning-card | `staging-learning-card.<domain>` |\n| learning-ai | `staging-learning-ai.<domain>` |\n\n### 리소스 산정\n\n| 항목 | dev | staging |\n|------|-----|---------|\n| replicas | 1 | 2 |\n| CPU request | 100m | 200m |\n| CPU limit | 500m | 500m |\n| Memory request | 128Mi | 256Mi |\n| Memory limit | 512Mi | 512Mi |\n\n**Expected**: 위 결정 사항이 팀 내 합의되었거나, 단독 진행 시 본 가이드 기준 그대로 사용.\n\n---\n\n## 7-B. Staging Overlay 작성 (3시간)\n\n5개 앱 각각에 staging overlay를 생성한다. dev overlay를 기반으로 staging 고유 설정을 덮어쓴다.\n\n### 네임스페이스 생성\n\n```bash\n# staging 네임스페이스 생성 (ArgoCD가 자동 생성하도록 설정할 수도 있음)\nkubectl create namespace synapse-staging\nkubectl label namespace synapse-staging environment=staging project=synapse\n```\n\n```powershell\nkubectl create namespace synapse-staging\nkubectl label namespace synapse-staging environment=staging project=synapse\n```\n\n### overlay 디렉토리 구조 (5개 앱 반복)\n\n대상 앱 목록: `platform-svc`, `engagement-svc`, `knowledge-svc`, `learning-card`, `learning-ai`\n\n각 앱의 staging overlay 디렉토리:\n```\napps/{app}/overlays/staging/\n├── kustomization.yaml\n├── namespace.yaml        # (옵션: namespace transformer)\n├── replicas-patch.yaml\n├── resources-patch.yaml\n├── ingress.yaml\n└── external-secret.yaml\n```\n\n### kustomization.yaml 템플릿 (platform-svc 예시)\n\n```bash\nmkdir -p apps/platform-svc/overlays/staging\n```\n\n```yaml\n# apps/platform-svc/overlays/staging/kustomization.yaml\napiVersion: kustomize.config.k8s.io/v1beta1\nkind: Kustomization\n\nnamespace: synapse-staging\n\nresources:\n  - ../../base\n  - external-secret.yaml\n  - ingress.yaml\n\npatches:\n  - path: replicas-patch.yaml\n  - path: resources-patch.yaml\n\ncommonLabels:\n  environment: staging\n\nimages:\n  - name: platform-svc\n    newName: <ECR_REGISTRY>/platform-svc\n    newTag: latest  # 이미지 태그 자동 싱크로 업데이트됨\n```\n\n### replicas-patch.yaml 템플릿\n\n```yaml\n# apps/platform-svc/overlays/staging/replicas-patch.yaml\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: platform-svc\nspec:\n  replicas: 2\n```\n\n### resources-patch.yaml 템플릿\n\n```yaml\n# apps/platform-svc/overlays/staging/resources-patch.yaml\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: platform-svc\nspec:\n  template:\n    spec:\n      containers:\n        - name: platform-svc\n          resources:\n            requests:\n              cpu: 200m\n              memory: 256Mi\n            limits:\n              cpu: 500m\n              memory: 512Mi\n```\n\n### ExternalSecret 템플릿\n\n```yaml\n# apps/platform-svc/overlays/staging/external-secret.yaml\napiVersion: external-secrets.io/v1beta1\nkind: ExternalSecret\nmetadata:\n  name: platform-svc-secrets\n  namespace: synapse-staging\nspec:\n  refreshInterval: 1h\n  secretStoreRef:\n    name: aws-secrets-manager\n    kind: ClusterSecretStore\n  target:\n    name: platform-svc-secrets\n    creationPolicy: Owner\n  data:\n    - secretKey: DATABASE_URL\n      remoteRef:\n        key: synapse/staging/platform-svc/database\n        property: url\n    - secretKey: REDIS_URL\n      remoteRef:\n        key: synapse/staging/platform-svc/redis\n        property: url\n```\n\n### Ingress 템플릿\n\n```yaml\n# apps/platform-svc/overlays/staging/ingress.yaml\napiVersion: networking.k8s.io/v1\nkind: Ingress\nmetadata:\n  name: platform-svc\n  namespace: synapse-staging\n  annotations:\n    kubernetes.io/ingress.class: alb\n    alb.ingress.kubernetes.io/scheme: internet-facing\n    alb.ingress.kubernetes.io/certificate-arn: <ACM_CERT_ARN>\n    alb.ingress.kubernetes.io/listen-ports: '[{\"HTTPS\":443}]'\n    alb.ingress.kubernetes.io/ssl-redirect: \"443\"\nspec:\n  rules:\n    - host: staging-platform-svc.<domain>\n      http:\n        paths:\n          - path: /\n            pathType: Prefix\n            backend:\n              service:\n                name: platform-svc\n                port:\n                  number: 8080\n  tls:\n    - hosts:\n        - staging-platform-svc.<domain>\n```\n\n### 5개 앱 일괄 생성 스크립트\n\n```bash\nAPPS=\"platform-svc engagement-svc knowledge-svc learning-card learning-ai\"\nfor app in $APPS; do\n  mkdir -p \"apps/${app}/overlays/staging\"\n  # dev overlay를 복사 후 staging 값으로 수정\n  cp \"apps/${app}/overlays/dev/kustomization.yaml\" \"apps/${app}/overlays/staging/kustomization.yaml\"\n  echo \"Created staging overlay for ${app}\"\ndone\n```\n\n```powershell\n$apps = @(\"platform-svc\", \"engagement-svc\", \"knowledge-svc\", \"learning-card\", \"learning-ai\")\nforeach ($app in $apps) {\n    New-Item -ItemType Directory -Path \"apps\\$app\\overlays\\staging\" -Force\n    Copy-Item \"apps\\$app\\overlays\\dev\\kustomization.yaml\" \"apps\\$app\\overlays\\staging\\kustomization.yaml\"\n    Write-Host \"Created staging overlay for $app\"\n}\n```\n\n각 앱의 kustomization.yaml에서 다음을 수정:\n1. `namespace: synapse-dev` -> `synapse-staging`\n2. replicas: 1 -> 2\n3. ExternalSecret의 remoteRef key: `synapse/dev/` -> `synapse/staging/`\n4. Ingress host: `dev-` -> `staging-`\n\n### kustomize 빌드 검증\n\n```bash\nfor app in $APPS; do\n  echo \"=== ${app} ===\"\n  kustomize build \"apps/${app}/overlays/staging\" | head -20\n  echo \"\"\ndone\n```\n\n**Expected**: 각 앱의 빌드 결과에서 `namespace: synapse-staging`, `replicas: 2` 확인.\n\n### Secrets Manager에 staging 시크릿 등록\n\n```bash\nAPPS=\"platform-svc engagement-svc knowledge-svc learning-card learning-ai\"\nfor app in $APPS; do\n  aws secretsmanager create-secret \\\n    --name \"synapse/staging/${app}/database\" \\\n    --secret-string '{\"url\":\"postgresql://...staging-rds-endpoint...\"}' \\\n    --region ap-northeast-2\n  aws secretsmanager create-secret \\\n    --name \"synapse/staging/${app}/redis\" \\\n    --secret-string '{\"url\":\"redis://...staging-redis-endpoint...\"}' \\\n    --region ap-northeast-2\n  echo \"Created staging secrets for ${app}\"\ndone\n```\n\n```powershell\n$apps = @(\"platform-svc\", \"engagement-svc\", \"knowledge-svc\", \"learning-card\", \"learning-ai\")\nforeach ($app in $apps) {\n    aws secretsmanager create-secret `\n        --name \"synapse/staging/$app/database\" `\n        --secret-string '{\"url\":\"postgresql://...staging-rds-endpoint...\"}' `\n        --region ap-northeast-2\n    aws secretsmanager create-secret `\n        --name \"synapse/staging/$app/redis\" `\n        --secret-string '{\"url\":\"redis://...staging-redis-endpoint...\"}' `\n        --region ap-northeast-2\n    Write-Host \"Created staging secrets for $app\"\n}\n```\n\n---\n\n## 7-C. ApplicationSet 확장 (1시간)\n\n기존 ApplicationSet의 generator matrix에 staging 환경을 추가한다.\n\n### 현재 ApplicationSet 확인\n\n```bash\nkubectl get applicationset synapse-apps -n argocd -o yaml\n```\n\n### ApplicationSet 수정\n\ngenerator의 `elements` 배열에 staging을 추가:\n\n```yaml\n# applicationset.yaml (수정 부분)\napiVersion: argoproj.io/v1alpha1\nkind: ApplicationSet\nmetadata:\n  name: synapse-apps\n  namespace: argocd\nspec:\n  generators:\n    - matrix:\n        generators:\n          - list:\n              elements:\n                - env: dev\n                  namespace: synapse-dev\n                - env: staging\n                  namespace: synapse-staging\n          - list:\n              elements:\n                - app: platform-svc\n                - app: engagement-svc\n                - app: knowledge-svc\n                - app: learning-card\n                - app: learning-ai\n  template:\n    metadata:\n      name: \"synapse-{{app}}-{{env}}\"\n    spec:\n      project: synapse\n      source:\n        repoURL: https://github.com/team-project-final/synapse-gitops.git\n        targetRevision: main\n        path: \"apps/{{app}}/overlays/{{env}}\"\n      destination:\n        server: https://kubernetes.default.svc\n        namespace: \"{{namespace}}\"\n      syncPolicy:\n        automated:\n          prune: true\n          selfHeal: true\n        syncOptions:\n          - CreateNamespace=true\n```\n\n### 적용 + 검증\n\n```bash\n# ApplicationSet 적용\nkubectl apply -f applicationset.yaml -n argocd\n\n# 10개 Application 생성 확인 (최대 30초 대기)\nsleep 10\nargocd app list\n```\n\n```powershell\nkubectl apply -f applicationset.yaml -n argocd\nStart-Sleep -Seconds 10\nargocd app list\n```\n\n**Expected**: 10개 Application 표시:\n```\nNAME                             SYNC STATUS   HEALTH STATUS\nsynapse-platform-svc-dev         Synced        Healthy\nsynapse-platform-svc-staging     Synced        Healthy\nsynapse-engagement-svc-dev       Synced        Healthy\nsynapse-engagement-svc-staging   Synced        Healthy\nsynapse-knowledge-svc-dev        Synced        Healthy\nsynapse-knowledge-svc-staging    Synced        Healthy\nsynapse-learning-card-dev        Synced        Healthy\nsynapse-learning-card-staging    Synced        Healthy\nsynapse-learning-ai-dev          Synced        Healthy\nsynapse-learning-ai-staging      Synced        Healthy\n```\n\nstaging Application이 `OutOfSync` 또는 `Missing`이면:\n1. `argocd app get synapse-platform-svc-staging` 으로 상세 확인\n2. overlay path가 올바른지 점검 (`apps/platform-svc/overlays/staging` 존재 여부)\n3. kustomization.yaml 문법 오류 → `kustomize build` 로컬 테스트\n\n---\n\n## 7-D. 승격 시뮬레이션 + 검증 (2시간)\n\ndev에서 변경한 내용이 main merge 후 staging에도 자동 반영되는지 확인한다.\n\n### 시뮬레이션 절차\n\n```bash\n# 1. 테스트 브랜치 생성\ngit checkout main && git pull\ngit checkout -b test/staging-promotion-check\n\n# 2. dev overlay에 무해한 변경 (annotation 추가)\ncat >> apps/platform-svc/overlays/dev/kustomization.yaml << 'EOF'\n\ncommonAnnotations:\n  promotion-test: \"w3-staging-check\"\nEOF\n\n# 3. staging overlay에도 동일 변경 적용 확인\ncat >> apps/platform-svc/overlays/staging/kustomization.yaml << 'EOF'\n\ncommonAnnotations:\n  promotion-test: \"w3-staging-check\"\nEOF\n\n# 4. 커밋 + PR\ngit add apps/platform-svc/overlays/\ngit commit -m \"test: staging promotion simulation\"\ngit push -u origin test/staging-promotion-check\ngh pr create --title \"test: staging promotion simulation\" \\\n  --body \"W3 승격 절차 검증용. merge 후 dev+staging 모두 반영 확인.\"\n```\n\n### merge 후 검증\n\n```bash\n# PR merge\ngh pr merge --merge --delete-branch\n\n# ArgoCD sync 대기 (auto-sync 주기: 기본 3분)\nsleep 180\n\n# 검증\nargocd app get synapse-platform-svc-dev -o json | jq '.status.sync.status'\nargocd app get synapse-platform-svc-staging -o json | jq '.status.sync.status'\n```\n\n**Expected**: 두 환경 모두 `\"Synced\"`.\n\n### staging 도메인 헬스체크\n\n```bash\nAPPS=\"platform-svc engagement-svc knowledge-svc learning-card learning-ai\"\nfor app in $APPS; do\n  STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" \"https://staging-${app}.<domain>/health\" || echo \"FAIL\")\n  echo \"${app}: ${STATUS}\"\ndone\n```\n\n```powershell\n$apps = @(\"platform-svc\", \"engagement-svc\", \"knowledge-svc\", \"learning-card\", \"learning-ai\")\nforeach ($app in $apps) {\n    try {\n        $response = Invoke-WebRequest -Uri \"https://staging-$app.<domain>/health\" -UseBasicParsing\n        Write-Host \"$app`: $($response.StatusCode)\"\n    } catch {\n        Write-Host \"$app`: FAIL - $($_.Exception.Message)\"\n    }\n}\n```\n\n**Expected**: 5개 앱 모두 200 OK.\n\n### annotation 정리\n\n```bash\ngit checkout main && git pull\ngit checkout -b fix/remove-promotion-test-annotation\n# 두 overlay에서 promotion-test annotation 제거\nsed -i '/promotion-test/d' apps/platform-svc/overlays/dev/kustomization.yaml\nsed -i '/commonAnnotations/d' apps/platform-svc/overlays/dev/kustomization.yaml\nsed -i '/promotion-test/d' apps/platform-svc/overlays/staging/kustomization.yaml\nsed -i '/commonAnnotations/d' apps/platform-svc/overlays/staging/kustomization.yaml\ngit add apps/platform-svc/overlays/\ngit commit -m \"chore: remove promotion test annotations\"\ngit push -u origin fix/remove-promotion-test-annotation\ngh pr create --title \"chore: remove promotion test annotations\" --body \"승격 시뮬레이션 정리\"\ngh pr merge --merge --delete-branch\n```\n\n---\n\n## 7-E. 문서화 (30분)\n\n### 승격 절차 README 작성\n\n`docs/promotion-procedure.md`에 다음 내용 기록:\n\n1. 승격 흐름: feature branch -> PR -> main merge -> ArgoCD auto-sync -> dev + staging 동시 반영\n2. staging 전용 설정 변경: `apps/{app}/overlays/staging/` 수정 후 동일 흐름\n3. 롤백: ArgoCD UI에서 이전 revision으로 수동 sync 또는 Git revert PR\n4. prod 승격 (향후): manual sync policy, approval gate 추가 예정\n\n### HISTORY 갱신\n\n`docs/project-management/history/HISTORY_gitops.md`에 W3 Step 7 실행 결과 기록:\n- 날짜, 산출물 (PR 번호), 10개 Application 목록, 스크린샷\n\n---\n\n## 검증\n\n- [ ] `argocd app list` — 10개 Application 모두 표시\n- [ ] 10개 모두 `Synced / Healthy`\n- [ ] `kubectl get pods -n synapse-staging` — 5개 앱 pod 각 2개 Running\n- [ ] `kubectl get externalsecret -n synapse-staging` — 5개 ExternalSecret `SecretSynced`\n- [ ] staging 도메인 5개 헬스체크 200 OK\n- [ ] 승격 시뮬레이션 완료 — dev+staging 동시 반영 확인\n\n---\n\n## 자주 막히는 지점\n\n### 네임스페이스 생성 누락\n\n**증상**: staging Application이 `Missing` 상태, pod이 생성 안 됨.\n\n**원인**: `synapse-staging` 네임스페이스가 없고, ApplicationSet에 `CreateNamespace=true` syncOption이 빠짐.\n\n**해결**:\n```bash\n# 수동 생성\nkubectl create namespace synapse-staging\n\n# 또는 ApplicationSet syncOptions에 추가\n# syncOptions:\n#   - CreateNamespace=true\n```\n\n### ApplicationSet generator 오류\n\n**증상**: `argocd app list`에 staging Application이 안 나옴.\n\n**원인**: generator matrix 문법 오류 (YAML 들여쓰기, elements 누락 등).\n\n**해결**:\n```bash\nkubectl describe applicationset synapse-apps -n argocd\n# Events 섹션에서 에러 메시지 확인\n# generator 부분의 YAML 문법 점검 (yamllint 사용 권장)\n```\n\n### Ingress 충돌\n\n**증상**: staging Ingress가 생성되었으나 도메인 접근 불가.\n\n**원인**: dev와 staging이 같은 ALB를 공유하면서 host rule 충돌, 또는 ACM 인증서에 staging 도메인이 없음.\n\n**해결**:\n```bash\nkubectl get ingress -n synapse-staging\nkubectl describe ingress -n synapse-staging <ingress-name>\n# ACM 인증서에 *.staging.<domain> 추가 또는 SAN 확장\n```\n\n### ExternalSecret staging 경로 미등록\n\n**증상**: ExternalSecret 상태가 `SecretSyncedError`, pod이 `CreateContainerConfigError`.\n\n**원인**: AWS Secrets Manager에 `synapse/staging/{app}/*` 경로의 시크릿이 없음.\n\n**해결**:\n```bash\n# 시크릿 존재 여부 확인\naws secretsmanager list-secrets --filter Key=name,Values=synapse/staging --region ap-northeast-2\n\n# 없으면 7-B의 Secrets Manager 등록 절차 실행\n```\n\n---\n\n## 다음 단계\n\n10개 Application 모두 Synced+Healthy 확인 후 상위 runbook의 [Step 8](./w3-staging-observability-runbook.md#step-8-observability-스택-구축-2일)으로 진행.\n"
+}

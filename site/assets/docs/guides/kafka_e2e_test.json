@@ -1,0 +1,80 @@
+{
+  "slug": "kafka_e2e_test",
+  "title": "Kafka E2E 검증 가이드\r",
+  "category": "guides",
+  "source": "synapse-shared",
+  "tags": [
+    "kafka",
+    "docker",
+    "e2e"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-21",
+    "status": "active",
+    "completionRate": null
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "개요",
+      "anchor": "개요"
+    },
+    {
+      "level": 2,
+      "text": "사전 조건",
+      "anchor": "사전-조건"
+    },
+    {
+      "level": 2,
+      "text": "검증 시나리오",
+      "anchor": "검증-시나리오"
+    },
+    {
+      "level": 3,
+      "text": "시나리오 1: 회원가입 → 프로필 생성",
+      "anchor": "시나리오-1-회원가입-프로필-생성"
+    },
+    {
+      "level": 3,
+      "text": "시나리오 2: 노트 생성 → AI 카드 생성",
+      "anchor": "시나리오-2-노트-생성-ai-카드-생성"
+    },
+    {
+      "level": 3,
+      "text": "시나리오 3: 카드 복습 → XP 적립",
+      "anchor": "시나리오-3-카드-복습-xp-적립"
+    },
+    {
+      "level": 3,
+      "text": "시나리오 4: AI 카드 완료 → 알림",
+      "anchor": "시나리오-4-ai-카드-완료-알림"
+    },
+    {
+      "level": 2,
+      "text": "일괄 실행 옵션",
+      "anchor": "일괄-실행-옵션"
+    },
+    {
+      "level": 3,
+      "text": "정상 흐름만 (5개 토픽)",
+      "anchor": "정상-흐름만-5개-토픽"
+    },
+    {
+      "level": 3,
+      "text": "에러/멀티테넌트 케이스만",
+      "anchor": "에러멀티테넌트-케이스만"
+    },
+    {
+      "level": 3,
+      "text": "전체 (정상 + 에러 + 멀티테넌트)",
+      "anchor": "전체-정상-에러-멀티테넌트"
+    },
+    {
+      "level": 2,
+      "text": "트러블슈팅",
+      "anchor": "트러블슈팅"
+    }
+  ],
+  "body": "# Kafka E2E 검증 가이드\r\n\r\n## 개요\r\n\r\n4개 이벤트 흐름을 Docker Compose 로컬 환경에서 검증한다.\r\n\r\n## 사전 조건\r\n\r\n1. Docker Compose 실행 중: `docker compose up -d`\r\n2. 모든 서비스 healthy: `docker compose ps`\r\n3. Kafka 토픽 생성 완료 (kafka-init 서비스가 자동 생성)\r\n\r\n## 검증 시나리오\r\n\r\n### 시나리오 1: 회원가입 → 프로필 생성\r\n\r\n| 항목 | 값 |\r\n|------|---|\r\n| Producer | platform-svc |\r\n| Topic | `platform.auth.user-registered-v1` |\r\n| Consumer | engagement-svc |\r\n| 검증 | engagement-svc 로그에서 이벤트 수신 확인 + DB에 프로필 레코드 생성 |\r\n\r\n**수동 테스트 (서비스 구현 전 — 메시지 흐름만 확인):**\r\n```bash\r\nbash scripts/kafka-e2e-test.sh platform.auth.user-registered-v1 user-registered.json\r\n```\r\n\r\n**서비스 구현 후 E2E 테스트:**\r\n```bash\r\n# 1. platform-svc에 회원가입 API 호출\r\ncurl -X POST http://localhost:8081/api/v1/auth/register \\\r\n  -H \"Content-Type: application/json\" \\\r\n  -d '{\"email\":\"e2e@test.com\",\"password\":\"Test1234!\"}'\r\n\r\n# 2. engagement-svc 로그에서 이벤트 수신 확인\r\ndocker logs synapse-engagement-svc 2>&1 | grep \"user-registered\"\r\n\r\n# 3. engagement-svc DB에서 프로필 확인\r\ndocker exec synapse-postgres psql -U synapse -c \\\r\n  \"SELECT * FROM engagement.user_profiles WHERE email='e2e@test.com'\"\r\n```\r\n\r\n### 시나리오 2: 노트 생성 → AI 카드 생성\r\n\r\n| 항목 | 값 |\r\n|------|---|\r\n| Producer | knowledge-svc |\r\n| Topic | `knowledge.note.note-created-v1` |\r\n| Consumer | learning-ai-svc |\r\n| 검증 | learning-ai-svc 로그에서 카드 생성 트리거 확인 |\r\n\r\n**수동 테스트:**\r\n```bash\r\nbash scripts/kafka-e2e-test.sh knowledge.note.note-created-v1 note-created.json\r\n```\r\n\r\n### 시나리오 3: 카드 복습 → XP 적립\r\n\r\n| 항목 | 값 |\r\n|------|---|\r\n| Producer | learning-card-svc |\r\n| Topic | `learning.card.review-completed-v1` |\r\n| Consumer | engagement-svc |\r\n| 검증 | engagement-svc에서 XP 포인트 증가 확인 |\r\n\r\n**수동 테스트:**\r\n```bash\r\nbash scripts/kafka-e2e-test.sh learning.card.review-completed-v1 review-completed.json\r\n```\r\n\r\n### 시나리오 4: AI 카드 완료 → 알림\r\n\r\n| 항목 | 값 |\r\n|------|---|\r\n| Producer | learning-ai-svc |\r\n| Topic | `learning.ai.cards-generated-v1` |\r\n| Consumer | platform-svc |\r\n| 검증 | platform-svc 알림 로그 확인 |\r\n\r\n**수동 테스트:**\r\n```bash\r\nbash scripts/kafka-e2e-test.sh learning.ai.cards-generated-v1 cards-generated.json\r\n```\r\n\r\n## 일괄 실행 옵션\r\n\r\n### 정상 흐름만 (5개 토픽)\r\n\r\n```bash\r\nbash scripts/kafka-e2e-test.sh --all\r\n```\r\n\r\n### 에러/멀티테넌트 케이스만\r\n\r\n```bash\r\nbash scripts/kafka-e2e-test.sh --error-cases\r\n```\r\n\r\n에러 케이스 포함 항목:\r\n- 존재하지 않는 토픽 produce 시도\r\n- `error/missing-required-field.json` — 필수 필드 누락\r\n- `error/invalid-tenant.json` — 유효하지 않은 테넌트\r\n- `error/empty-data.json` — 빈 데이터\r\n- `multi-tenant/*.json` — tenant-e2e-002 전체 이벤트 (4종)\r\n\r\n### 전체 (정상 + 에러 + 멀티테넌트)\r\n\r\n```bash\r\nbash scripts/kafka-e2e-test.sh --full\r\n```\r\n\r\n## 트러블슈팅\r\n\r\n| 증상 | 원인 | 해결 |\r\n|------|------|------|\r\n| `Topic not found` | kafka-init 미완료 | `docker compose restart kafka-init` |\r\n| `Connection refused` | Kafka 미기동 | `docker compose up -d kafka` + health 대기 |\r\n| Consume timeout | 메시지 미도착 | Producer 로그 확인, 토픽 파티션 확인 |\r\n| Serialization error | 스키마 불일치 | Schema Registry에 등록된 스키마 버전 확인 |\r\n"
+}

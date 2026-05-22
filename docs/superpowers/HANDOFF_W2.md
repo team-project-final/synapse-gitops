@@ -1,3 +1,8 @@
+> **⚠️ 아카이브**: 이 문서는 W2 기간(1~9차 세션) 핸드오프 기록입니다.
+> 현재 핸드오프는 [HANDOFF_HUB.md](https://github.com/team-project-final/synapse-shared/blob/main/docs/project-management/HANDOFF_HUB.md) + [HANDOFF_W3.md](./HANDOFF_W3.md)를 참조하세요.
+
+---
+
 # W2 핸드오프: 다음 세션 이어받기 (v8)
 
 > **최종 갱신**: 2026-05-21 (9차 세션 완료 — **5/5 Healthy** 달성)

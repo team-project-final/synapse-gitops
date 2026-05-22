@@ -1,0 +1,76 @@
+{
+  "slug": "appendix-c-checklist",
+  "title": "부록 C — PR 셀프체크 리스트\r",
+  "category": "rules",
+  "source": "synapse-shared",
+  "tags": [],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-14",
+    "status": "active",
+    "completionRate": 0
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "Security (01)",
+      "anchor": "security-01"
+    },
+    {
+      "level": 2,
+      "text": "Function (02)",
+      "anchor": "function-02"
+    },
+    {
+      "level": 2,
+      "text": "Technical (03)",
+      "anchor": "technical-03"
+    },
+    {
+      "level": 2,
+      "text": "Quality (04)",
+      "anchor": "quality-04"
+    },
+    {
+      "level": 2,
+      "text": "Operation (05)",
+      "anchor": "operation-05"
+    },
+    {
+      "level": 2,
+      "text": "Auth & Token (06)",
+      "anchor": "auth-token-06"
+    },
+    {
+      "level": 2,
+      "text": "Platform (07)",
+      "anchor": "platform-07"
+    },
+    {
+      "level": 2,
+      "text": "Event (08)",
+      "anchor": "event-08"
+    },
+    {
+      "level": 2,
+      "text": "Observability (09)",
+      "anchor": "observability-09"
+    },
+    {
+      "level": 2,
+      "text": "Data Sovereignty (11)",
+      "anchor": "data-sovereignty-11"
+    },
+    {
+      "level": 2,
+      "text": "Working Log (12)",
+      "anchor": "working-log-12"
+    },
+    {
+      "level": 2,
+      "text": "Task Structure (14)",
+      "anchor": "task-structure-14"
+    }
+  ],
+  "body": "# 부록 C — PR 셀프체크 리스트\r\n\r\n> PR 올리기 전에 이 체크리스트를 훑어봐. **[MUST]** 규칙 위반이 있으면 머지 안 돼.\r\n> 전부 체크할 필요는 없고, 해당하는 항목만 확인하면 돼. 근데 [MUST]는 예외 없어.\r\n\r\n---\r\n\r\n## Security (01)\r\n\r\n- [ ] `.env` / `*.key` / `*.pem` 커밋 없음 (§1.1)\r\n- [ ] GitHub PAT는 fine-grained만 사용 (§1.1)\r\n- [ ] 시크릿 로테이션 주기 준수 — Grace Period 동시 허용 (§1.1.1)\r\n- [ ] IDOR 체크 — `userId == currentUser` 리소스 소유자 검증 (§1.2)\r\n- [ ] 401/403 응답 구분 — 미인증 vs 권한 없음 (§1.2)\r\n- [ ] CORS 화이트리스트 방식 — `*` 금지 (§1.3)\r\n- [ ] `localhost` CORS 허용은 dev 프로파일에서만 (§1.3)\r\n\r\n---\r\n\r\n## Function (02)\r\n\r\n- [ ] URI kebab-case + `/api/v1/` prefix (§2.1)\r\n- [ ] URI depth 3~4단계 이내 (§2.1)\r\n- [ ] 리소스명 복수형 명사, 동사 사용 금지 (§2.1)\r\n- [ ] 에러 응답 RFC 7807 형식 준수 (§2.3)\r\n- [ ] 서비스별 에러 코드 prefix 사용 — PLAT/ENGM/KNOW/LRNG (§2.3)\r\n- [ ] 사용자 데이터 Soft Delete — `deleted_at` 타임스탬프 (§2.4)\r\n- [ ] 물리 삭제는 시스템 내부 데이터만 (§2.4)\r\n- [ ] DIP/OCP — 모듈 간 인터페이스 의존만 허용 (§2.5)\r\n\r\n---\r\n\r\n## Technical (03)\r\n\r\n- [ ] N+1 방지 — `fetchJoin()` 또는 `@EntityGraph` 사용 (§3.2)\r\n- [ ] `findAll()` 후 loop에서 lazy 접근 패턴 없음 (§3.2)\r\n- [ ] `@Transactional` 서비스 계층에서만 선언 (§3.3)\r\n- [ ] 읽기 전용 메서드 `@Transactional(readOnly = true)` 적용 (§3.3)\r\n- [ ] 트랜잭션 안에서 외부 API 호출 없음 (§3.3)\r\n- [ ] AOP에 비즈니스 로직 없음 — cross-cutting만 (§3.4)\r\n- [ ] Modulith `allowedDependencies` 설정 (§3.5)\r\n- [ ] 순환 의존 없음 — ArchUnit 테스트 통과 (§3.5)\r\n- [ ] 모듈 간 직접 import 금지 — 이벤트 또는 exposed interface 사용 (§3.5)\r\n\r\n---\r\n\r\n## Quality (04)\r\n\r\n- [ ] 테스트 Given-When-Then 패턴 (§4.1)\r\n- [ ] 테스트 네이밍 BDD 스타일 — `메서드명_상황_should기대결과` (§4.1)\r\n- [ ] 정적 분석 warning 0건 — Checkstyle / SpotBugs / ruff / flutter analyze (§4.4)\r\n- [ ] Unit / Integration / E2E 테스트 구분 작성 (§4.5)\r\n\r\n---\r\n\r\n## Operation (05)\r\n\r\n- [ ] 배포 GitOps 단일 경로 — `kubectl apply` 수동 금지 (§5.1)\r\n- [ ] 롤백 이전 이미지 태그 사용 — `latest` 태그 금지 (§5.2)\r\n- [ ] Health Check liveness + readiness 두 가지 제공 (§5.3)\r\n\r\n---\r\n\r\n## Auth & Token (06)\r\n\r\n- [ ] JWT RS256 서명 — HS256 금지 (§6.1)\r\n- [ ] Access Token TTL 15분, Refresh Token TTL 7일 (§6.1)\r\n- [ ] JWT 헤더에 `kid` 필드 포함 (§6.1)\r\n- [ ] OAuth client-secret 환경 변수 주입 — 하드코딩 금지 (§6.2)\r\n- [ ] 로그아웃 시 Redis 블랙리스트 즉시 등록 (§6.4)\r\n- [ ] JWT 필터에서 블랙리스트 체크 (§6.4)\r\n\r\n---\r\n\r\n## Platform (07)\r\n\r\n- [ ] 의존 방향 `shared <- 도메인 모듈` — 역방향 금지 (§7.0.1)\r\n- [ ] 도메인 모듈 간 직접 참조 금지 — 이벤트로 연결 (§7.0.1)\r\n- [ ] `application-{profile}.yml` 환경별 분리 — local/dev/staging/prod (§7.0.2)\r\n- [ ] prod yml에 평문 비밀번호 금지 — 환경 변수 주입 (§7.0.2)\r\n- [ ] 같은 레포 모듈 경계 준수 — `allowedDependencies` 명시 (§7.0.3)\r\n\r\n---\r\n\r\n## Event (08)\r\n\r\n- [ ] Kafka 메시지 Avro 스키마 레지스트리 사용 (§8.4)\r\n- [ ] 스키마 호환성 BACKWARD 준수 (§8.5)\r\n- [ ] JSON 문자열 직접 전송 금지 — Avro 직렬화 필수 (§8.4)\r\n\r\n---\r\n\r\n## Observability (09)\r\n\r\n- [ ] 구조화 로그 (JSON 형식) 사용 (§9.1)\r\n- [ ] `traceId` 전 구간 전파 (§9.1)\r\n- [ ] 로그에 개인정보 마스킹 — 이메일, 전화번호 등 (§9.1)\r\n\r\n---\r\n\r\n## Data Sovereignty (11)\r\n\r\n- [ ] 민감 데이터 AES-256 암호화 저장 (§11.1)\r\n- [ ] 비밀번호 bcrypt 해싱 (§11.1)\r\n- [ ] 전송 구간 TLS 1.2+ 강제 (§11.2)\r\n- [ ] 디버그 로그에 민감 데이터 포함 금지 (§11.3)\r\n\r\n---\r\n\r\n## Working Log (12)\r\n\r\n- [ ] 커밋 메시지 Conventional Commits 형식 — `type(scope): subject` (§12.1)\r\n- [ ] PR 본문 `## 변경 사항` + `## 테스트 결과` 필수 (§12.2)\r\n- [ ] HISTORY.md 일일 갱신 — 한 일 / 이슈 / 내일 계획 (§12.3)\r\n\r\n---\r\n\r\n## Task Structure (14)\r\n\r\n- [ ] Task 문서 필수 10필드 전부 작성 (§14.1)\r\n- [ ] Step Goal 측정 가능한 문장 — `[주체]가 [대상]에 [행위]를 [결과]한다` (§14.2)\r\n- [ ] Done When은 Step Goal 바로 다음에 배치 (§14.3)\r\n- [ ] Scope — In Scope / Out of Scope 두 블록 고정 (§14.4)\r\n\r\n---\r\n\r\n> 이 체크리스트는 Synapse Rule 01~14 챕터의 [MUST] 항목을 기반으로 만들었어.\r\n> 규칙 상세 내용은 각 챕터 원문을 참고해.\r\n\r\n_마지막 업데이트: 2026-05-12_\r\n"
+}

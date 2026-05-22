@@ -1,0 +1,130 @@
+{
+  "slug": "step11-operational-runbook",
+  "title": "Runbook: 장애 Runbook 작성 + 시뮬레이션 + On-call 체계 (Step 11 상세)",
+  "category": "infra",
+  "source": "synapse-gitops",
+  "tags": [
+    "argocd",
+    "staging",
+    "deploy"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-18",
+    "status": "active",
+    "completionRate": null
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "11-A. 장애 유형 도출 (30분)",
+      "anchor": "11-a-장애-유형-도출-30분"
+    },
+    {
+      "level": 2,
+      "text": "11-B. Runbook 작성 (4시간)",
+      "anchor": "11-b-runbook-작성-4시간"
+    },
+    {
+      "level": 3,
+      "text": "작성 파일 및 핵심 진단 명령",
+      "anchor": "작성-파일-및-핵심-진단-명령"
+    },
+    {
+      "level": 3,
+      "text": "각 문서 필수 섹션",
+      "anchor": "각-문서-필수-섹션"
+    },
+    {
+      "level": 3,
+      "text": "검증",
+      "anchor": "검증"
+    },
+    {
+      "level": 2,
+      "text": "11-C. 시뮬레이션 (2시간)",
+      "anchor": "11-c-시뮬레이션-2시간"
+    },
+    {
+      "level": 3,
+      "text": "사전 준비",
+      "anchor": "사전-준비"
+    },
+    {
+      "level": 3,
+      "text": "시나리오 1: CrashLoopBackOff",
+      "anchor": "시나리오-1-crashloopbackoff"
+    },
+    {
+      "level": 3,
+      "text": "시나리오 2: OOM Killed",
+      "anchor": "시나리오-2-oom-killed"
+    },
+    {
+      "level": 3,
+      "text": "시나리오 3: ArgoCD Sync 실패",
+      "anchor": "시나리오-3-argocd-sync-실패"
+    },
+    {
+      "level": 3,
+      "text": "team-lead 검증",
+      "anchor": "team-lead-검증"
+    },
+    {
+      "level": 3,
+      "text": "시뮬레이션 후 원복",
+      "anchor": "시뮬레이션-후-원복"
+    },
+    {
+      "level": 2,
+      "text": "11-D. On-call 체계 (1시간)",
+      "anchor": "11-d-on-call-체계-1시간"
+    },
+    {
+      "level": 3,
+      "text": "연락처 + 에스컬레이션",
+      "anchor": "연락처-에스컬레이션"
+    },
+    {
+      "level": 3,
+      "text": "Alertmanager → Slack 경로",
+      "anchor": "alertmanager-slack-경로"
+    },
+    {
+      "level": 3,
+      "text": "야간/주말 정책",
+      "anchor": "야간주말-정책"
+    },
+    {
+      "level": 3,
+      "text": "알람 경로 테스트",
+      "anchor": "알람-경로-테스트"
+    },
+    {
+      "level": 2,
+      "text": "자주 막히는 지점",
+      "anchor": "자주-막히는-지점"
+    },
+    {
+      "level": 3,
+      "text": "시뮬레이션 후 staging 원복 누락",
+      "anchor": "시뮬레이션-후-staging-원복-누락"
+    },
+    {
+      "level": 3,
+      "text": "알람 경로 테스트 시 실제 On-call 알림",
+      "anchor": "알람-경로-테스트-시-실제-on-call-알림"
+    },
+    {
+      "level": 3,
+      "text": "Runbook 명령이 환경에 따라 다름",
+      "anchor": "runbook-명령이-환경에-따라-다름"
+    },
+    {
+      "level": 2,
+      "text": "다음 단계",
+      "anchor": "다음-단계"
+    }
+  ],
+  "body": "# Runbook: 장애 Runbook 작성 + 시뮬레이션 + On-call 체계 (Step 11 상세)\n\n> **소요 시간**: 2일 (약 7.5시간 실작업)\n> **결과**: 장애 Runbook 5개 작성, team-lead 따라하기 1회 통과, On-call 체계 정리\n> **상위 문서**: [w5-stabilize-runbook.md](./w5-stabilize-runbook.md) Step 11\n> **사전 조건**: W4 완료 (prod 15 Applications + Velero 백업 + 롤백 검증), staging 정상 가동\n\n---\n\n## 11-A. 장애 유형 도출 (30분)\n\n5개 장애 시나리오를 확정하고 symptom → cause → action 매핑을 정리한다.\n\n| # | 장애 유형 | Symptom | Cause | Action |\n|---|---|---|---|---|\n| 1 | Pod CrashLoopBackOff | Pod 재시작 반복, BackOff 상태 | 앱 시작 실패, 설정 오류 | 로그 확인 → 원인 수정 → 재배포 |\n| 2 | OOM Killed | Pod 재시작 + reason: OOMKilled | 메모리 limit 초과 | limit 상향 또는 앱 최적화 |\n| 3 | ArgoCD Sync 실패 | OutOfSync + SyncFailed | 잘못된 manifest, RBAC 거부 | manifest 수정 → 재sync |\n| 4 | TLS 인증서 만료 | HTTPS 인증서 오류, 502 | cert-manager 갱신 실패 | 인증서 재발급/수동 갱신 |\n| 5 | DB 연결 실패 | connection refused/timeout | SG 차단, 엔드포인트 변경, 시크릿 불일치 | 네트워크+시크릿 점검 |\n\n**Expected**: 5개 시나리오 목록이 팀 합의로 확정됨.\n\n---\n\n## 11-B. Runbook 작성 (4시간)\n\n`docs/runbooks/incidents/` 하위에 5개 독립 문서를 작성한다.\n\n```bash\nmkdir -p docs/runbooks/incidents\n```\n\n### 작성 파일 및 핵심 진단 명령\n\n**1. pod-crashloop.md** — Pod CrashLoopBackOff\n```bash\nkubectl get pods -n <namespace> | grep CrashLoopBackOff\nkubectl describe pod <pod-name> -n <namespace>\nkubectl logs <pod-name> -n <namespace> --previous\n```\n조치: `--previous` 로그 에러 확인 → ConfigMap/Secret 마운트 점검 → probe 설정 점검 → 이미지 태그 확인 → 수정 후 ArgoCD sync\n\n**2. oom-killed.md** — OOM Killed\n```bash\nkubectl get pods -n <namespace> -o json | jq '.items[] | select(.status.containerStatuses[]?.lastState.terminated.reason==\"OOMKilled\") | .metadata.name'\nkubectl top pods -n <namespace>\n```\n조치: P95 메모리 확인 → `resources.limits.memory`를 P95×1.3으로 상향 → overlay 패치 → git push → sync\n\n**3. argocd-sync-failed.md** — ArgoCD Sync 실패\n```bash\nargocd app list | grep -v Synced\nargocd app get <app-name> --show-operation\nargocd app diff <app-name>\n```\n조치: 에러 메시지 확인 → `kustomize build` 로컬 검증 → AppProject sourceRepos/destinations 점검 → 수정 후 `argocd app sync`\n\n**4. cert-expired.md** — TLS 인증서 만료\n```bash\nkubectl get cert -n <namespace> -o wide\nkubectl logs -n cert-manager deploy/cert-manager -f\nopenssl s_client -connect <domain>:443 2>/dev/null | openssl x509 -noout -dates\n```\n조치: Certificate Ready 상태 확인 → DNS 검증/Rate limit 점검 → 필요 시 `kubectl delete cert` 후 재생성 대기\n\n**5. db-connection-failed.md** — DB 연결 실패\n```bash\nkubectl logs deploy/<app> -n <namespace> | grep -i \"connection\\|refused\\|timeout\"\naws rds describe-db-instances --query 'DBInstances[?DBInstanceIdentifier==`synapse-<env>`].Endpoint'\n```\n조치: RDS 상태 확인(available) → Security Group 인바운드 점검 → Secret vs 실제 엔드포인트 비교 → ESO ExternalSecret 상태 확인\n\n### 각 문서 필수 섹션\n\n모든 장애 Runbook: `## 증상` → `## 진단` → `## 조치` → `## 회피 방법` → `## 사후 점검`\n\n### 검증\n```bash\nls -la docs/runbooks/incidents/   # 5개 파일 존재\nfor f in docs/runbooks/incidents/*.md; do\n  echo \"=== $f ===\" && grep -c \"## 증상\\|## 진단\\|## 조치\" \"$f\"\ndone   # 각 파일 3 이상\n```\n\n---\n\n## 11-C. 시뮬레이션 (2시간)\n\nstaging에서 3개 시나리오를 재현하고 Runbook 따라 복구한다.\n\n### 사전 준비\n```bash\nkubectl get pods -n staging -o wide > /tmp/staging-pods-before.txt\nargocd app list -l environment=staging > /tmp/staging-apps-before.txt\n```\n\n### 시나리오 1: CrashLoopBackOff\n\n```bash\n# 환경변수를 잘못 설정해 시작 실패 유도\nkubectl set env deploy/platform-svc -n staging STARTUP_FAIL=true\n# → pod-crashloop.md 따라 진단 → 원인 확인\nkubectl set env deploy/platform-svc -n staging STARTUP_FAIL-   # 원복\n```\n\n### 시나리오 2: OOM Killed\n\n```bash\n# memory limit 극단적 축소\nkubectl patch deploy engagement-svc -n staging --type='json' \\\n  -p='[{\"op\":\"replace\",\"path\":\"/spec/template/spec/containers/0/resources/limits/memory\",\"value\":\"10Mi\"}]'\n# → oom-killed.md 따라 진단 → limit 원복\nkubectl patch deploy engagement-svc -n staging --type='json' \\\n  -p='[{\"op\":\"replace\",\"path\":\"/spec/template/spec/containers/0/resources/limits/memory\",\"value\":\"256Mi\"}]'\n```\n\n### 시나리오 3: ArgoCD Sync 실패\n\n```bash\n# 잘못된 패치를 staging overlay에 push\ngit checkout -b test/sync-failure-simulation\n# kustomization.yaml에 존재하지 않는 리소스 참조 추가\ngit add -A && git commit -m \"test: intentional sync failure\" && git push -u origin test/sync-failure-simulation\n# → argocd-sync-failed.md 따라 진단 → 수정\ngit checkout main && git push origin --delete test/sync-failure-simulation\n```\n\n### team-lead 검증\n\n1. team-lead에게 Runbook 5개 전달\n2. 시나리오 1개 선택 → staging 장애 유발\n3. team-lead가 Runbook만 보고 독립 복구\n4. 1회 통과 = 검증 완료, 실패 시 Runbook 보완 후 재시도\n\n### 시뮬레이션 후 원복\n\n```bash\nfor app in platform-svc engagement-svc knowledge-svc learning-card learning-ai; do\n  argocd app sync \"synapse-${app}-staging\" --force --prune\ndone\nkubectl get pods -n staging   # 모든 pod Running+Ready\ndiff /tmp/staging-pods-before.txt <(kubectl get pods -n staging -o wide)\n```\n\n---\n\n## 11-D. On-call 체계 (1시간)\n\n### 연락처 + 에스컬레이션\n\n| 레벨 | 조건 | 응답 SLA | 해결 SLA | 채널 |\n|---|---|---|---|---|\n| L1 | 알람 발생 | 5분 | 30분 시도 | #synapse-oncall |\n| L2 | L1 30분 미해결 | 10분 | 2시간 | #synapse-gitops |\n| L3 | 서비스 전체 영향 / L2 2시간 초과 | 즉시 | 4시간 | team-lead DM |\n\n### Alertmanager → Slack 경로\n\n```yaml\n# alertmanager.yaml 핵심 설정\nroute:\n  receiver: 'slack-oncall'\n  routes:\n    - match: { severity: critical }\n      receiver: 'pagerduty-l2'\n    - match: { severity: warning }\n      receiver: 'slack-oncall'\nreceivers:\n  - name: 'slack-oncall'\n    slack_configs:\n      - channel: '#synapse-oncall'\n        send_resolved: true\n  - name: 'pagerduty-l2'\n    pagerduty_configs:\n      - service_key: '<PAGERDUTY_SERVICE_KEY>'\n```\n\n### 야간/주말 정책\n\n| 시간대 | 정책 |\n|---|---|\n| 평일 09:00~18:00 | L1 즉시 대응 |\n| 평일 야간 | critical만 PagerDuty, warning은 다음 영업일 |\n| 주말/공휴일 | critical만 PagerDuty, L2 30분 내 응답 |\n\n### 알람 경로 테스트\n```bash\nkubectl exec -n monitoring deploy/alertmanager -- amtool alert add \\\n  alertname=\"TestAlert\" severity=\"warning\" namespace=\"staging\" \\\n  --annotation.summary=\"On-call 경로 테스트 (무시 가능)\" \\\n  --end=\"$(date -u -d '+5 minutes' +%Y-%m-%dT%H:%M:%S.000Z)\"\n# → #synapse-oncall 수신 확인\n```\n\n---\n\n## 자주 막히는 지점\n\n### 시뮬레이션 후 staging 원복 누락\n\n해결: ArgoCD 강제 sync로 git 상태 원복. 시뮬레이션 전/후 스냅샷 비교 필수.\n\n### 알람 경로 테스트 시 실제 On-call 알림\n\n해결: 테스트는 `severity: warning` 사용 (Slack만 전달). PagerDuty 테스트는 웹 콘솔 Test 기능 활용.\n\n### Runbook 명령이 환경에 따라 다름\n\n해결: 모든 kubectl 명령에 `--context <context-name>` 명시. 실행 전 `kubectl config current-context` 확인 습관화.\n\n---\n\n## 다음 단계\n\n→ **[step12-cost-optimization.md](./step12-cost-optimization.md)** (비용 최적화 + 안정화 + 핸드오프)\n"
+}

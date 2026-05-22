@@ -1,0 +1,91 @@
+{
+  "slug": "prd_w1",
+  "title": "PRD: Week 1 — 인프라 + 핵심 CRUD\r",
+  "category": "management",
+  "source": "synapse-shared",
+  "tags": [
+    "eks",
+    "docker",
+    "ci",
+    "schema"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-14",
+    "status": "active",
+    "completionRate": 0
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "1. 주차 개요",
+      "anchor": "1-주차-개요"
+    },
+    {
+      "level": 2,
+      "text": "2. 기능 요구사항",
+      "anchor": "2-기능-요구사항"
+    },
+    {
+      "level": 3,
+      "text": "2.1 @team-lead — 인프라",
+      "anchor": "21-team-lead-인프라"
+    },
+    {
+      "level": 3,
+      "text": "2.2 @platform-owner — Auth",
+      "anchor": "22-platform-owner-auth"
+    },
+    {
+      "level": 3,
+      "text": "2.3 @engagement-owner — Community",
+      "anchor": "23-engagement-owner-community"
+    },
+    {
+      "level": 3,
+      "text": "2.4 @knowledge-owner-1 — Note",
+      "anchor": "24-knowledge-owner-1-note"
+    },
+    {
+      "level": 3,
+      "text": "2.5 @knowledge-owner-2 — Modulith/ArchUnit/Schema",
+      "anchor": "25-knowledge-owner-2-modulitharchunitschema"
+    },
+    {
+      "level": 3,
+      "text": "2.6 @learning-card-owner — Card/SRS",
+      "anchor": "26-learning-card-owner-cardsrs"
+    },
+    {
+      "level": 3,
+      "text": "2.7 @learning-ai-owner — AI Service",
+      "anchor": "27-learning-ai-owner-ai-service"
+    },
+    {
+      "level": 3,
+      "text": "2.8 Frontend (전체 협업)",
+      "anchor": "28-frontend-전체-협업"
+    },
+    {
+      "level": 2,
+      "text": "3. 비기능 요구사항",
+      "anchor": "3-비기능-요구사항"
+    },
+    {
+      "level": 2,
+      "text": "4. 의존성 맵",
+      "anchor": "4-의존성-맵"
+    },
+    {
+      "level": 2,
+      "text": "5. 성공 기준 체크리스트",
+      "anchor": "5-성공-기준-체크리스트"
+    },
+    {
+      "level": 2,
+      "text": "6. 리스크 & 대안",
+      "anchor": "6-리스크-대안"
+    }
+  ],
+  "body": "# PRD: Week 1 — 인프라 + 핵심 CRUD\r\n\r\n## 1. 주차 개요\r\n\r\n| 항목 | 내용 |\r\n|------|------|\r\n| 기간 | 2026-05-12 (월) ~ 2026-05-16 (금) |\r\n| 목표 | DB 스키마, 4-서비스 골격, 기본 CRUD, Spring Modulith 모듈 정의 |\r\n| 팀 구성 | 팀장 1명 + 팀원 6명 (트랙 A/B/C-1/C-2/D-1/D-2) + Frontend 전체 협업 |\r\n| GitHub Repositories | [synapse-platform-svc](https://github.com/team-project-final/synapse-platform-svc) · [synapse-engagement-svc](https://github.com/team-project-final/synapse-engagement-svc) · [synapse-knowledge-svc](https://github.com/team-project-final/synapse-knowledge-svc) · [synapse-learning-svc](https://github.com/team-project-final/synapse-learning-svc) · [synapse-frontend](https://github.com/team-project-final/synapse-frontend) · [synapse-shared](https://github.com/team-project-final/synapse-shared) · [synapse-mirror](https://github.com/team-project-final/synapse-mirror) · [synapse-gitops](https://github.com/team-project-final/synapse-gitops) |\r\n| 부트스트랩 스크립트 | [syn](https://github.com/team-project-final/syn) — `scripts/bootstrap/` (phase1/2/3.sh) |\r\n\r\n## 2. 기능 요구사항\r\n\r\n### 2.1 @team-lead — 인프라\r\n\r\n| ID | 유저 스토리 | 수용 기준 | 우선순위 |\r\n|----|------------|-----------|----------|\r\n| FR-TL-001 | 팀원이 Docker Compose로 전체 로컬 환경을 실행할 수 있다 | `docker compose up` → 4-서비스 + Schema Registry + PostgreSQL + Redis + Kafka + ES 실행 + Health OK | P0 |\r\n| FR-TL-002 | 팀원이 AWS EKS 클러스터에 서비스를 배포할 수 있다 | EKS 클러스터 가동 + RDS/Redis/MSK/OpenSearch 접속 가능 | P0 |\r\n| FR-TL-003 | main branch push 시 자동 빌드/배포가 동작한다 | GitHub Actions CI → ECR push → ArgoCD dev 동기화 | P1 |\r\n\r\n### 2.2 @platform-owner — Auth\r\n\r\n| ID | 유저 스토리 | 수용 기준 | 우선순위 |\r\n|----|------------|-----------|----------|\r\n| FR-PL-001 | 사용자가 Google OAuth로 회원가입할 수 있다 | Google 로그인 → users 테이블 생성 + Access Token 반환 | P0 |\r\n| FR-PL-002 | 사용자가 GitHub OAuth로 로그인할 수 있다 | GitHub 로그인 → 기존 유저 조회 + Access Token 반환 | P0 |\r\n| FR-PL-003 | 인증된 사용자에게 JWT Access/Refresh Token이 발급된다 | 로그인 → Access(15분) + Refresh(7일) 발급 + 갱신 API | P0 |\r\n| FR-PL-004 | 사용자가 TOTP 기반 MFA를 등록할 수 있다 | MFA 등록 → QR 코드 + 시크릿 발급 + 검증 API | P1 |\r\n\r\n### 2.3 @engagement-owner — Community\r\n\r\n| ID | 유저 스토리 | 수용 기준 | 우선순위 |\r\n|----|------------|-----------|----------|\r\n| FR-EG-001 | 로그인 사용자가 학습 그룹을 생성할 수 있다 | POST /api/v1/groups → 201 + 그룹 정보 반환 | P0 |\r\n| FR-EG-002 | 사용자가 그룹 목록을 조회할 수 있다 | GET /api/v1/groups → 커서 페이지네이션 | P0 |\r\n| FR-EG-003 | 그룹 소유자가 그룹 정보를 수정/삭제할 수 있다 | PUT/DELETE /api/v1/groups/{id} → 소유자만 허용 | P0 |\r\n| FR-EG-004 | 사용자가 그룹에 가입/탈퇴할 수 있다 | POST/DELETE /api/v1/groups/{id}/members → 멤버 관리 | P0 |\r\n| FR-EG-005 | 그룹 소유자가 멤버를 초대/강퇴할 수 있다 | 소유자 권한 체크 + 멤버 상태 변경 | P1 |\r\n\r\n### 2.4 @knowledge-owner-1 — Note\r\n\r\n| ID | 유저 스토리 | 수용 기준 | 우선순위 |\r\n|----|------------|-----------|----------|\r\n| FR-KN-001 | 로그인 사용자가 Markdown 노트를 생성할 수 있다 | POST /api/v1/notes → 201 + 노트(제목/본문/태그) 저장 | P0 |\r\n| FR-KN-002 | 사용자가 자신의 노트를 조회/수정/삭제할 수 있다 | GET/PUT/DELETE /api/v1/notes/{id} → 본인 노트만 | P0 |\r\n| FR-KN-003 | 노트 저장 시 `[[note-title]]` 위키링크가 자동 추출된다 | 위키링크 파싱 → note_links 테이블 저장 + 양방향 조회 | P0 |\r\n\r\n### 2.5 @knowledge-owner-2 — Modulith/ArchUnit/Schema\r\n\r\n| ID | 유저 스토리 | 수용 기준 | 우선순위 |\r\n|----|------------|-----------|----------|\r\n| FR-K2-001 | knowledge-svc의 모듈 경계가 자동 검증된다 | ApplicationModules.verify() 통과 + CI 연동 | P0 |\r\n| FR-K2-002 | 모듈 간 직접 import 시 빌드가 실패한다 | ArchUnit 테스트 3건 + CI에서 FAIL 확인 | P0 |\r\n| FR-K2-003 | Avro 스키마가 Schema Registry에 등록되고 호환성이 검증된다 | note-created-v1.avsc 등록 + 비호환 스키마 거부 확인 | P1 |\r\n\r\n### 2.6 @learning-card-owner — Card/SRS\r\n\r\n| ID | 유저 스토리 | 수용 기준 | 우선순위 |\r\n|----|------------|-----------|----------|\r\n| FR-LC-001 | 사용자가 덱(Deck)을 생성/조회/수정/삭제할 수 있다 | CRUD API + 덱 목록 페이지네이션 | P0 |\r\n| FR-LC-002 | 사용자가 덱 내 카드(앞면/뒷면)를 생성/조회/수정/삭제할 수 있다 | CRUD API + 카드-덱 1:N 관계 | P0 |\r\n| FR-LC-003 | 시스템이 복습 rating으로 SM-2 알고리즘을 계산한다 | rating(Again/Hard/Good/Easy) → ease factor + interval + 다음 복습일 계산 | P0 |\r\n\r\n### 2.7 @learning-ai-owner — AI Service\r\n\r\n| ID | 유저 스토리 | 수용 기준 | 우선순위 |\r\n|----|------------|-----------|----------|\r\n| FR-LA-001 | learning-ai 서비스가 Health endpoint로 상태를 확인할 수 있다 | GET /health → 200 OK + Dockerfile 빌드 성공 | P0 |\r\n| FR-LA-002 | 서비스가 Claude API를 호출하여 텍스트를 생성할 수 있다 | POST /api/v1/ai/generate → Claude 응답 반환 + 에러 핸들링 | P0 |\r\n| FR-LA-003 | 서비스가 텍스트를 벡터(1536차원)로 변환할 수 있다 | POST /api/v1/ai/embed → 벡터 반환 + pgvector 저장 준비 | P1 |\r\n\r\n### 2.8 Frontend (전체 협업)\r\n\r\n| ID | 유저 스토리 | 수용 기준 | 우선순위 |\r\n|----|------------|-----------|----------|\r\n| FR-FE-001 | Flutter 앱이 라우팅으로 화면 전환된다 | GoRouter 설정 + 3개 이상 경로 동작 | P0 |\r\n| FR-FE-002 | 사용자가 로그인/회원가입 화면을 통해 인증할 수 있다 | OAuth 버튼 → platform-svc 연동 → 토큰 저장 | P0 |\r\n| FR-FE-003 | 인증된 사용자가 대시보드 + 사이드바를 볼 수 있다 | 사이드바(240px/56px 토글) + 반응형 레이아웃 | P0 |\r\n\r\n## 3. 비기능 요구사항\r\n\r\n| ID | 항목 | 기준 |\r\n|----|------|------|\r\n| NFR-001 | 로컬 환경 실행 | `docker compose up` 2분 내 전체 서비스 Ready |\r\n| NFR-002 | Health endpoint | 응답 시간 < 100ms |\r\n| NFR-003 | Modulith 검증 | ApplicationModules.verify() 0 violations |\r\n| NFR-004 | 테스트 커버리지 | 신규 코드 80% 이상 |\r\n| NFR-005 | 빌드 시간 | 단일 서비스 빌드 < 3분 |\r\n\r\n## 4. 의존성 맵\r\n\r\n| From | To | 내용 | 시점 |\r\n|------|-----|------|------|\r\n| @team-lead (인프라) | 전체 | Docker Compose 로컬 환경 | W1 Day 1-2 |\r\n| @platform-owner (auth) | 전체 | JWT 토큰 발급/검증 | W1 Day 3~ |\r\n| @knowledge-owner-1 (골격) | @knowledge-owner-2 | knowledge-svc 프로젝트 골격 | W1 Day 1 |\r\n| Frontend | @platform-owner | 로그인 API 연동 | W1 Day 4~ |\r\n\r\n## 5. 성공 기준 체크리스트\r\n\r\n- [ ] Docker Compose로 4-서비스 + Schema Registry 로컬 실행\r\n- [ ] 각 서비스 골격 동작 (Hello World + Health endpoint)\r\n- [ ] Spring Modulith 모듈 검증 (`ApplicationModules.verify()`) 통과\r\n- [ ] auth 모듈: 회원가입/로그인/JWT 발급 동작\r\n- [ ] note·card·community 모듈: 기본 CRUD API 동작\r\n- [ ] Flutter: 로그인/대시보드 화면 렌더링\r\n\r\n## 6. 리스크 & 대안\r\n\r\n| 리스크 | 영향 | 확률 | 대안 |\r\n|--------|------|------|------|\r\n| AWS 인프라 셋업 지연 | 전체 서비스 테스트 불가 | 중 | Docker Compose 로컬로 우선 진행, EKS는 W2로 이월 |\r\n| OAuth Provider 연동 오류 | 인증 플로우 블로킹 | 중 | 개발 환경에서 이메일/비밀번호 로그인을 fallback으로 구현 |\r\n| Schema Registry 설정 복잡 | Kafka 이벤트 발행 지연 | 낮 | W1은 JSON stub으로 동작, W2에서 Avro 전환 |\r\n| Flutter 빌드 환경 차이 | 팀원 간 UI 불일치 | 낮 | Docker 기반 Flutter 빌드 + CI에서 Web 빌드 검증 |\r\n"
+}

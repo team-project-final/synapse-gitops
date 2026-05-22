@@ -4,6 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:synapse_runbooks/pages/home_page.dart';
 import 'package:synapse_runbooks/pages/runbook_page.dart';
 import 'package:synapse_runbooks/pages/onboarding_page.dart';
+import 'package:synapse_runbooks/pages/doc_page.dart';
+import 'package:synapse_runbooks/pages/search_page.dart';
+import 'package:synapse_runbooks/pages/dashboard_page.dart';
 import 'package:synapse_runbooks/widgets/sidebar.dart';
 
 final _router = GoRouter(
@@ -16,6 +19,22 @@ final _router = GoRouter(
         GoRoute(
           path: '/',
           builder: (context, state) => const HomePage(),
+        ),
+        GoRoute(
+          path: '/search',
+          builder: (context, state) => const SearchPage(),
+        ),
+        GoRoute(
+          path: '/dashboard',
+          builder: (context, state) => const DashboardPage(),
+        ),
+        GoRoute(
+          path: '/docs/:category/:slug',
+          builder: (context, state) {
+            final category = state.pathParameters['category']!;
+            final slug = state.pathParameters['slug']!;
+            return DocPage(category: category, slug: slug);
+          },
         ),
         GoRoute(
           path: '/runbook/:slug',
@@ -39,11 +58,12 @@ class SynapseRunbooksApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Synapse GitOps Runbooks',
+      title: 'Synapse Docs',
       theme: ThemeData(
-        colorSchemeSeed: const Color(0xFF1A73E8),
+        colorSchemeSeed: const Color(0xFFD97706),
         useMaterial3: true,
         textTheme: GoogleFonts.notoSansKrTextTheme(),
+        scaffoldBackgroundColor: const Color(0xFFFAFAF9),
       ),
       routerConfig: _router,
     );
@@ -61,7 +81,20 @@ class AppShell extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Synapse GitOps Runbooks'),
+        title: InkWell(
+          onTap: () => context.go('/'),
+          child: const Text('Synapse Docs'),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () => context.go('/search'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.dashboard),
+            onPressed: () => context.go('/dashboard'),
+          ),
+        ],
       ),
       drawer: isWide ? null : const Drawer(child: Sidebar()),
       body: Row(

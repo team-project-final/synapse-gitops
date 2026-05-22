@@ -1,0 +1,1276 @@
+[
+  {
+    "slug": "argocd-ui-access",
+    "title": "Runbook: ArgoCD UI 접속 가이드\r",
+    "category": "infra",
+    "source": "synapse-gitops",
+    "tags": [
+      "argocd",
+      "eks"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-19",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "bastion-ssm-access",
+    "title": "Bastion SSM 접근 가이드\r",
+    "category": "infra",
+    "source": "synapse-gitops",
+    "tags": [
+      "helm",
+      "dev"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-20",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "dev-machine-setup",
+    "title": "Runbook: 새 PC / 환경 온보딩 (작업 이어받기)\r",
+    "category": "infra",
+    "source": "synapse-gitops",
+    "tags": [
+      "argocd",
+      "terraform",
+      "eks",
+      "docker",
+      "cd"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-18",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "kind-local-bootstrap",
+    "title": "Runbook: kind 로컬 클러스터로 ArgoCD 부트스트랩 (B-2 path)\r",
+    "category": "infra",
+    "source": "synapse-gitops",
+    "tags": [
+      "argocd",
+      "eks",
+      "redis",
+      "docker",
+      "dev"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-18",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "step1-aws-account-setup",
+    "title": "Runbook: AWS 계정 초기 설정 (Step 1 상세)\r",
+    "category": "infra",
+    "source": "synapse-gitops",
+    "tags": [
+      "argocd",
+      "terraform"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-18",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "step10-rollback-backup",
+    "title": "Runbook: 롤백 + 백업 체계 구축 (Step 10 상세)",
+    "category": "infra",
+    "source": "synapse-gitops",
+    "tags": [
+      "argocd",
+      "eks",
+      "helm",
+      "staging",
+      "dev"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-18",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "step11-operational-runbook",
+    "title": "Runbook: 장애 Runbook 작성 + 시뮬레이션 + On-call 체계 (Step 11 상세)",
+    "category": "infra",
+    "source": "synapse-gitops",
+    "tags": [
+      "argocd",
+      "staging",
+      "deploy"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-18",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "step12-cost-optimization",
+    "title": "Runbook: 비용 최적화 + 안정화 + 핸드오프 (Step 12 상세)",
+    "category": "infra",
+    "source": "synapse-gitops",
+    "tags": [
+      "argocd",
+      "prod",
+      "deploy"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-18",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "step2-terraform-tfvars",
+    "title": "Runbook: Terraform 변수 파일 설정 (Step 2 상세)\r",
+    "category": "infra",
+    "source": "synapse-gitops",
+    "tags": [
+      "argocd",
+      "terraform",
+      "rds",
+      "redis",
+      "dev"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-18",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "step3-terraform-apply",
+    "title": "Runbook: Terraform Apply 실행 + 트러블슈팅 (Step 3 상세)\r",
+    "category": "infra",
+    "source": "synapse-gitops",
+    "tags": [
+      "argocd",
+      "terraform",
+      "eks",
+      "rds",
+      "msk"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-18",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "step4-dev-overlay",
+    "title": "Runbook: Dev Overlay 5개 앱 완성 (Step 4 상세)",
+    "category": "infra",
+    "source": "synapse-gitops",
+    "tags": [
+      "argocd",
+      "eks",
+      "dev"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-18",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "step5-eso-secrets",
+    "title": "Runbook: ESO Secret 관리 (Step 5 상세)",
+    "category": "infra",
+    "source": "synapse-gitops",
+    "tags": [
+      "eks",
+      "helm",
+      "dev"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-18",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "step6-image-sync",
+    "title": "Runbook: 이미지 태그 자동 Sync (Step 6 상세)\r",
+    "category": "infra",
+    "source": "synapse-gitops",
+    "tags": [
+      "argocd",
+      "eks",
+      "docker",
+      "helm",
+      "dev"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-20",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "step7-staging-overlay",
+    "title": "Runbook: Staging Overlay + ApplicationSet 확장 (Step 7 상세)",
+    "category": "infra",
+    "source": "synapse-gitops",
+    "tags": [
+      "argocd",
+      "redis",
+      "staging",
+      "dev"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-18",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "step8-observability",
+    "title": "Runbook: Observability 스택 구축 (Step 8 상세)",
+    "category": "infra",
+    "source": "synapse-gitops",
+    "tags": [
+      "helm",
+      "staging",
+      "dev"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-18",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "step9-prod-approval",
+    "title": "Runbook: Prod 환경 + 승인 게이트 구성 (Step 9 상세)",
+    "category": "infra",
+    "source": "synapse-gitops",
+    "tags": [
+      "argocd",
+      "staging",
+      "dev",
+      "prod",
+      "rollback"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-18",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "troubleshooting-infra",
+    "title": "Troubleshooting: 인프라 문제 해결 가이드\r",
+    "category": "infra",
+    "source": "synapse-gitops",
+    "tags": [
+      "kafka",
+      "argocd",
+      "terraform",
+      "eks",
+      "msk"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-21",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "w1-argocd-bootstrap-runbook",
+    "title": "Runbook: W1 ArgoCD 부트스트랩 실행 가이드\r",
+    "category": "infra",
+    "source": "synapse-gitops",
+    "tags": [
+      "argocd",
+      "terraform",
+      "eks",
+      "rds",
+      "dev"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-18",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "w2-dev-deploy-runbook",
+    "title": "Runbook: W2 Dev 환경 배포 + 시크릿 + 이미지 자동화 실행 가이드",
+    "category": "infra",
+    "source": "synapse-gitops",
+    "tags": [
+      "argocd",
+      "eks",
+      "docker",
+      "helm",
+      "dev"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-18",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "w2-eks-transition",
+    "title": "Runbook: W2 EKS 전환 가이드 (Phase 2)\r",
+    "category": "infra",
+    "source": "synapse-gitops",
+    "tags": [
+      "argocd",
+      "terraform",
+      "eks",
+      "helm",
+      "dev"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-19",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "w2-session-bootstrap-runbook",
+    "title": "Runbook: W2 세션 인프라 기동 (매 세션 반복)\r",
+    "category": "infra",
+    "source": "synapse-gitops",
+    "tags": [
+      "kafka",
+      "argocd",
+      "terraform",
+      "eks",
+      "msk"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-21",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "w2-terraform-apply-quickstart",
+    "title": "Runbook: W2 Terraform Apply 빠른 시작 가이드\r",
+    "category": "infra",
+    "source": "synapse-gitops",
+    "tags": [
+      "kafka",
+      "argocd",
+      "terraform",
+      "eks",
+      "rds"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-19",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "w3-staging-observability-runbook",
+    "title": "Runbook: W3 Staging 환경 + Observability 실행 가이드",
+    "category": "infra",
+    "source": "synapse-gitops",
+    "tags": [
+      "argocd",
+      "helm",
+      "staging",
+      "dev"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-18",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "w4-prod-rollback-runbook",
+    "title": "Runbook: W4 Prod 환경 승인 게이트 + 롤백/백업 실행 가이드",
+    "category": "infra",
+    "source": "synapse-gitops",
+    "tags": [
+      "argocd",
+      "eks",
+      "staging",
+      "dev",
+      "prod"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-18",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "w5-stabilize-runbook",
+    "title": "Runbook: W5 안정화 + 운영 Runbook + 프로젝트 종료 실행 가이드",
+    "category": "infra",
+    "source": "synapse-gitops",
+    "tags": [
+      "argocd",
+      "staging",
+      "prod"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-18",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "learning-ai_fix_request",
+    "title": "수정 요청: learning-ai CrashLoopBackOff",
+    "category": "fix-requests",
+    "source": "synapse-shared",
+    "tags": [
+      "eks",
+      "docker",
+      "dev"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-21",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "platform-svc_fix_request",
+    "title": "수정 요청: platform-svc CrashLoopBackOff",
+    "category": "fix-requests",
+    "source": "synapse-shared",
+    "tags": [
+      "rds",
+      "dev",
+      "flyway"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-21",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "argocd_deploy_verification",
+    "title": "ArgoCD Dev/Staging 배포 검증 가이드\r",
+    "category": "guides",
+    "source": "synapse-shared",
+    "tags": [
+      "kafka",
+      "argocd",
+      "staging",
+      "dev",
+      "deploy"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-21",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "kafka_e2e_test",
+    "title": "Kafka E2E 검증 가이드\r",
+    "category": "guides",
+    "source": "synapse-shared",
+    "tags": [
+      "kafka",
+      "docker",
+      "e2e"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-21",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "msk_topic_setup",
+    "title": "MSK 토픽 생성 가이드\r",
+    "category": "guides",
+    "source": "synapse-shared",
+    "tags": [
+      "kafka",
+      "terraform",
+      "msk",
+      "dev",
+      "tls"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-21",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "staging_verification",
+    "title": "Staging 환경 검증 가이드\r",
+    "category": "guides",
+    "source": "synapse-shared",
+    "tags": [
+      "kafka",
+      "argocd",
+      "staging",
+      "dev",
+      "deploy"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-21",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "team_checklist_w3",
+    "title": "W3 팀원 Kafka 구현 체크리스트\r",
+    "category": "guides",
+    "source": "synapse-shared",
+    "tags": [
+      "kafka",
+      "e2e",
+      "avro",
+      "schema"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-22",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "handoff_2026-05-19",
+    "title": "HANDOFF — 2026-05-19 → 05-22 (W2 Day 1~4)\r",
+    "category": "management",
+    "source": "synapse-shared",
+    "tags": [
+      "kafka",
+      "argocd",
+      "terraform",
+      "eks",
+      "msk"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-22",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "handoff_hub",
+    "title": "Synapse 통합 핸드오프 허브",
+    "category": "management",
+    "source": "synapse-shared",
+    "tags": [
+      "kafka",
+      "argocd",
+      "terraform",
+      "staging",
+      "dev"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-22",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "handoff_shared",
+    "title": "핸드오프: synapse-shared",
+    "category": "management",
+    "source": "synapse-shared",
+    "tags": [
+      "kafka",
+      "msk"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-22",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "history_team-lead",
+    "title": "Work History: @team-lead\r",
+    "category": "management",
+    "source": "synapse-shared",
+    "tags": [
+      "kafka",
+      "argocd",
+      "terraform",
+      "eks",
+      "msk"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-22",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "kickoff",
+    "title": "Synapse 프로젝트 킥오프\r",
+    "category": "management",
+    "source": "synapse-shared",
+    "tags": [
+      "argocd",
+      "docker",
+      "ci",
+      "cd",
+      "avro"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-14",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "prd_w1",
+    "title": "PRD: Week 1 — 인프라 + 핵심 CRUD\r",
+    "category": "management",
+    "source": "synapse-shared",
+    "tags": [
+      "eks",
+      "docker",
+      "ci",
+      "schema"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-14",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "prd_w2",
+    "title": "PRD: Week 2 — 핵심 기능 완성\r",
+    "category": "management",
+    "source": "synapse-shared",
+    "tags": [
+      "kafka",
+      "schema"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-14",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "prd_w3",
+    "title": "PRD: Week 3 — 이벤트 발행자 + 검색 RRF + AI 자동 생성\r",
+    "category": "management",
+    "source": "synapse-shared",
+    "tags": [
+      "kafka",
+      "schema"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-14",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "prd_w4",
+    "title": "PRD: Week 4 — 이벤트 소비자 + 운영 기능\r",
+    "category": "management",
+    "source": "synapse-shared",
+    "tags": [
+      "kafka",
+      "staging",
+      "dev",
+      "e2e"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-14",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "prd_w5",
+    "title": "PRD: Week 5 — E2E + 버그 + 발표 준비\r",
+    "category": "management",
+    "source": "synapse-shared",
+    "tags": [
+      "staging",
+      "e2e"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-14",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "readme",
+    "title": "Synapse 프로젝트 관리 문서 체계\r",
+    "category": "management",
+    "source": "synapse-shared",
+    "tags": [
+      "security"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-14",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "scope_team-lead",
+    "title": "작업 스코프: @team-lead\r",
+    "category": "management",
+    "source": "synapse-shared",
+    "tags": [
+      "argocd",
+      "eks",
+      "docker",
+      "staging",
+      "ci"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-14",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "session_close_checklist",
+    "title": "세션 종료 체크리스트",
+    "category": "management",
+    "source": "synapse-shared",
+    "tags": [],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-22",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "task_team-lead",
+    "title": "TASK: @team-lead\r",
+    "category": "management",
+    "source": "synapse-shared",
+    "tags": [
+      "kafka",
+      "argocd",
+      "eks",
+      "rds",
+      "msk"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-19",
+      "status": "active",
+      "completionRate": 47
+    }
+  },
+  {
+    "slug": "workflow_team-lead_w1",
+    "title": "WORKFLOW: @team-lead — Week 1\r",
+    "category": "management",
+    "source": "synapse-shared",
+    "tags": [
+      "kafka",
+      "argocd",
+      "eks",
+      "rds",
+      "msk"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-21",
+      "status": "active",
+      "completionRate": 99
+    }
+  },
+  {
+    "slug": "workflow_team-lead_w2",
+    "title": "WORKFLOW: @team-lead — Week 2\r",
+    "category": "management",
+    "source": "synapse-shared",
+    "tags": [
+      "kafka",
+      "docker",
+      "security",
+      "tls",
+      "acl"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-21",
+      "status": "active",
+      "completionRate": 91
+    }
+  },
+  {
+    "slug": "workflow_team-lead_w3",
+    "title": "WORKFLOW: @team-lead — Week 3\r",
+    "category": "management",
+    "source": "synapse-shared",
+    "tags": [
+      "kafka",
+      "argocd",
+      "staging",
+      "dev",
+      "security"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-22",
+      "status": "active",
+      "completionRate": 4
+    }
+  },
+  {
+    "slug": "workflow_team-lead_w4",
+    "title": "WORKFLOW: @team-lead — Week 4\r",
+    "category": "management",
+    "source": "synapse-shared",
+    "tags": [
+      "staging",
+      "e2e"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-14",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "01-security",
+    "title": "1. 보안 RULE — Security\r",
+    "category": "rules",
+    "source": "synapse-shared",
+    "tags": [
+      "avro"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-14",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "02-function",
+    "title": "2. 기능 설계 RULE — Function Design\r",
+    "category": "rules",
+    "source": "synapse-shared",
+    "tags": [],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-14",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "03-technical",
+    "title": "3. 기술 구현 RULE — Technical Implementation\r",
+    "category": "rules",
+    "source": "synapse-shared",
+    "tags": [],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-14",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "04-quality",
+    "title": "4. 품질 RULE — Quality\r",
+    "category": "rules",
+    "source": "synapse-shared",
+    "tags": [
+      "e2e"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-14",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "05-operation",
+    "title": "5. 운영 RULE — Operation\r",
+    "category": "rules",
+    "source": "synapse-shared",
+    "tags": [
+      "argocd"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-14",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "06-auth-token",
+    "title": "6. 인증/토큰 RULE — Auth & Token\r",
+    "category": "rules",
+    "source": "synapse-shared",
+    "tags": [
+      "redis"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-14",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "07-platform",
+    "title": "7. 플랫폼 공통 RULE — Platform Common\r",
+    "category": "rules",
+    "source": "synapse-shared",
+    "tags": [
+      "prod"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-14",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "08-kafka-event",
+    "title": "8. Kafka 이벤트 RULE — Kafka + Avro + Schema Registry\r",
+    "category": "rules",
+    "source": "synapse-shared",
+    "tags": [
+      "kafka",
+      "ci",
+      "avro",
+      "schema"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-14",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "09-observability",
+    "title": "9. 관측성 RULE — Observability\r",
+    "category": "rules",
+    "source": "synapse-shared",
+    "tags": [
+      "kafka"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-14",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "11-data-sovereignty",
+    "title": "11. 데이터 주권 RULE — Data Sovereignty\r",
+    "category": "rules",
+    "source": "synapse-shared",
+    "tags": [],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-14",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "12-working-log",
+    "title": "12. 작업 로그 RULE — Working Log\r",
+    "category": "rules",
+    "source": "synapse-shared",
+    "tags": [],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-14",
+      "status": "active",
+      "completionRate": 100
+    }
+  },
+  {
+    "slug": "14-task-structure",
+    "title": "14. Task 문서 구조 RULE — Task Structure\r",
+    "category": "rules",
+    "source": "synapse-shared",
+    "tags": [
+      "security"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-14",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "appendix-a-asvs",
+    "title": "부록 A — ASVS 4.0 매핑\r",
+    "category": "rules",
+    "source": "synapse-shared",
+    "tags": [
+      "security"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-14",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "appendix-b-owasp",
+    "title": "부록 B — OWASP Top 10 2025\r",
+    "category": "rules",
+    "source": "synapse-shared",
+    "tags": [
+      "security"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-14",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "appendix-c-checklist",
+    "title": "부록 C — PR 셀프체크 리스트\r",
+    "category": "rules",
+    "source": "synapse-shared",
+    "tags": [],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-14",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "schema_evolution",
+    "title": "Schema Evolution Guide\r",
+    "category": "etc",
+    "source": "synapse-shared",
+    "tags": [
+      "schema"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-14",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "2026-05-19-w1w2-catchup",
+    "title": "W1/W2 미완료 캐치업 구현 계획",
+    "category": "prd",
+    "source": "synapse-shared",
+    "tags": [
+      "kafka",
+      "redis",
+      "opensearch",
+      "docker",
+      "dev"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-19",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "2026-05-20-w2w3-ops-and-prep",
+    "title": "W2/W3 운영 정비 + E2E 검증 준비 구현 계획",
+    "category": "prd",
+    "source": "synapse-shared",
+    "tags": [
+      "kafka",
+      "argocd",
+      "msk",
+      "docker",
+      "staging"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-20",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "2026-05-21-shared-preemptive-prep",
+    "title": "synapse-shared 선제 준비 구현 계획\r",
+    "category": "prd",
+    "source": "synapse-shared",
+    "tags": [
+      "kafka",
+      "argocd",
+      "eks",
+      "docker",
+      "staging"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-21",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "2026-05-22-docs-portal",
+    "title": "Synapse Docs Portal Implementation Plan",
+    "category": "prd",
+    "source": "synapse-shared",
+    "tags": [
+      "cd"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-22",
+      "status": "active",
+      "completionRate": 0
+    }
+  },
+  {
+    "slug": "2026-05-19-w1w2-catchup-plan-design",
+    "title": "W1/W2 미완료 작업 캐치업 계획",
+    "category": "prd",
+    "source": "synapse-shared",
+    "tags": [
+      "kafka",
+      "argocd",
+      "redis",
+      "docker",
+      "ci"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-19",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "2026-05-20-w2w3-ops-and-prep-design",
+    "title": "W2/W3 운영 정비 + E2E 검증 준비 설계",
+    "category": "prd",
+    "source": "synapse-shared",
+    "tags": [
+      "kafka",
+      "argocd",
+      "msk",
+      "staging",
+      "dev"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-20",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "2026-05-21-shared-preemptive-prep-design",
+    "title": "설계: synapse-shared 선제 준비 (W2→W3 전환)\r",
+    "category": "prd",
+    "source": "synapse-shared",
+    "tags": [
+      "kafka",
+      "argocd",
+      "staging",
+      "dev",
+      "deploy"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-21",
+      "status": "active",
+      "completionRate": null
+    }
+  },
+  {
+    "slug": "2026-05-22-docs-portal-design",
+    "title": "설계: Synapse Docs Portal — 통합 문서 사이트",
+    "category": "prd",
+    "source": "synapse-shared",
+    "tags": [
+      "kafka",
+      "argocd",
+      "terraform",
+      "msk",
+      "staging"
+    ],
+    "summary": "",
+    "metadata": {
+      "lastUpdated": "2026-05-22",
+      "status": "active",
+      "completionRate": 13
+    }
+  }
+]

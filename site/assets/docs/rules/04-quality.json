@@ -1,0 +1,93 @@
+{
+  "slug": "04-quality",
+  "title": "4. 품질 RULE — Quality\r",
+  "category": "rules",
+  "source": "synapse-shared",
+  "tags": [
+    "e2e"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-14",
+    "status": "active",
+    "completionRate": null
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "4.1 테스트 구조 [MUST]",
+      "anchor": "41-테스트-구조-must"
+    },
+    {
+      "level": 3,
+      "text": "✅ Good",
+      "anchor": "-good"
+    },
+    {
+      "level": 3,
+      "text": "❌ Bad",
+      "anchor": "-bad"
+    },
+    {
+      "level": 2,
+      "text": "4.2 커버리지 [SHOULD] / [MAY]",
+      "anchor": "42-커버리지-should-may"
+    },
+    {
+      "level": 3,
+      "text": "Jacoco 설정 예시 (build.gradle.kts)",
+      "anchor": "jacoco-설정-예시-buildgradlekts"
+    },
+    {
+      "level": 2,
+      "text": "4.3 코드 리뷰 [SHOULD]",
+      "anchor": "43-코드-리뷰-should"
+    },
+    {
+      "level": 3,
+      "text": "✅ Good",
+      "anchor": "-good"
+    },
+    {
+      "level": 3,
+      "text": "❌ Bad",
+      "anchor": "-bad"
+    },
+    {
+      "level": 2,
+      "text": "4.4 정적 분석 [MUST]",
+      "anchor": "44-정적-분석-must"
+    },
+    {
+      "level": 3,
+      "text": "✅ Good",
+      "anchor": "-good"
+    },
+    {
+      "level": 3,
+      "text": "❌ Bad",
+      "anchor": "-bad"
+    },
+    {
+      "level": 2,
+      "text": "4.5 테스트 종류 [MUST]",
+      "anchor": "45-테스트-종류-must"
+    },
+    {
+      "level": 3,
+      "text": "Unit 예시",
+      "anchor": "unit-예시"
+    },
+    {
+      "level": 3,
+      "text": "Integration 예시",
+      "anchor": "integration-예시"
+    },
+    {
+      "level": 3,
+      "text": "E2E 예시",
+      "anchor": "e2e-예시"
+    }
+  ],
+  "body": "# 4. 품질 RULE — Quality\r\n\r\n> Synapse 프로젝트 품질 게이트. 이 룰을 통과 못 하면 머지 안 됨.\r\n\r\n---\r\n\r\n## 4.1 테스트 구조 [MUST]\r\n\r\n모든 테스트는 **Given-When-Then** 패턴으로 작성해.\r\n네이밍은 BDD 스타일: `메서드명_상황_should기대결과`\r\n\r\n### ✅ Good\r\n\r\n```java\r\n@DisplayName(\"createUser_중복이메일_shouldThrowDuplicateException\")\r\n@Test\r\nvoid createUser_중복이메일_shouldThrowDuplicateException() {\r\n    // Given\r\n    UserCreateRequest request = new UserCreateRequest(\"dup@syn.com\", \"pass123\");\r\n    given(userRepository.existsByEmail(\"dup@syn.com\")).willReturn(true);\r\n\r\n    // When & Then\r\n    assertThatThrownBy(() -> userService.createUser(request))\r\n        .isInstanceOf(DuplicateEmailException.class);\r\n}\r\n```\r\n\r\n### ❌ Bad\r\n\r\n```java\r\n@Test\r\nvoid test1() {\r\n    // 뭘 테스트하는지 모름, 구조도 없음\r\n    User u = userService.createUser(new UserCreateRequest(\"a@b.com\", \"pw\"));\r\n    assertNotNull(u);\r\n}\r\n```\r\n\r\n> **이유**: Given-When-Then은 테스트가 문서 역할을 하게 만들어. 이름만 보고 뭘 검증하는지 알 수 있어야 해.\r\n\r\n---\r\n\r\n## 4.2 커버리지 [SHOULD] / [MAY]\r\n\r\n| 지표 | 목표 | 레벨 |\r\n|------|------|------|\r\n| Line Coverage | 70% 이상 | [SHOULD] |\r\n| Branch Coverage | 60% 이상 | [MAY] |\r\n\r\n### Jacoco 설정 예시 (build.gradle.kts)\r\n\r\n```kotlin\r\njacocoTestCoverageVerification {\r\n    violationRules {\r\n        rule {\r\n            limit {\r\n                counter = \"LINE\"\r\n                minimum = \"0.70\".toBigDecimal()\r\n            }\r\n        }\r\n        rule {\r\n            limit {\r\n                counter = \"BRANCH\"\r\n                minimum = \"0.60\".toBigDecimal()\r\n            }\r\n        }\r\n    }\r\n}\r\n```\r\n\r\n> **이유**: 커버리지 자체가 목적은 아니지만, 최소한의 안전망은 필요해. 70/60은 현실적으로 달성 가능하면서 의미 있는 숫자야.\r\n\r\n---\r\n\r\n## 4.3 코드 리뷰 [SHOULD]\r\n\r\n| 항목 | 기준 |\r\n|------|------|\r\n| PR 크기 | 400줄 이하 |\r\n| 리뷰 시작 | PR 생성 후 24h 이내 |\r\n| 머지 완료 | 리뷰 승인 후 48h 이내 |\r\n\r\n### ✅ Good\r\n\r\n- PR 1건 = 1개 기능 or 1개 버그픽스\r\n- 리뷰어가 24시간 내 코멘트 달고, 수정 후 바로 머지\r\n\r\n### ❌ Bad\r\n\r\n- PR 1건에 파일 40개, 라인 1200줄 변경\r\n- 리뷰 요청 후 3일간 방치\r\n\r\n> **이유**: PR이 커지면 리뷰 품질이 급격히 떨어져. 작게 자주 머지하는 게 전체 속도를 높여.\r\n\r\n---\r\n\r\n## 4.4 정적 분석 [MUST]\r\n\r\n| 스택 | 도구 | 기준 |\r\n|------|------|------|\r\n| Spring | Checkstyle + SpotBugs | warning 0건 |\r\n| Flutter | `flutter analyze` | issue 0건 |\r\n| Python | ruff + mypy | error 0건 |\r\n\r\n### ✅ Good\r\n\r\n```bash\r\n# Spring — CI에서 자동 실행\r\n./gradlew checkstyleMain spotbugsMain  # 0 violations\r\n\r\n# Flutter\r\nflutter analyze  # No issues found!\r\n\r\n# Python\r\nruff check . && mypy .  # All passed\r\n```\r\n\r\n### ❌ Bad\r\n\r\n```bash\r\n# \"나중에 고치지~\" 하면서 warning 무시\r\n./gradlew checkstyleMain\r\n# 12 violations found — 무시하고 머지\r\n```\r\n\r\n> **이유**: 정적 분석 경고를 하나라도 허용하면 깨진 유리창 효과로 걷잡을 수 없이 늘어나. 0건이 유일한 정답이야.\r\n\r\n---\r\n\r\n## 4.5 테스트 종류 [MUST]\r\n\r\n| 종류 | 범위 | 실행 환경 | 속도 |\r\n|------|------|-----------|------|\r\n| Unit | 모듈 내 단일 클래스/함수 | Mock 의존성 | 빠름 (ms) |\r\n| Integration | 모듈 간 연동, DB 포함 | Testcontainers/H2 | 중간 (s) |\r\n| E2E | API 시나리오 전체 흐름 | 실제 서버 기동 | 느림 (10s+) |\r\n\r\n### Unit 예시\r\n\r\n```java\r\n@ExtendWith(MockitoExtension.class)\r\nclass OrderServiceTest {\r\n    @Mock OrderRepository orderRepository;\r\n    @InjectMocks OrderService orderService;\r\n\r\n    @Test\r\n    void calculateTotal_할인적용_should정가에서10프로할인() {\r\n        // Given\r\n        Order order = Order.of(10000, DiscountPolicy.TEN_PERCENT);\r\n        // When\r\n        int total = orderService.calculateTotal(order);\r\n        // Then\r\n        assertThat(total).isEqualTo(9000);\r\n    }\r\n}\r\n```\r\n\r\n### Integration 예시\r\n\r\n```java\r\n@SpringBootTest\r\n@Testcontainers\r\nclass UserRepositoryIntegrationTest {\r\n    @Container\r\n    static PostgreSQLContainer<?> pg = new PostgreSQLContainer<>(\"postgres:15\");\r\n\r\n    @Autowired UserRepository userRepository;\r\n\r\n    @Test\r\n    void save_정상유저_shouldDB에저장() {\r\n        User user = User.of(\"test@syn.com\", \"닉네임\");\r\n        User saved = userRepository.save(user);\r\n        assertThat(saved.getId()).isNotNull();\r\n    }\r\n}\r\n```\r\n\r\n### E2E 예시\r\n\r\n```java\r\n@SpringBootTest(webEnvironment = RANDOM_PORT)\r\nclass AuthE2ETest {\r\n    @Autowired TestRestTemplate rest;\r\n\r\n    @Test\r\n    void 회원가입_로그인_프로필조회_시나리오() {\r\n        // 1. 회원가입\r\n        rest.postForEntity(\"/api/auth/signup\", signupReq, Void.class);\r\n        // 2. 로그인\r\n        var loginRes = rest.postForEntity(\"/api/auth/login\", loginReq, TokenResponse.class);\r\n        String token = loginRes.getBody().accessToken();\r\n        // 3. 프로필 조회\r\n        var headers = new HttpHeaders();\r\n        headers.setBearerAuth(token);\r\n        var profile = rest.exchange(\"/api/users/me\", GET, new HttpEntity<>(headers), UserProfile.class);\r\n        assertThat(profile.getStatusCode()).isEqualTo(HttpStatus.OK);\r\n    }\r\n}\r\n```\r\n\r\n> **이유**: 테스트 피라미드 구조를 지켜야 해. Unit 많이, Integration 적당히, E2E 핵심만. 비율이 뒤집히면 CI가 느려지고 유지보수 지옥이야.\r\n"
+}

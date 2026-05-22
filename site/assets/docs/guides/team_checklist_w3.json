@@ -1,0 +1,76 @@
+{
+  "slug": "team_checklist_w3",
+  "title": "W3 팀원 Kafka 구현 체크리스트\r",
+  "category": "guides",
+  "source": "synapse-shared",
+  "tags": [
+    "kafka",
+    "e2e",
+    "avro",
+    "schema"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-22",
+    "status": "active",
+    "completionRate": 0
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "현재 인프라 상태 (2026-05-22 갱신)",
+      "anchor": "현재-인프라-상태-2026-05-22-갱신"
+    },
+    {
+      "level": 2,
+      "text": "공통 요구사항",
+      "anchor": "공통-요구사항"
+    },
+    {
+      "level": 3,
+      "text": "공통 Kafka 설정 예시 (application.yml)",
+      "anchor": "공통-kafka-설정-예시-applicationyml"
+    },
+    {
+      "level": 2,
+      "text": "서비스별 체크리스트",
+      "anchor": "서비스별-체크리스트"
+    },
+    {
+      "level": 3,
+      "text": "platform-svc",
+      "anchor": "platform-svc"
+    },
+    {
+      "level": 3,
+      "text": "knowledge-svc",
+      "anchor": "knowledge-svc"
+    },
+    {
+      "level": 3,
+      "text": "learning-card-svc",
+      "anchor": "learning-card-svc"
+    },
+    {
+      "level": 3,
+      "text": "learning-ai-svc",
+      "anchor": "learning-ai-svc"
+    },
+    {
+      "level": 3,
+      "text": "engagement-svc",
+      "anchor": "engagement-svc"
+    },
+    {
+      "level": 2,
+      "text": "완료 기준",
+      "anchor": "완료-기준"
+    },
+    {
+      "level": 2,
+      "text": "E2E 검증 가이드",
+      "anchor": "e2e-검증-가이드"
+    }
+  ],
+  "body": "# W3 팀원 Kafka 구현 체크리스트\r\n\r\n> **목적**: W3~W4 Kafka E2E 검증 전에 각 서비스가 준비해야 할 항목\r\n\r\n## 현재 인프라 상태 (2026-05-22 갱신)\r\n\r\n| 항목 | 상태 |\r\n|------|------|\r\n| dev 환경 | **5/5 서비스 ArgoCD Synced + Healthy** ✅ |\r\n| staging 환경 | overlay 생성 완료, 수동 Sync 대기 |\r\n| ArgoCD 접속 | SSM 포트 포워딩 → http://localhost:9090 |\r\n| ECR 이미지 | 6개 서비스 push 완료 (1.0.0 + dev-latest) |\r\n| MSK 토픽 | W3 Day 1 (05-26) 생성 예정 |\r\n\r\n> **Note**: 인프라는 비용 관리 목적으로 작업 세션 외에는 destroy 상태입니다. `terraform apply` 후 endpoint가 변경되므로, 최신 접속 정보는 gitops 레포의 `HANDOFF_W2.md`를 참조하세요.\r\n\r\n---\r\n\r\n## 공통 요구사항\r\n\r\n모든 Producer/Consumer는 다음을 충족해야 합니다:\r\n\r\n- [ ] **Avro 직렬화/역직렬화**: Schema Registry 연동 (`KafkaAvroSerializer`/`KafkaAvroDeserializer`)\r\n- [ ] **CloudEvent 래핑**: `CloudEventEnvelope.avsc` 기반 (specversion, id, source, type, subject, time, tenantid, traceparent)\r\n- [ ] **Consumer Group**: 서비스명 기반 (`{service-name}-group`)\r\n- [ ] **에러 핸들링**: 역직렬화 실패 시 로그 + 스킵 (DLT 전송은 Phase 2)\r\n- [ ] **멱등성**: 동일 이벤트 재처리 시 부작용 없음 (eventId 기반 중복 체크)\r\n- [ ] **application.yml 설정**: Kafka bootstrap, Schema Registry URL, consumer group\r\n\r\n### 공통 Kafka 설정 예시 (application.yml)\r\n\r\n```yaml\r\nspring:\r\n  kafka:\r\n    bootstrap-servers: ${KAFKA_BROKERS:kafka:29092}\r\n    properties:\r\n      schema.registry.url: ${SCHEMA_REGISTRY_URL:http://schema-registry:8081}\r\n    producer:\r\n      key-serializer: org.apache.kafka.common.serialization.StringSerializer\r\n      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer\r\n    consumer:\r\n      group-id: ${spring.application.name}-group\r\n      auto-offset-reset: earliest\r\n      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer\r\n      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer\r\n      properties:\r\n        specific.avro.reader: true\r\n```\r\n\r\n## 서비스별 체크리스트\r\n\r\n### platform-svc\r\n\r\n**Producer:**\r\n- [ ] `UserRegistered` 이벤트 발행 → `platform.auth.user-registered-v1`\r\n- [ ] 회원가입 API 성공 후 이벤트 발행\r\n- [ ] 단위 테스트: Producer mock으로 이벤트 발행 검증\r\n\r\n**Consumer:**\r\n- [ ] `CardsGenerated` 이벤트 수신 ← `learning.ai.cards-generated-v1`\r\n- [ ] 알림 트리거 로직 구현\r\n- [ ] 단위 테스트: Consumer mock으로 이벤트 처리 검증\r\n\r\n### knowledge-svc\r\n\r\n**Producer:**\r\n- [ ] `NoteCreated` 이벤트 발행 → `knowledge.note.note-created-v1`\r\n- [ ] `NoteUpdated` 이벤트 발행 → `knowledge.note.note-updated-v1`\r\n- [ ] 노트 생성/수정 API 성공 후 이벤트 발행\r\n- [ ] 단위 테스트\r\n\r\n**Consumer:** 없음\r\n\r\n### learning-card-svc\r\n\r\n**Producer:**\r\n- [ ] `ReviewCompleted` 이벤트 발행 → `learning.card.review-completed-v1`\r\n- [ ] 카드 복습 API 성공 후 이벤트 발행\r\n- [ ] 단위 테스트\r\n\r\n**Consumer:** 없음\r\n\r\n### learning-ai-svc\r\n\r\n**Producer:**\r\n- [ ] `CardsGenerated` 이벤트 발행 → `learning.ai.cards-generated-v1`\r\n- [ ] AI 카드 생성 완료 후 이벤트 발행\r\n- [ ] Python Avro 직렬화 (`confluent-kafka[avro]` 패키지)\r\n\r\n**Consumer:**\r\n- [ ] `NoteCreated` 이벤트 수신 ← `knowledge.note.note-created-v1`\r\n- [ ] 노트 수신 → AI 카드 생성 파이프라인 트리거\r\n- [ ] Consumer group: `learning-ai-svc-group`\r\n\r\n### engagement-svc\r\n\r\n**Consumer:**\r\n- [ ] `UserRegistered` 이벤트 수신 ← `platform.auth.user-registered-v1`\r\n- [ ] 프로필 레코드 자동 생성\r\n- [ ] `ReviewCompleted` 이벤트 수신 ← `learning.card.review-completed-v1`\r\n- [ ] XP 포인트 적립 로직\r\n- [ ] 멱등성 처리 (동일 reviewId 중복 적립 방지)\r\n\r\n**Producer:** 없음\r\n\r\n## 완료 기준\r\n\r\n각 서비스가 아래를 모두 충족하면 E2E 검증 시작:\r\n\r\n1. Docker Compose로 기동 시 Kafka 연결 성공 (로그 확인)\r\n2. Producer: API 호출 → 토픽에 메시지 발행 확인 (`kafka-console-consumer`로 확인)\r\n3. Consumer: 토픽 메시지 수신 → 비즈니스 로직 실행 확인 (로그 + DB 확인)\r\n4. 단위 테스트 통과\r\n\r\n## E2E 검증 가이드\r\n\r\n구현 완료 후 `docs/guides/KAFKA_E2E_TEST.md`의 시나리오를 순서대로 실행하세요.\r\n"
+}

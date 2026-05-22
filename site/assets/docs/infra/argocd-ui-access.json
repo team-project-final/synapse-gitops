@@ -1,0 +1,84 @@
+{
+  "slug": "argocd-ui-access",
+  "title": "Runbook: ArgoCD UI 접속 가이드\r",
+  "category": "infra",
+  "source": "synapse-gitops",
+  "tags": [
+    "argocd",
+    "eks"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-19",
+    "status": "active",
+    "completionRate": null
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "1. kubectl context 확인",
+      "anchor": "1-kubectl-context-확인"
+    },
+    {
+      "level": 2,
+      "text": "2. admin 비밀번호 확인",
+      "anchor": "2-admin-비밀번호-확인"
+    },
+    {
+      "level": 2,
+      "text": "3. 포트포워딩 (로컬 접속)",
+      "anchor": "3-포트포워딩-로컬-접속"
+    },
+    {
+      "level": 3,
+      "text": "kind 환경",
+      "anchor": "kind-환경"
+    },
+    {
+      "level": 3,
+      "text": "포트 충돌 시",
+      "anchor": "포트-충돌-시"
+    },
+    {
+      "level": 3,
+      "text": "EKS 환경",
+      "anchor": "eks-환경"
+    },
+    {
+      "level": 2,
+      "text": "4. ArgoCD CLI 로그인 (선택)",
+      "anchor": "4-argocd-cli-로그인-선택"
+    },
+    {
+      "level": 2,
+      "text": "5. UI에서 확인할 수 있는 항목",
+      "anchor": "5-ui에서-확인할-수-있는-항목"
+    },
+    {
+      "level": 2,
+      "text": "6. 트러블슈팅",
+      "anchor": "6-트러블슈팅"
+    },
+    {
+      "level": 3,
+      "text": "포트포워딩 즉시 종료됨",
+      "anchor": "포트포워딩-즉시-종료됨"
+    },
+    {
+      "level": 3,
+      "text": "브라우저에서 연결 거부",
+      "anchor": "브라우저에서-연결-거부"
+    },
+    {
+      "level": 3,
+      "text": "로그인 실패 (401)",
+      "anchor": "로그인-실패-401"
+    },
+    {
+      "level": 3,
+      "text": "context가 잘못 지정됨",
+      "anchor": "context가-잘못-지정됨"
+    }
+  ],
+  "body": "# Runbook: ArgoCD UI 접속 가이드\r\n\r\n> **목적**: 로컬(kind) 또는 EKS 환경에서 ArgoCD Web UI에 접속하는 절차\r\n> **사전 조건**: ArgoCD가 클러스터에 설치되어 있고, `kubectl`로 해당 클러스터에 접근 가능\r\n\r\n---\r\n\r\n## 1. kubectl context 확인\r\n\r\nArgoCD가 설치된 클러스터를 가리키고 있는지 확인한다.\r\n\r\n```bash\r\n# 현재 context 확인\r\nkubectl config current-context\r\n\r\n# kind 클러스터로 전환 (필요 시)\r\nkubectl config use-context kind-synapse-w2\r\n\r\n# EKS 클러스터로 전환 (필요 시)\r\nkubectl config use-context arn:aws:eks:ap-northeast-2:<ACCOUNT>:cluster/synapse-dev\r\n```\r\n\r\nArgoCD pod이 Running인지 확인:\r\n\r\n```bash\r\nkubectl get pods -n argocd -l app.kubernetes.io/name=argocd-server\r\n# Expected: 1/1 Running\r\n```\r\n\r\n---\r\n\r\n## 2. admin 비밀번호 확인\r\n\r\nArgoCD 설치 시 자동 생성된 초기 비밀번호를 조회한다.\r\n\r\n```bash\r\nkubectl -n argocd get secret argocd-initial-admin-secret \\\r\n  -o jsonpath='{.data.password}' | base64 -d && echo \"\"\r\n```\r\n\r\n출력된 문자열이 admin 비밀번호이다.\r\n\r\n> **참고**: `bootstrap-argocd.sh`로 비밀번호를 회전했다면 AWS Secrets Manager에서 조회:\r\n> ```bash\r\n> aws secretsmanager get-secret-value --secret-id synapse/argocd/admin \\\r\n>   --region ap-northeast-2 --query SecretString --output text | jq -r .password\r\n> ```\r\n\r\n---\r\n\r\n## 3. 포트포워딩 (로컬 접속)\r\n\r\n### kind 환경\r\n\r\n```bash\r\nkubectl port-forward svc/argocd-server -n argocd 8080:443\r\n```\r\n\r\n브라우저에서 접속:\r\n- **URL**: `https://localhost:8080`\r\n- **ID**: `admin`\r\n- **PW**: 2번에서 확인한 비밀번호\r\n\r\n> 자체 서명 인증서 경고가 나오면 \"고급\" → \"안전하지 않음 — 계속 진행\"을 클릭한다.\r\n\r\n### 포트 충돌 시\r\n\r\n8080이 이미 사용 중이면 다른 포트를 사용한다:\r\n\r\n```bash\r\n# 9090 포트 사용\r\nkubectl port-forward svc/argocd-server -n argocd 9090:443\r\n```\r\n\r\n브라우저에서 `https://localhost:9090`으로 접속.\r\n\r\n이미 떠있는 포트포워딩 프로세스를 찾아 종료하려면:\r\n\r\n```bash\r\n# Windows (PowerShell)\r\nnetstat -ano | findstr :8080\r\ntaskkill /PID <PID> /F\r\n\r\n# macOS / Linux\r\nlsof -i :8080\r\nkill <PID>\r\n```\r\n\r\n### EKS 환경\r\n\r\nEKS에서는 NLB로 외부 노출되어 있으면 포트포워딩 없이 직접 접속 가능:\r\n\r\n```bash\r\n# NLB 주소 확인\r\nkubectl get svc argocd-server -n argocd \\\r\n  -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'\r\n```\r\n\r\n브라우저에서 `https://<NLB-DNS>` 접속. NLB가 없으면 kind와 동일하게 포트포워딩 사용.\r\n\r\n---\r\n\r\n## 4. ArgoCD CLI 로그인 (선택)\r\n\r\nUI 외에 CLI로도 접속할 수 있다.\r\n\r\n```bash\r\n# kind (포트포워딩 상태에서)\r\nargocd login localhost:8080 --username admin --password <PW> --insecure --grpc-web\r\n\r\n# EKS (NLB)\r\nargocd login <NLB-DNS> --username admin --password <PW> --insecure --grpc-web\r\n\r\n# 로그인 확인\r\nargocd account get-user-info\r\n```\r\n\r\n---\r\n\r\n## 5. UI에서 확인할 수 있는 항목\r\n\r\n| 메뉴 | 확인 내용 |\r\n|---|---|\r\n| Applications | 5개 앱 sync 상태 (Synced/OutOfSync), health 상태 (Healthy/Progressing/Degraded) |\r\n| 앱 클릭 → Resource Tree | Deployment, Service, ConfigMap, ExternalSecret 등 리소스 트리 |\r\n| 앱 클릭 → Logs | Pod 로그 실시간 확인 |\r\n| 앱 클릭 → Diff | git 매니페스트 vs 클러스터 상태 차이 |\r\n| 앱 클릭 → Events | sync 이벤트, 에러 이력 |\r\n| Settings → Repositories | git 레포 연결 상태 |\r\n| Settings → Projects | synapse 프로젝트 설정 |\r\n\r\n---\r\n\r\n## 6. 트러블슈팅\r\n\r\n### 포트포워딩 즉시 종료됨\r\n\r\n```bash\r\n# ArgoCD server pod 상태 확인\r\nkubectl get pods -n argocd -l app.kubernetes.io/name=argocd-server\r\nkubectl logs -n argocd -l app.kubernetes.io/name=argocd-server --tail=20\r\n```\r\n\r\npod이 Running이 아니면 ArgoCD 재설치 또는 클러스터 문제.\r\n\r\n### 브라우저에서 연결 거부\r\n\r\n1. 포트포워딩이 실행 중인지 확인 (터미널에 `Forwarding from ...` 출력)\r\n2. `https://`인지 확인 (`http://`가 아님)\r\n3. 다른 포트로 시도 (위 \"포트 충돌 시\" 참조)\r\n\r\n### 로그인 실패 (401)\r\n\r\n```bash\r\n# 비밀번호 재확인\r\nkubectl -n argocd get secret argocd-initial-admin-secret \\\r\n  -o jsonpath='{.data.password}' | base64 -d && echo \"\"\r\n\r\n# 비밀번호가 회전되었으면 초기화\r\nkubectl -n argocd delete secret argocd-initial-admin-secret\r\nkubectl rollout restart deployment argocd-server -n argocd\r\n# 새 비밀번호 재조회\r\n```\r\n\r\n### context가 잘못 지정됨\r\n\r\n```bash\r\n# 사용 가능한 context 목록\r\nkubectl config get-contexts\r\n\r\n# kind context로 전환\r\nkubectl config use-context kind-synapse-w2\r\n```\r\n"
+}

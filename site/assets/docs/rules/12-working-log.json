@@ -1,0 +1,116 @@
+{
+  "slug": "12-working-log",
+  "title": "12. 작업 로그 RULE — Working Log\r",
+  "category": "rules",
+  "source": "synapse-shared",
+  "tags": [],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-14",
+    "status": "active",
+    "completionRate": 100
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "12.1 커밋 메시지 [MUST]",
+      "anchor": "121-커밋-메시지-must"
+    },
+    {
+      "level": 3,
+      "text": "허용 type",
+      "anchor": "허용-type"
+    },
+    {
+      "level": 3,
+      "text": "✅ Good",
+      "anchor": "-good"
+    },
+    {
+      "level": 3,
+      "text": "❌ Bad",
+      "anchor": "-bad"
+    },
+    {
+      "level": 2,
+      "text": "12.2 PR 본문 [MUST]",
+      "anchor": "122-pr-본문-must"
+    },
+    {
+      "level": 3,
+      "text": "PR 본문 템플릿",
+      "anchor": "pr-본문-템플릿"
+    },
+    {
+      "level": 2,
+      "text": "변경 사항",
+      "anchor": "변경-사항"
+    },
+    {
+      "level": 2,
+      "text": "테스트 결과",
+      "anchor": "테스트-결과"
+    },
+    {
+      "level": 2,
+      "text": "관련 이슈",
+      "anchor": "관련-이슈"
+    },
+    {
+      "level": 2,
+      "text": "스크린샷 (선택)",
+      "anchor": "스크린샷-선택"
+    },
+    {
+      "level": 3,
+      "text": "✅ Good",
+      "anchor": "-good"
+    },
+    {
+      "level": 3,
+      "text": "❌ Bad",
+      "anchor": "-bad"
+    },
+    {
+      "level": 2,
+      "text": "12.3 HISTORY 일일 로그 [MUST]",
+      "anchor": "123-history-일일-로그-must"
+    },
+    {
+      "level": 3,
+      "text": "형식",
+      "anchor": "형식"
+    },
+    {
+      "level": 2,
+      "text": "2026-05-12 (월) — 홍길동",
+      "anchor": "2026-05-12-월-홍길동"
+    },
+    {
+      "level": 3,
+      "text": "✅ Good",
+      "anchor": "-good"
+    },
+    {
+      "level": 2,
+      "text": "2026-05-12 (월) — 김개발",
+      "anchor": "2026-05-12-월-김개발"
+    },
+    {
+      "level": 3,
+      "text": "❌ Bad",
+      "anchor": "-bad"
+    },
+    {
+      "level": 2,
+      "text": "2026-05-12",
+      "anchor": "2026-05-12"
+    },
+    {
+      "level": 2,
+      "text": "요약 체크리스트",
+      "anchor": "요약-체크리스트"
+    }
+  ],
+  "body": "# 12. 작업 로그 RULE — Working Log\r\n\r\n> 기록 없는 작업은 안 한 거랑 같아. 커밋, PR, 일일 로그 전부 규칙대로.\r\n\r\n---\r\n\r\n## 12.1 커밋 메시지 [MUST]\r\n\r\n**Conventional Commits** 형식을 따라.\r\n\r\n```\r\n<type>(<scope>): <subject>\r\n\r\n[body — \"왜\" 이 변경이 필요한지] [SHOULD]\r\n\r\n[footer — Breaking Change, Issue ref]\r\n```\r\n\r\n### 허용 type\r\n\r\n| type | 용도 |\r\n|------|------|\r\n| feat | 새 기능 |\r\n| fix | 버그 수정 |\r\n| docs | 문서만 변경 |\r\n| style | 포맷팅 (코드 의미 변경 없음) |\r\n| refactor | 리팩토링 |\r\n| test | 테스트 추가/수정 |\r\n| chore | 빌드, CI, 의존성 등 |\r\n\r\n### ✅ Good\r\n\r\n```\r\nfeat(auth): 소셜 로그인 카카오 연동 추가\r\n\r\n카카오 OAuth2 플로우를 구현하여 회원가입 없이 로그인 가능하게 함.\r\n기존 이메일 가입자와 계정 병합 로직 포함.\r\n\r\nCloses #42\r\n```\r\n\r\n```\r\nfix(order): 할인 금액이 음수가 되는 버그 수정\r\n\r\n할인율 > 100%인 쿠폰이 적용될 때 주문 금액이 음수로 계산되던 문제.\r\n최소 결제 금액을 0원으로 하한 처리.\r\n```\r\n\r\n### ❌ Bad\r\n\r\n```\r\n수정함\r\n```\r\n\r\n```\r\nfix bug\r\n```\r\n\r\n```\r\nfeat: 여러가지 고침 (로그인, 회원가입, 결제 전부)\r\n```\r\n\r\n> **이유**: 커밋 로그는 프로젝트의 역사야. \"왜\" 바꿨는지 적어야 6개월 후에 git blame 할 때 살아남아.\r\n\r\n---\r\n\r\n## 12.2 PR 본문 [MUST]\r\n\r\n모든 PR에 아래 두 섹션 필수:\r\n\r\n- `## 변경 사항` — 뭘 바꿨는지\r\n- `## 테스트 결과` — 어떻게 검증했는지\r\n\r\nPR 크기는 **400줄 이하** [SHOULD].\r\n\r\n### PR 본문 템플릿\r\n\r\n```markdown\r\n## 변경 사항\r\n\r\n- [feat] 카카오 소셜 로그인 연동\r\n- [refactor] AuthService에서 OAuth 전략 패턴 분리\r\n\r\n## 테스트 결과\r\n\r\n- [x] KakaoOAuthServiceTest 전체 통과 (12 cases)\r\n- [x] AuthE2E 시나리오 테스트 통과\r\n- [x] 로컬에서 카카오 로그인 플로우 수동 검증 완료\r\n\r\n## 관련 이슈\r\n\r\n- Closes #42\r\n- Related #38\r\n\r\n## 스크린샷 (선택)\r\n\r\n(해당 시 첨부)\r\n```\r\n\r\n### ✅ Good\r\n\r\n- 변경 사항이 bullet으로 명확히 나열됨\r\n- 테스트 결과에 구체적 수치/증거 있음\r\n- 400줄 이내로 리뷰어가 30분 안에 볼 수 있음\r\n\r\n### ❌ Bad\r\n\r\n- PR 설명란 비어있음\r\n- \"잘 됩니다\" 한 줄로 테스트 결과 대체\r\n- 1000줄짜리 PR에 \"전체적으로 리팩토링했습니다\"\r\n\r\n> **이유**: PR 본문은 리뷰어를 위한 배려야. 맥락 없이 코드만 던지면 리뷰 품질이 떨어지고 시간도 낭비돼.\r\n\r\n---\r\n\r\n## 12.3 HISTORY 일일 로그 [MUST]\r\n\r\n매일 퇴근 전 `HISTORY.md` 파일을 갱신해. 3줄 형식:\r\n\r\n```\r\n한 일 / 이슈 / 내일 계획\r\n```\r\n\r\n### 형식\r\n\r\n```markdown\r\n## 2026-05-12 (월) — 홍길동\r\n\r\n**한 일**\r\n- feat(auth): 카카오 소셜 로그인 구현 완료\r\n- test(auth): KakaoOAuthService 단위 테스트 12건 작성\r\n\r\n**이슈**\r\n- 카카오 API rate limit 때문에 E2E 테스트 간헐적 실패 → retry 로직 검토 필요\r\n\r\n**내일 계획**\r\n- 네이버 소셜 로그인 연동 시작\r\n- rate limit 대응 방안 기술 검토 후 팀 공유\r\n```\r\n\r\n### ✅ Good\r\n\r\n```markdown\r\n## 2026-05-12 (월) — 김개발\r\n\r\n**한 일**\r\n- fix(order): 할인 음수 버그 수정 + 테스트 추가\r\n- docs: API 명세서 할인 엔드포인트 업데이트\r\n\r\n**이슈**\r\n- 없음\r\n\r\n**내일 계획**\r\n- 쿠폰 만료 스케줄러 구현 착수\r\n```\r\n\r\n### ❌ Bad\r\n\r\n```markdown\r\n## 2026-05-12\r\n\r\n오늘 좀 했음. 내일도 할 예정.\r\n```\r\n\r\n> **이유**: 일일 로그는 팀 전체의 진행 상황 파악용이야. 스탠드업 미팅 대신 비동기로 공유하는 거니까, 구체적이어야 의미가 있어.\r\n\r\n---\r\n\r\n## 요약 체크리스트\r\n\r\n| 항목 | 레벨 | 핵심 |\r\n|------|------|------|\r\n| Conventional Commits | [MUST] | type(scope): subject |\r\n| 커밋 본문에 \"왜\" | [SHOULD] | body에 변경 이유 작성 |\r\n| PR `## 변경 사항` | [MUST] | bullet 나열 |\r\n| PR `## 테스트 결과` | [MUST] | 구체적 검증 증거 |\r\n| PR 400줄 이하 | [SHOULD] | 넘으면 분할 |\r\n| HISTORY 매일 갱신 | [MUST] | 한 일 / 이슈 / 내일 |\r\n"
+}

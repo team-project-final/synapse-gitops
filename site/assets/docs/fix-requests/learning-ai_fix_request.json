@@ -1,0 +1,75 @@
+{
+  "slug": "learning-ai_fix_request",
+  "title": "수정 요청: learning-ai CrashLoopBackOff",
+  "category": "fix-requests",
+  "source": "synapse-shared",
+  "tags": [
+    "eks",
+    "docker",
+    "dev"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-21",
+    "status": "active",
+    "completionRate": null
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "증상",
+      "anchor": "증상"
+    },
+    {
+      "level": 2,
+      "text": "근본 원인",
+      "anchor": "근본-원인"
+    },
+    {
+      "level": 2,
+      "text": "인프라 측 이미 해결한 사항",
+      "anchor": "인프라-측-이미-해결한-사항"
+    },
+    {
+      "level": 2,
+      "text": "디버깅 가이드",
+      "anchor": "디버깅-가이드"
+    },
+    {
+      "level": 3,
+      "text": "1단계: 로그 확인",
+      "anchor": "1단계-로그-확인"
+    },
+    {
+      "level": 3,
+      "text": "2단계: 로컬 재현",
+      "anchor": "2단계-로컬-재현"
+    },
+    {
+      "level": 3,
+      "text": "3단계: 필수 환경변수 체크",
+      "anchor": "3단계-필수-환경변수-체크"
+    },
+    {
+      "level": 3,
+      "text": "4단계: Dockerfile 확인",
+      "anchor": "4단계-dockerfile-확인"
+    },
+    {
+      "level": 2,
+      "text": "요청 수정 사항",
+      "anchor": "요청-수정-사항"
+    },
+    {
+      "level": 2,
+      "text": "검증 방법",
+      "anchor": "검증-방법"
+    },
+    {
+      "level": 2,
+      "text": "기한",
+      "anchor": "기한"
+    }
+  ],
+  "body": "# 수정 요청: learning-ai CrashLoopBackOff\n\n> **작성일**: 2026-05-21\n> **작성자**: @team-lead (인프라/GitOps)\n> **대상**: learning-ai 담당자\n> **우선순위**: High — dev 환경 배포 차단 중\n\n---\n\n## 증상\n\nEKS `synapse-dev` namespace에서 `learning-ai` Pod가 **restart 반복** 상태.\n\n```\n상태: Progressing (ArgoCD)\nPod:  uvicorn 기동 후 종료 → restart 반복\n```\n\n## 근본 원인\n\nPython uvicorn 서버가 기동 후 곧 종료됨. **서비스 코드 레벨 문제**로 판단됩니다.\n\n가능한 원인 (확인 필요):\n1. **Import error** — 필수 패키지 미설치 또는 버전 불일치\n2. **환경변수 누락** — 필수 설정값이 없어 기동 실패\n3. **DB/외부 서비스 연결 실패** — 연결 재시도 없이 즉시 종료\n4. **포트 충돌 또는 바인딩 실패** — 컨테이너 내 포트 설정 불일치\n\n## 인프라 측 이미 해결한 사항\n\n| 항목 | 상태 |\n|------|:----:|\n| EKS Security Group → RDS/MSK/Redis/OpenSearch 접근 | ✅ |\n| ExternalSecret → SecretSynced (시크릿 주입) | ✅ |\n| liveness probe initialDelaySeconds 30s → 90s | ✅ (gitops PR #35) |\n| ECR 이미지 pull 성공 | ✅ |\n\n## 디버깅 가이드\n\n### 1단계: 로그 확인\n\n```bash\n# EKS에서 직접 확인\nkubectl logs -n synapse-dev -l app.kubernetes.io/name=learning-ai --tail=100\n\n# 이전 크래시 로그\nkubectl logs -n synapse-dev -l app.kubernetes.io/name=learning-ai --previous\n```\n\n### 2단계: 로컬 재현\n\n```bash\n# synapse-shared Docker Compose로 로컬 실행\ncd synapse-shared\ncp .env.example .env\ndocker compose up learning-ai\n\n# 또는 서비스 레포에서 직접\ncd synapse-learning-ai\npip install -r requirements.txt\nuvicorn app.main:app --host 0.0.0.0 --port 8085\n```\n\n### 3단계: 필수 환경변수 체크\n\nExternalSecret을 통해 주입되는 환경변수 목록:\n\n| 변수 | 소스 |\n|------|------|\n| `DATABASE_URL` | AWS Secrets Manager |\n| `KAFKA_BROKERS` | ConfigMap |\n| `REDIS_HOST` | ConfigMap |\n| `OPENAI_API_KEY` (해당시) | AWS Secrets Manager |\n\n`kubectl exec` 또는 `kubectl describe pod`로 환경변수 주입 여부를 확인하세요.\n\n### 4단계: Dockerfile 확인\n\n```bash\n# 컨테이너 내부 진입\nkubectl exec -it -n synapse-dev <pod-name> -- /bin/sh\n\n# Python 의존성 확인\npip list\npython -c \"from app.main import app; print('OK')\"\n```\n\n## 요청 수정 사항\n\n1. 위 디버깅 가이드를 따라 **크래시 원인 확인**\n2. 원인에 따라 수정:\n   - Import error → `requirements.txt` 또는 `pyproject.toml` 업데이트\n   - 환경변수 → `application.yml` 또는 코드에서 기본값/fallback 추가\n   - DB 연결 → retry 로직 또는 graceful startup 추가\n3. 로컬에서 `docker compose up learning-ai` → health 엔드포인트 정상 응답 확인\n4. PR 생성 → CI 통과 → main 머지\n\n## 검증 방법\n\n수정 후:\n\n1. 로컬: `curl http://localhost:8085/health` → `{\"status\":\"ok\"}` 또는 유사 응답\n2. EKS: ArgoCD 자동 배포 후 `kubectl get pods -n synapse-dev -l app.kubernetes.io/name=learning-ai` → Running, restarts 0\n3. `bash scripts/verify-service-health.sh --env eks` → learning-ai PASS\n\n## 기한\n\n**W3 시작 전(05-25)까지** 수정 완료 요청합니다.\n3/5 서비스는 이미 Healthy이며, 5/5 달성 후 staging 배포 + E2E 검증 진행 예정입니다.\n\n---\n\n*문의: @team-lead / synapse-shared 레포 이슈*\n"
+}

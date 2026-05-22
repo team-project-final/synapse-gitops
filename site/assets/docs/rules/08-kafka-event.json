@@ -1,0 +1,131 @@
+{
+  "slug": "08-kafka-event",
+  "title": "8. Kafka 이벤트 RULE — Kafka + Avro + Schema Registry\r",
+  "category": "rules",
+  "source": "synapse-shared",
+  "tags": [
+    "kafka",
+    "ci",
+    "avro",
+    "schema"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-14",
+    "status": "active",
+    "completionRate": 0
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "8.1 토픽 네이밍 \\[MUST\\]",
+      "anchor": "81-토픽-네이밍-must"
+    },
+    {
+      "level": 3,
+      "text": "예시",
+      "anchor": "예시"
+    },
+    {
+      "level": 2,
+      "text": "8.2 CloudEvents 1.0 Envelope \\[MUST\\]",
+      "anchor": "82-cloudevents-10-envelope-must"
+    },
+    {
+      "level": 3,
+      "text": "필수 필드",
+      "anchor": "필수-필드"
+    },
+    {
+      "level": 3,
+      "text": "CloudEventEnvelope.avsc 예시",
+      "anchor": "cloudeventenvelopeavsc-예시"
+    },
+    {
+      "level": 2,
+      "text": "8.3 Avro 스키마 작성 \\[MUST\\]",
+      "anchor": "83-avro-스키마-작성-must"
+    },
+    {
+      "level": 3,
+      "text": "규칙",
+      "anchor": "규칙"
+    },
+    {
+      "level": 3,
+      "text": "✅ Good — 올바른 Avro 스키마",
+      "anchor": "-good-올바른-avro-스키마"
+    },
+    {
+      "level": 3,
+      "text": "❌ Bad — 잘못된 Avro 스키마",
+      "anchor": "-bad-잘못된-avro-스키마"
+    },
+    {
+      "level": 2,
+      "text": "8.4 호환성 정책 \\[MUST\\]",
+      "anchor": "84-호환성-정책-must"
+    },
+    {
+      "level": 2,
+      "text": "8.5 금지 사항 \\[MUST\\]",
+      "anchor": "85-금지-사항-must"
+    },
+    {
+      "level": 3,
+      "text": "❌ Bad — 필드 이름 변경",
+      "anchor": "-bad-필드-이름-변경"
+    },
+    {
+      "level": 3,
+      "text": "✅ Good — aliases 사용",
+      "anchor": "-good-aliases-사용"
+    },
+    {
+      "level": 2,
+      "text": "8.6 Consumer 규칙 \\[MUST\\]",
+      "anchor": "86-consumer-규칙-must"
+    },
+    {
+      "level": 3,
+      "text": "✅ Good — 멱등 처리 패턴",
+      "anchor": "-good-멱등-처리-패턴"
+    },
+    {
+      "level": 3,
+      "text": "❌ Bad — 멱등 미처리",
+      "anchor": "-bad-멱등-미처리"
+    },
+    {
+      "level": 2,
+      "text": "8.7 DLQ (Dead Letter Queue) \\[SHOULD\\]",
+      "anchor": "87-dlq-dead-letter-queue-should"
+    },
+    {
+      "level": 3,
+      "text": "Spring Kafka DLQ 설정 예시",
+      "anchor": "spring-kafka-dlq-설정-예시"
+    },
+    {
+      "level": 2,
+      "text": "8.8 스키마 변경 PR 절차 \\[MUST\\]",
+      "anchor": "88-스키마-변경-pr-절차-must"
+    },
+    {
+      "level": 3,
+      "text": "PR Description 템플릿",
+      "anchor": "pr-description-템플릿"
+    },
+    {
+      "level": 2,
+      "text": "스키마 변경 요약",
+      "anchor": "스키마-변경-요약"
+    },
+    {
+      "level": 2,
+      "text": "체크리스트",
+      "anchor": "체크리스트"
+    }
+  ],
+  "body": "# 8. Kafka 이벤트 RULE — Kafka + Avro + Schema Registry\r\n\r\n> **참조**: [전체 Rule 목록](../rules/) | [SCHEMA_EVOLUTION.md](https://github.com/team-project-final/synapse-shared/blob/main/docs/SCHEMA_EVOLUTION.md)\r\n\r\n---\r\n\r\n## 8.1 토픽 네이밍 \\[MUST\\]\r\n\r\n토픽 이름은 `{서비스}.{도메인}.{이벤트}-v{N}` 패턴을 따라야 해.\r\n\r\n- 서비스: `platform`, `knowledge`, `learning`, `engagement`\r\n- 도메인: bounded context (예: `auth`, `note`, `card`)\r\n- 이벤트: kebab-case 과거형 동사 / 버전: 메이저 스키마 버전\r\n\r\n### 예시\r\n\r\n| 상태 | 토픽 이름 | 설명 |\r\n|------|-----------|------|\r\n| ✅ Good | `platform.auth.user-registered-v1` | 서비스.도메인.이벤트-버전 |\r\n| ✅ Good | `knowledge.note.note-created-v1` | knowledge 서비스, note 도메인 |\r\n| ✅ Good | `learning.card.review-completed-v2` | 메이저 스키마 변경으로 v2 |\r\n| ❌ Bad | `UserRegistered` | 패턴 무시, PascalCase |\r\n| ❌ Bad | `note_created` | 서비스/도메인 prefix 없음, snake_case |\r\n| ❌ Bad | `platform-user-registered` | dot separator 아닌 hyphen 사용 |\r\n| ❌ Bad | `platform.auth.userRegistered-v1` | camelCase 이벤트명 |\r\n\r\n> **이유**: 토픽명에 서비스·도메인이 포함되면 ACL, 모니터링 필터링, Consumer Group 매핑이 일관돼. MSK에서 수백 개 토픽이 생겨도 정렬만으로 파악 가능.\r\n\r\n---\r\n\r\n## 8.2 CloudEvents 1.0 Envelope \\[MUST\\]\r\n\r\n모든 Kafka 메시지는 CloudEvents 1.0 envelope으로 감싸야 해.\r\n\r\n### 필수 필드\r\n\r\n| 필드 | 타입 | 필수 | 설명 |\r\n|------|------|------|------|\r\n| `specversion` | string | ✅ | 항상 `\"1.0\"` |\r\n| `id` | string (UUID) | ✅ | 이벤트 고유 식별자 |\r\n| `source` | string | ✅ | 발행 서비스명 (예: `platform-service`) |\r\n| `type` | string | ✅ | 이벤트 FQDN (예: `com.synapse.event.platform.UserRegistered`) |\r\n| `time` | timestamp-millis | ✅ | 이벤트 발생 시각 (UTC) |\r\n| `tenantid` | string | ✅ | 멀티테넌트 식별자 |\r\n| `datacontenttype` | string | ✅ | `\"application/json\"` 고정 |\r\n| `traceparent` | string (nullable) | ❌ | W3C Trace Context |\r\n\r\n### CloudEventEnvelope.avsc 예시\r\n\r\n```json\r\n{\r\n  \"type\": \"record\",\r\n  \"name\": \"CloudEventEnvelope\",\r\n  \"namespace\": \"com.synapse.event.shared\",\r\n  \"fields\": [\r\n    {\"name\": \"specversion\", \"type\": \"string\", \"default\": \"1.0\"},\r\n    {\"name\": \"id\", \"type\": \"string\", \"default\": \"\"},\r\n    {\"name\": \"source\", \"type\": \"string\", \"default\": \"\"},\r\n    {\"name\": \"type\", \"type\": \"string\", \"default\": \"\"},\r\n    {\"name\": \"time\", \"type\": {\"type\": \"long\", \"logicalType\": \"timestamp-millis\"}, \"default\": 0},\r\n    {\"name\": \"tenantid\", \"type\": \"string\", \"default\": \"\"},\r\n    {\"name\": \"datacontenttype\", \"type\": \"string\", \"default\": \"application/json\"},\r\n    {\"name\": \"traceparent\", \"type\": [\"null\", \"string\"], \"default\": null},\r\n    {\"name\": \"data\", \"type\": \"bytes\", \"default\": \"\"}\r\n  ]\r\n}\r\n```\r\n\r\n> **이유**: CloudEvents 1.0 envelope으로 통일하면 공통 미들웨어(로깅, 트레이싱, 라우팅)를 한 번만 구현하면 돼. `tenantid`는 멀티테넌트 SaaS라서 필수.\r\n\r\n---\r\n\r\n## 8.3 Avro 스키마 작성 \\[MUST\\]\r\n\r\n`synapse-shared` 레포의 `src/main/avro/` 디렉토리에 `.avsc` 파일로 관리해.\r\n\r\n### 규칙\r\n\r\n- **namespace**: `com.synapse.event.{도메인}` 형식만 허용\r\n  - 허용 도메인: `platform`, `knowledge`, `learning`, `engagement`, `shared`\r\n- **모든 필드에 default 값 필수** — backward compatibility 보장을 위해\r\n- `tenantId` 필드 반드시 포함\r\n- timestamp 필드는 Avro logical type `timestamp-millis` 사용\r\n- 필드명은 camelCase\r\n\r\n### ✅ Good — 올바른 Avro 스키마\r\n\r\n```json\r\n{\r\n  \"type\": \"record\",\r\n  \"name\": \"NoteCreated\",\r\n  \"namespace\": \"com.synapse.event.knowledge\",\r\n  \"fields\": [\r\n    {\"name\": \"noteId\", \"type\": \"string\", \"default\": \"\"},\r\n    {\"name\": \"tenantId\", \"type\": \"string\", \"default\": \"\"},\r\n    {\"name\": \"title\", \"type\": \"string\", \"default\": \"\"},\r\n    {\"name\": \"createdBy\", \"type\": \"string\", \"default\": \"\"},\r\n    {\"name\": \"createdAt\", \"type\": {\"type\": \"long\", \"logicalType\": \"timestamp-millis\"}, \"default\": 0},\r\n    {\"name\": \"tags\", \"type\": {\"type\": \"array\", \"items\": \"string\"}, \"default\": []}\r\n  ]\r\n}\r\n```\r\n\r\n### ❌ Bad — 잘못된 Avro 스키마\r\n\r\n```json\r\n{\r\n  \"type\": \"record\",\r\n  \"name\": \"NoteCreated\",\r\n  \"namespace\": \"com.synapse.knowledge\",\r\n  \"fields\": [\r\n    {\"name\": \"note_id\", \"type\": \"string\"},\r\n    {\"name\": \"title\", \"type\": \"string\"},\r\n    {\"name\": \"created_at\", \"type\": \"long\"}\r\n  ]\r\n}\r\n```\r\n\r\n> **이유**: namespace에 `event` 세그먼트 누락, snake_case 필드명, tenantId 없음, default 없음, logicalType 미지정 — 전부 호환성과 일관성을 깨는 실수야. default 없으면 기존 Consumer가 역직렬화에 실패해.\r\n\r\n---\r\n\r\n## 8.4 호환성 정책 \\[MUST\\]\r\n\r\nSchema Registry의 호환성 모드는 도메인별로 아래와 같이 설정해:\r\n\r\n| 도메인 | 호환성 모드 | 이유 |\r\n|--------|-------------|------|\r\n| platform | BACKWARD | 기본 정책 — Consumer가 새 스키마를 먼저 배포해도 안전 |\r\n| knowledge | BACKWARD_TRANSITIVE | 핵심 도메인이라 모든 이전 버전과의 호환 보장 필수 |\r\n| learning | BACKWARD | 기본 정책 |\r\n| engagement | BACKWARD | 기본 정책 |\r\n| shared | BACKWARD_TRANSITIVE | 공용 스키마는 최대한 보수적으로 |\r\n\r\n> **이유**: `BACKWARD` = 직전 버전만 호환, `BACKWARD_TRANSITIVE` = 모든 이전 버전 호환. `knowledge`는 노트·지식그래프 등 핵심 데이터를 다루기 때문에, Consumer 롤백 시에도 어떤 버전이든 읽을 수 있어야 해.\r\n\r\n---\r\n\r\n## 8.5 금지 사항 \\[MUST\\]\r\n\r\n**절대 예외 없음.** 아래 항목은 어떤 상황에서도 금지야:\r\n\r\n| # | 금지 항목 | 대안 |\r\n|---|-----------|------|\r\n| 1 | ❌ 호환 모드 `NONE` 설정 | BACKWARD 또는 BACKWARD_TRANSITIVE 사용 |\r\n| 2 | ❌ 필드 이름 변경 | `aliases`로 이전 이름 유지하면서 새 이름 추가 |\r\n| 3 | ❌ default 없는 필드 추가 | 모든 새 필드에 반드시 default 지정 |\r\n| 4 | ❌ enum 값 제거 | deprecated 마킹만 허용, 실제 삭제 금지 |\r\n| 5 | ❌ 필수 필드 삭제 | deprecated 후 다음 메이저 버전에서만 제거 |\r\n\r\n### ❌ Bad — 필드 이름 변경\r\n\r\n```json\r\n// v1에서 \"userName\" → v2에서 \"displayName\"으로 바꾸면 안 됨\r\n{\"name\": \"displayName\", \"type\": \"string\", \"default\": \"\"}\r\n```\r\n\r\n### ✅ Good — aliases 사용\r\n\r\n```json\r\n{\"name\": \"displayName\", \"type\": \"string\", \"default\": \"\", \"aliases\": [\"userName\"]}\r\n```\r\n\r\n> **이유**: 스키마 변경은 되돌릴 수 없어. 한 번 배포되면 수십 개 Consumer가 의존하기 때문에, 호환성을 깨는 변경은 전체 시스템 장애로 이어져.\r\n\r\n---\r\n\r\n## 8.6 Consumer 규칙 \\[MUST\\]\r\n\r\nKafka는 **at-least-once** 전달을 보장해. 같은 메시지가 2번 이상 올 수 있으니 Consumer는 반드시 **멱등(idempotent)** 처리해야 해.\r\n\r\n- idempotency key = CloudEvents `id` 필드 (UUID)\r\n- 처리 완료된 이벤트 ID는 최소 7일간 보관\r\n- 중복 감지 시 로그만 남기고 skip\r\n\r\n### ✅ Good — 멱등 처리 패턴\r\n\r\n```java\r\n@KafkaListener(topics = \"knowledge.note.note-created-v1\")\r\npublic void handleNoteCreated(CloudEventEnvelope envelope) {\r\n    String eventId = envelope.getId();\r\n\r\n    // 이미 처리된 이벤트인지 확인\r\n    if (idempotencyStore.exists(eventId)) {\r\n        log.info(\"Duplicate event skipped: {}\", eventId);\r\n        return;\r\n    }\r\n\r\n    // 비즈니스 로직 처리\r\n    NoteCreated event = deserialize(envelope.getData());\r\n    noteSearchService.index(event);\r\n\r\n    // 처리 완료 기록 (TTL 7일)\r\n    idempotencyStore.save(eventId, Instant.now(), Duration.ofDays(7));\r\n}\r\n```\r\n\r\n### ❌ Bad — 멱등 미처리\r\n\r\n```java\r\n@KafkaListener(topics = \"knowledge.note.note-created-v1\")\r\npublic void handleNoteCreated(CloudEventEnvelope envelope) {\r\n    // 중복 체크 없이 바로 처리 — 같은 노트가 2번 인덱싱됨\r\n    NoteCreated event = deserialize(envelope.getData());\r\n    noteSearchService.index(event);\r\n}\r\n```\r\n\r\n> **이유**: 네트워크 파티션, 리밸런싱 등으로 메시지 재전달은 반드시 발생해. 멱등하지 않으면 데이터 중복, 과금 오류 같은 심각한 버그가 생겨.\r\n\r\n---\r\n\r\n## 8.7 DLQ (Dead Letter Queue) \\[SHOULD\\]\r\n\r\n처리 실패한 메시지는 재시도 후 DLQ로 보내서 나중에 수동 또는 자동으로 재처리해.\r\n\r\n- 최대 **3회 재시도** (exponential backoff) 후 DLQ 전송\r\n- DLQ 토픽 네이밍: `{원본토픽}.dlq` (예: `knowledge.note.note-created-v1.dlq`)\r\n- DLQ 메시지에는 원본 헤더 + 실패 사유 포함\r\n- DLQ 모니터링 알림 필수 (Slack 또는 PagerDuty)\r\n\r\n### Spring Kafka DLQ 설정 예시\r\n\r\n```java\r\n@Bean\r\npublic ConcurrentKafkaListenerContainerFactory<String, byte[]> kafkaListenerContainerFactory(\r\n        ConsumerFactory<String, byte[]> consumerFactory,\r\n        KafkaTemplate<String, byte[]> kafkaTemplate) {\r\n\r\n    var factory = new ConcurrentKafkaListenerContainerFactory<String, byte[]>();\r\n    factory.setConsumerFactory(consumerFactory);\r\n\r\n    // 3회 재시도 (1초, 2초, 4초 백오프)\r\n    var backOff = new ExponentialBackOff(1000L, 2.0);\r\n    backOff.setMaxElapsedTime(7000L);\r\n\r\n    // DLQ로 전송하는 recoverer\r\n    var recoverer = new DeadLetterPublishingRecoverer(kafkaTemplate,\r\n        (record, ex) -> new TopicPartition(record.topic() + \".dlq\", -1));\r\n\r\n    var errorHandler = new DefaultErrorHandler(recoverer, backOff);\r\n    factory.setCommonErrorHandler(errorHandler);\r\n\r\n    return factory;\r\n}\r\n```\r\n\r\n> **이유**: 재시도 없이 바로 실패하면 일시적 장애(DB 타임아웃, 네트워크 지연)에도 메시지를 잃어버려. DLQ가 있으면 수동 재처리로 데이터 복구가 가능해.\r\n\r\n---\r\n\r\n## 8.8 스키마 변경 PR 절차 \\[MUST\\]\r\n\r\nAvro 스키마 변경은 아래 절차를 **반드시** 거쳐야 해:\r\n\r\n1. `synapse-shared` 레포의 `src/main/avro/`에 `.avsc` 파일 수정/추가 후 PR 생성\r\n2. CI `schema-check.yml`이 자동 실행 → Schema Registry 호환성 검증\r\n3. 영향 받는 서비스 트랙 owner **모두** approve\r\n4. **@team-lead** 최종 승인\r\n5. main 머지 시 CI가 Schema Registry에 자동 등록\r\n\r\n### PR Description 템플릿\r\n\r\n```markdown\r\n## 스키마 변경 요약\r\n- **변경 스키마**: `NoteCreated.avsc`\r\n- **변경 내용**: `summary` 필드 추가 (string, default: \"\")\r\n- **호환성**: BACKWARD_TRANSITIVE ✅ (CI 통과)\r\n- **영향 서비스**: knowledge-service, search-service, analytics-service\r\n\r\n## 체크리스트\r\n- [ ] 모든 새 필드에 default 값 있음\r\n- [ ] namespace 규칙 준수\r\n- [ ] tenantId 필드 포함\r\n- [ ] CI schema-check 통과\r\n- [ ] 영향 서비스 owner approve 완료\r\n```\r\n\r\n> **이유**: 스키마 변경은 모든 Producer/Consumer에 영향을 줘. CI 검증 + 다자 승인 없이 머지하면 런타임에 역직렬화 에러가 터져서 장애 전파가 일어나.\r\n"
+}

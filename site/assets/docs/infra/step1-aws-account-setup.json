@@ -1,0 +1,99 @@
+{
+  "slug": "step1-aws-account-setup",
+  "title": "Runbook: AWS 계정 초기 설정 (Step 1 상세)\r",
+  "category": "infra",
+  "source": "synapse-gitops",
+  "tags": [
+    "argocd",
+    "terraform"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-18",
+    "status": "active",
+    "completionRate": null
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "⚠️ 비용 안내",
+      "anchor": "-비용-안내"
+    },
+    {
+      "level": 2,
+      "text": "1-A. AWS Budget 알람 설정 (5분)",
+      "anchor": "1-a-aws-budget-알람-설정-5분"
+    },
+    {
+      "level": 2,
+      "text": "1-B. IAM 사용자 생성 (5분)",
+      "anchor": "1-b-iam-사용자-생성-5분"
+    },
+    {
+      "level": 2,
+      "text": "1-C. Access Key 발급 (3분)",
+      "anchor": "1-c-access-key-발급-3분"
+    },
+    {
+      "level": 2,
+      "text": "1-D. AWS CLI 설치 확인 (5분, OS별)",
+      "anchor": "1-d-aws-cli-설치-확인-5분-os별"
+    },
+    {
+      "level": 3,
+      "text": "Case A: `aws-cli/2.x.x` 이상 출력",
+      "anchor": "case-a-aws-cli2xx-이상-출력"
+    },
+    {
+      "level": 3,
+      "text": "Case B: \"command not found\" 또는 v1.x 출력",
+      "anchor": "case-b-command-not-found-또는-v1x-출력"
+    },
+    {
+      "level": 2,
+      "text": "1-E. aws configure 실행 (3분)",
+      "anchor": "1-e-aws-configure-실행-3분"
+    },
+    {
+      "level": 2,
+      "text": "1-F. 검증 (1분)",
+      "anchor": "1-f-검증-1분"
+    },
+    {
+      "level": 2,
+      "text": "자주 막히는 지점",
+      "anchor": "자주-막히는-지점"
+    },
+    {
+      "level": 3,
+      "text": "1-D 후에도 `command not found`",
+      "anchor": "1-d-후에도-command-not-found"
+    },
+    {
+      "level": 3,
+      "text": "1-F에서 `InvalidClientTokenId`",
+      "anchor": "1-f에서-invalidclienttokenid"
+    },
+    {
+      "level": 3,
+      "text": "1-F에서 `ExpiredToken` 또는 `SignatureDoesNotMatch`",
+      "anchor": "1-f에서-expiredtoken-또는-signaturedoesnotmatch"
+    },
+    {
+      "level": 3,
+      "text": "1-B에서 IAM 메뉴가 안 보임",
+      "anchor": "1-b에서-iam-메뉴가-안-보임"
+    },
+    {
+      "level": 3,
+      "text": "1-A의 Budgets 메뉴가 회색 처리됨",
+      "anchor": "1-a의-budgets-메뉴가-회색-처리됨"
+    },
+    {
+      "level": 2,
+      "text": "Step 1 후속: 비용 모니터링 습관",
+      "anchor": "step-1-후속-비용-모니터링-습관"
+    }
+  ],
+  "body": "# Runbook: AWS 계정 초기 설정 (Step 1 상세)\r\n\r\n> **대상**: AWS 콘솔/CLI 사용 경험이 적은 작업자\r\n> **소요 시간**: 약 25분\r\n> **결과**: `aws sts get-caller-identity`가 `synapse-admin` IAM 사용자로 응답\r\n> **상위 문서**: [w1-argocd-bootstrap-runbook.md](./w1-argocd-bootstrap-runbook.md) Step 1\r\n\r\n본 문서는 AWS 계정 생성 직후의 상태에서 시작해, Terraform과 부트스트랩 스크립트가 동작할 수 있는 상태까지 끌어올린다.\r\n\r\n---\r\n\r\n## ⚠️ 비용 안내\r\n\r\n본 작업으로 만들어지는 AWS 자원은 **시간당 비용이 발생**한다. 학습 완료 후 즉시 `terraform destroy`를 실행하지 않으면 월 약 $300 청구될 수 있다. 다음 두 가지를 반드시 지킨다:\r\n\r\n1. **1-A 단계의 Budget 알람을 먼저 설정**한다.\r\n2. 학습 완료 즉시 `cd infra/aws/dev && terraform destroy`를 실행한다.\r\n\r\n추정 자원별 비용:\r\n\r\n| 자원 | 시간당 (USD) | 월 환산 |\r\n|---|---|---|\r\n| EKS Control Plane | $0.10 | ~$73 |\r\n| EC2 노드 (t3.medium × 2) | $0.083 | ~$60 |\r\n| NAT Gateway | $0.045 + 트래픽 | ~$35 |\r\n| RDS (db.t3.micro) | ~$0.02 | ~$15 |\r\n| ElastiCache Redis (cache.t3.micro) | ~$0.02 | ~$15 |\r\n| MSK (kafka.t3.small × 2) | ~$0.10 | ~$75 |\r\n| OpenSearch (t3.small.search) | ~$0.04 | ~$30 |\r\n| **합계 (대략)** | **~$0.40/시간** | **~$300/월** |\r\n\r\n---\r\n\r\n## 1-A. AWS Budget 알람 설정 (5분)\r\n\r\n학습 중 비용 초과를 막는 안전망. 한도 도달 시 이메일 알림.\r\n\r\n1. AWS 콘솔 로그인 → 우상단 본인 ID/Account 클릭 → **\"Billing and Cost Management\"**\r\n   - 또는 상단 검색창에 \"Billing\" 입력 후 클릭\r\n2. 좌측 메뉴 **\"Budgets\"** → **\"Create budget\"** 버튼\r\n3. **\"Use a template (simplified)\"** 선택 → **\"Monthly cost budget\"**\r\n4. 입력 값:\r\n   - **Budget name**: `synapse-gitops-learning`\r\n   - **Budgeted amount**: `10` (USD, 학습 1일 분량으로 충분)\r\n   - **Email recipients**: 본인 이메일\r\n5. **Create budget** 클릭\r\n6. ✅ 완료. 80% 도달 + 100% 초과 시 두 번 이메일 알림.\r\n\r\n> 콘솔이 한국어 등 다른 언어인 경우: 우상단 언어 선택 메뉴에서 English로 바꾸면 본 가이드와 메뉴 이름이 일치한다.\r\n\r\n---\r\n\r\n## 1-B. IAM 사용자 생성 (5분)\r\n\r\n**왜 필요한가**: AWS 가입 시 만들어진 Root 계정은 권한이 무제한이라 실수가 곧 재앙이 된다. 일상 작업은 IAM 사용자로 한다.\r\n\r\n1. 상단 검색창에 **\"IAM\"** 입력 → IAM 서비스 클릭\r\n2. 좌측 메뉴 **\"Users\"** → **\"Create user\"** 버튼\r\n3. 입력:\r\n   - **User name**: `synapse-admin`\r\n   - **\"Provide user access to the AWS Management Console\"** 체크박스는 **해제** (CLI만 쓸 거라 콘솔 로그인은 Root 계정으로 충분)\r\n4. **Next** 클릭\r\n5. **\"Permissions options\"**에서 **\"Attach policies directly\"** 선택\r\n6. **\"Permissions policies\"** 검색창에 `AdministratorAccess` 입력 → 결과의 **AdministratorAccess** 체크\r\n7. **Next** → 태그 생략 → **Create user**\r\n8. ✅ 사용자 목록에 `synapse-admin`이 표시되면 완료.\r\n\r\n> 보안 강화: 학습 후 destroy까지 끝나면, 이 IAM 사용자도 비활성화하거나 정책을 `ReadOnlyAccess`로 다운그레이드해 둔다.\r\n\r\n---\r\n\r\n## 1-C. Access Key 발급 (3분)\r\n\r\n⚠️ **Secret Access Key는 이 화면을 떠나면 다시 못 본다.** 반드시 임시 보관소(메모장 + 1Password 등)에 즉시 복사한다.\r\n\r\n1. IAM → Users → **`synapse-admin`** 클릭\r\n2. 상단 탭에서 **\"Security credentials\"** 선택\r\n3. 페이지 중간 **\"Access keys\"** 섹션의 **\"Create access key\"** 버튼\r\n4. **Use case**에서 **\"Command Line Interface (CLI)\"** 선택\r\n5. 하단 경고문 동의 체크 → **Next**\r\n6. Description tag는 생략 → **Create access key**\r\n7. 결과 페이지:\r\n   - **Access key**: `AKIA...` (20자, 자동 표시)\r\n   - **Secret access key**: `wXyZ...` (40자, **\"Show\"** 버튼 클릭 시 표시)\r\n8. **반드시 두 값을 즉시 안전한 곳에 복사** + **`.csv` 다운로드** 버튼으로 백업\r\n9. **Done** 클릭하고 페이지를 떠난다.\r\n\r\n> 백업해둔 `.csv`는 1-E 단계 후 즉시 삭제(또는 1Password에만 저장).\r\n\r\n---\r\n\r\n## 1-D. AWS CLI 설치 확인 (5분, OS별)\r\n\r\n현재 터미널에서 우선 확인:\r\n```bash\r\naws --version\r\n```\r\n\r\n### Case A: `aws-cli/2.x.x` 이상 출력\r\n이미 설치됨. **1-E로 진행**.\r\n\r\n### Case B: \"command not found\" 또는 v1.x 출력\r\n\r\n#### Windows\r\n\r\n**옵션 1 — MSI installer (가장 간단)**:\r\n1. https://awscli.amazonaws.com/AWSCLIV2.msi 다운로드\r\n2. 다운로드된 `AWSCLIV2.msi` 더블클릭 → Next 연타 → Finish\r\n3. **새 터미널을 열고** `aws --version` 재확인\r\n\r\n**옵션 2 — winget (Windows 10/11)**:\r\n```powershell\r\nwinget install --id Amazon.AWSCLI -e\r\n```\r\n설치 후 **새 터미널 창**에서 확인.\r\n\r\n#### macOS\r\n```bash\r\nbrew install awscli\r\n```\r\n\r\n#### Linux (x86_64)\r\n```bash\r\ncurl \"https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip\" -o \"awscliv2.zip\"\r\nunzip awscliv2.zip\r\nsudo ./aws/install\r\n```\r\n\r\n설치 후 새 터미널에서 `aws --version` 확인.\r\n\r\n---\r\n\r\n## 1-E. aws configure 실행 (3분)\r\n\r\n⚠️ 이 명령은 **prompt 4개를 받는다**. 별도 터미널에서 실행하거나, 본 세션에서 `! aws configure` 형식으로 실행한다. 입력만 받고 출력은 prompt뿐이라 Secret이 화면에 찍히지 않는다.\r\n\r\n```bash\r\naws configure\r\n```\r\n\r\n순서대로 입력:\r\n\r\n| Prompt | 입력 값 |\r\n|---|---|\r\n| `AWS Access Key ID [None]:` | 1-C의 Access key (`AKIA...`) 붙여넣기 + Enter |\r\n| `AWS Secret Access Key [None]:` | 1-C의 Secret access key 붙여넣기 + Enter |\r\n| `Default region name [None]:` | `ap-northeast-2` (서울 리전) |\r\n| `Default output format [None]:` | `json` |\r\n\r\n설정 파일 저장 위치:\r\n- Windows: `C:\\Users\\<사용자명>\\.aws\\credentials`, `C:\\Users\\<사용자명>\\.aws\\config`\r\n- macOS/Linux: `~/.aws/credentials`, `~/.aws/config`\r\n\r\n---\r\n\r\n## 1-F. 검증 (1분)\r\n\r\n```bash\r\naws sts get-caller-identity\r\n```\r\n\r\n**Expected**:\r\n```json\r\n{\r\n    \"UserId\": \"AIDA...EXAMPLE\",\r\n    \"Account\": \"123456789012\",\r\n    \"Arn\": \"arn:aws:iam::123456789012:user/synapse-admin\"\r\n}\r\n```\r\n\r\n핵심 확인:\r\n- `Arn` 끝이 `user/synapse-admin` (Root 계정으로 작업하면 끝이 `:root`로 나옴 — 그 경우 1-B로 돌아가 IAM 사용자로 다시 설정)\r\n- `Account`가 본인 AWS 계정 번호 (Billing 화면에서 확인 가능)\r\n\r\n이 출력이 나오면 Step 1 완료. 상위 runbook의 [Step 2](./w1-argocd-bootstrap-runbook.md#2-terraform-변수-채우기-3분)로 진행.\r\n\r\n---\r\n\r\n## 자주 막히는 지점\r\n\r\n### 1-D 후에도 `command not found`\r\n- 새 터미널을 다시 열어본다 (PATH 갱신은 새 세션에서 적용).\r\n- Windows: 시스템 환경 변수 PATH에 `C:\\Program Files\\Amazon\\AWSCLIV2\\` 또는 `C:\\Program Files\\Amazon\\AWSCLI\\` 가 있는지 확인.\r\n- macOS: `/usr/local/bin/aws`가 있는지 확인 (`which aws`).\r\n\r\n### 1-F에서 `InvalidClientTokenId`\r\nAccess Key를 잘못 복사(앞뒤 공백, 마지막 줄바꿈 포함 등). `aws configure`를 다시 실행해 정확히 붙여넣는다. 그래도 안 되면 1-C로 가서 새 Access Key를 발급(기존 키는 같은 IAM 사용자에서 비활성화/삭제).\r\n\r\n### 1-F에서 `ExpiredToken` 또는 `SignatureDoesNotMatch`\r\n로컬 시계가 NTP와 어긋남. Windows: `w32tm /resync` (관리자 PowerShell). macOS: `sudo sntp -sS time.apple.com`. Linux: `sudo systemctl restart systemd-timesyncd`.\r\n\r\n### 1-B에서 IAM 메뉴가 안 보임\r\nRoot 계정이 아닐 가능성. 우상단 사용자 ID 클릭 후 어떤 계정으로 로그인 중인지 확인. Root 계정으로 로그인해서 IAM 사용자를 만들어야 한다.\r\n\r\n### 1-A의 Budgets 메뉴가 회색 처리됨\r\nAccount가 Billing 권한이 없는 IAM 사용자. Root 계정으로 다시 로그인 후 1-A부터 진행.\r\n\r\n---\r\n\r\n## Step 1 후속: 비용 모니터링 습관\r\n\r\n학습 진행 중에 다음 습관을 둔다:\r\n\r\n- 매시간 한 번 Budget 콘솔에서 spent 확인\r\n- `terraform destroy` 직후에도 AWS 콘솔에서 EKS / RDS / NAT Gateway 자원이 진짜 사라졌는지 확인 (orphan 자원 방지)\r\n- 학습 종료 후 IAM 사용자는 정책을 `ReadOnlyAccess`로 다운그레이드하거나 비활성화\r\n"
+}

@@ -1,0 +1,88 @@
+{
+  "slug": "07-platform",
+  "title": "7. 플랫폼 공통 RULE — Platform Common\r",
+  "category": "rules",
+  "source": "synapse-shared",
+  "tags": [
+    "prod"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-14",
+    "status": "active",
+    "completionRate": null
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "7.0.1 의존 방향 `[MUST]`",
+      "anchor": "701-의존-방향-must"
+    },
+    {
+      "level": 3,
+      "text": "텍스트 다이어그램",
+      "anchor": "텍스트-다이어그램"
+    },
+    {
+      "level": 3,
+      "text": "✅ Good — shared를 의존하는 도메인 모듈",
+      "anchor": "-good-shared를-의존하는-도메인-모듈"
+    },
+    {
+      "level": 3,
+      "text": "❌ Bad — shared가 도메인 모듈을 참조",
+      "anchor": "-bad-shared가-도메인-모듈을-참조"
+    },
+    {
+      "level": 3,
+      "text": "❌ Bad — 도메인 모듈 간 직접 참조",
+      "anchor": "-bad-도메인-모듈-간-직접-참조"
+    },
+    {
+      "level": 2,
+      "text": "7.0.2 환경 설정 `[MUST]`",
+      "anchor": "702-환경-설정-must"
+    },
+    {
+      "level": 3,
+      "text": "예시 구조",
+      "anchor": "예시-구조"
+    },
+    {
+      "level": 3,
+      "text": "✅ Good — 환경별 분리 + 시크릿 외부화",
+      "anchor": "-good-환경별-분리-시크릿-외부화"
+    },
+    {
+      "level": 3,
+      "text": "❌ Bad — 하나의 yml에 if-else 식으로 전부 때려넣기",
+      "anchor": "-bad-하나의-yml에-if-else-식으로-전부-때려넣기"
+    },
+    {
+      "level": 2,
+      "text": "7.0.3 같은 레포 공유 규칙 `[MUST]`",
+      "anchor": "703-같은-레포-공유-규칙-must"
+    },
+    {
+      "level": 3,
+      "text": "서비스별 모듈 매핑",
+      "anchor": "서비스별-모듈-매핑"
+    },
+    {
+      "level": 3,
+      "text": "✅ Good — allowedDependencies 명시 (package-info.java)",
+      "anchor": "-good-alloweddependencies-명시-package-infojava"
+    },
+    {
+      "level": 3,
+      "text": "❌ Bad — 다른 트랙의 모듈을 직접 참조",
+      "anchor": "-bad-다른-트랙의-모듈을-직접-참조"
+    },
+    {
+      "level": 3,
+      "text": "✅ Good — 이벤트 기반으로 모듈 간 통신",
+      "anchor": "-good-이벤트-기반으로-모듈-간-통신"
+    }
+  ],
+  "body": "# 7. 플랫폼 공통 RULE — Platform Common\r\n\r\n> **프로젝트**: Synapse — 통합 학습-지식 그래프 SaaS  \r\n> **대상**: 전체 백엔드 개발자 (4개 서비스 공통)  \r\n> **버전**: v1.0 · 2026-05-12  \r\n> **기술 스택**: Spring Boot 4 / Java 21 / Spring Modulith / PostgreSQL 16\r\n\r\n---\r\n\r\n## 7.0.1 의존 방향 `[MUST]`\r\n\r\n**모든 의존은 `shared ← 각 도메인 모듈` 방향이야. 역방향 절대 금지.**\r\n\r\n도메인 모듈끼리 직접 참조하는 것도 안 돼 — 이벤트로 연결해.\r\n\r\n### 텍스트 다이어그램\r\n\r\n```\r\n┌──────────────────────────────────────────────────────┐\r\n│                   synapse-*-svc                      │\r\n│                                                      │\r\n│   ┌───────┐   ┌───────┐   ┌───────┐                │\r\n│   │ note  │   │ graph │   │chunking│   ← 도메인 모듈│\r\n│   └──┬────┘   └──┬────┘   └──┬─────┘                │\r\n│      │           │           │                       │\r\n│      │    ✅ OK  │    ✅ OK  │    (shared 방향 의존)  │\r\n│      ▼           ▼           ▼                       │\r\n│   ┌──────────────────────────────────┐               │\r\n│   │           shared/                │               │\r\n│   │  BaseEntity, ApiResponse, etc.   │               │\r\n│   └──────────────────────────────────┘               │\r\n│                                                      │\r\n│   note ──❌──→ graph   (모듈 간 직접 참조 금지!)      │\r\n│   shared ──❌──→ note   (역방향 금지!)                │\r\n│                                                      │\r\n└──────────────────────────────────────────────────────┘\r\n```\r\n\r\n### ✅ Good — shared를 의존하는 도메인 모듈\r\n\r\n```java\r\n// note 모듈 내부\r\npackage com.synapse.knowledge.note.domain.model;\r\n\r\nimport com.synapse.knowledge.shared.BaseEntity;  // ✅ shared ← note\r\n\r\npublic class Note extends BaseEntity {\r\n    private String title;\r\n    private String content;\r\n}\r\n```\r\n\r\n### ❌ Bad — shared가 도메인 모듈을 참조\r\n\r\n```java\r\n// shared 패키지에서 note를 import\r\npackage com.synapse.knowledge.shared;\r\n\r\nimport com.synapse.knowledge.note.domain.model.Note;  // ❌ 역방향!\r\n\r\npublic class SomeSharedUtil {\r\n    public void process(Note note) { /* ... */ }\r\n}\r\n```\r\n\r\n### ❌ Bad — 도메인 모듈 간 직접 참조\r\n\r\n```java\r\n// graph 모듈에서 note를 직접 import\r\npackage com.synapse.knowledge.graph.application;\r\n\r\nimport com.synapse.knowledge.note.domain.model.Note;  // ❌ 모듈 간 직접 참조!\r\n\r\npublic class GraphService {\r\n    public void linkNote(Note note) { /* ... */ }\r\n}\r\n```\r\n\r\n> **이유**: 의존 방향이 꼬이면 순환 참조가 생기고, 모듈 분리(미래 MSA 전환)가 불가능해져. shared는 순수 유틸/베이스만 담고, 도메인 로직 절대 넣지 마.\r\n\r\n---\r\n\r\n## 7.0.2 환경 설정 `[MUST]`\r\n\r\n**`application-{profile}.yml`로 환경별 설정 분리해. local / dev / staging / prod 4단계 필수.**\r\n\r\n### 예시 구조\r\n\r\n```\r\nsrc/main/resources/\r\n├── application.yml                  # 공통 설정 (서버 포트, 로깅 기본값 등)\r\n├── application-local.yml            # 로컬 개발 (H2/docker-compose DB)\r\n├── application-dev.yml              # 개발 서버 (공유 DB, 디버그 로깅)\r\n├── application-staging.yml          # 스테이징 (prod와 동일 인프라, 테스트 데이터)\r\n└── application-prod.yml             # 프로덕션 (시크릿 외부 주입)\r\n```\r\n\r\n### ✅ Good — 환경별 분리 + 시크릿 외부화\r\n\r\n```yaml\r\n# application.yml (공통)\r\nspring:\r\n  application:\r\n    name: synapse-knowledge-svc\r\n  profiles:\r\n    active: ${SPRING_PROFILES_ACTIVE:local}\r\n\r\nserver:\r\n  port: 8080\r\n\r\n---\r\n# application-local.yml\r\nspring:\r\n  datasource:\r\n    url: jdbc:postgresql://localhost:5432/synapse_knowledge\r\n    username: synapse\r\n    password: local-only-password\r\n  jpa:\r\n    show-sql: true\r\n\r\nlogging:\r\n  level:\r\n    com.synapse: DEBUG\r\n\r\n---\r\n# application-prod.yml\r\nspring:\r\n  datasource:\r\n    url: ${DB_URL}              # 환경 변수로 주입\r\n    username: ${DB_USERNAME}\r\n    password: ${DB_PASSWORD}\r\n  jpa:\r\n    show-sql: false\r\n\r\nlogging:\r\n  level:\r\n    com.synapse: WARN\r\n```\r\n\r\n### ❌ Bad — 하나의 yml에 if-else 식으로 전부 때려넣기\r\n\r\n```yaml\r\n# application.yml — 이러지 마\r\nspring:\r\n  datasource:\r\n    url: jdbc:postgresql://localhost:5432/synapse  # prod에서도 이거 쓸 거야?\r\n    username: admin\r\n    password: super-secret-123                      # ❌ 시크릿 하드코딩!\r\n```\r\n\r\n> **이유**: 환경별 설정이 섞이면 prod에 local 설정이 올라가는 사고가 나. 시크릿은 반드시 환경 변수로 주입하고, `application-prod.yml`에 절대 평문 비밀번호 넣지 마.\r\n\r\n---\r\n\r\n## 7.0.3 같은 레포 공유 규칙 `[MUST]`\r\n\r\n**Synapse는 4개 서비스 내부를 Spring Modulith로 모듈 분리해. 같은 레포에 있어도 모듈 경계를 침범하면 안 돼.**\r\n\r\n### 서비스별 모듈 매핑\r\n\r\n| 서비스 | 트랙 | 모듈 | 공유 레포 |\r\n|--------|------|------|-----------|\r\n| `synapse-knowledge-svc` | C-1 | `note`, `graph` | knowledge-svc 레포 |\r\n| `synapse-knowledge-svc` | C-2 | `chunking`, `search` | knowledge-svc 레포 |\r\n| `synapse-learning-svc` | D-1 | `card`, `srs` | learning-svc 레포 |\r\n| `synapse-learning-svc` | D-2 | `ai` | learning-svc 레포 |\r\n\r\n**핵심**: C-1(note, graph)과 C-2(chunking, search)가 같은 `knowledge-svc` 레포를 공유하고, D-1(card, srs)과 D-2(ai)가 같은 `learning-svc` 레포를 공유해. 하지만 모듈 경계는 절대 넘지 마.\r\n\r\n### ✅ Good — allowedDependencies 명시 (package-info.java)\r\n\r\n```java\r\n// knowledge-svc: note 모듈의 package-info.java\r\n@ApplicationModule(\r\n    allowedDependencies = {\r\n        \"shared\"                   // ✅ shared만 허용\r\n    }\r\n)\r\npackage com.synapse.knowledge.note;\r\n\r\nimport org.springframework.modulith.ApplicationModule;\r\n```\r\n\r\n```java\r\n// knowledge-svc: chunking 모듈의 package-info.java\r\n@ApplicationModule(\r\n    allowedDependencies = {\r\n        \"shared\"                   // ✅ shared만 허용\r\n    }\r\n)\r\npackage com.synapse.knowledge.chunking;\r\n\r\nimport org.springframework.modulith.ApplicationModule;\r\n```\r\n\r\n### ❌ Bad — 다른 트랙의 모듈을 직접 참조\r\n\r\n```java\r\n// C-2 트랙의 chunking 모듈에서 C-1 트랙의 note를 직접 import\r\npackage com.synapse.knowledge.chunking.application;\r\n\r\nimport com.synapse.knowledge.note.domain.model.Note;  // ❌ 모듈 경계 침범!\r\n\r\npublic class ChunkingService {\r\n    public void chunkNote(Note note) { /* ... */ }\r\n}\r\n```\r\n\r\n### ✅ Good — 이벤트 기반으로 모듈 간 통신\r\n\r\n```java\r\n// note 모듈에서 이벤트 발행\r\npackage com.synapse.knowledge.note.application;\r\n\r\nimport org.springframework.context.ApplicationEventPublisher;\r\n\r\npublic class NoteService {\r\n    private final ApplicationEventPublisher events;\r\n\r\n    public void createNote(NoteCreateRequest req) {\r\n        Note note = Note.create(req.title(), req.content());\r\n        noteRepository.save(note);\r\n        events.publishEvent(new NoteCreatedEvent(note.getId(), note.getContent()));\r\n        // ✅ chunking 모듈은 이 이벤트를 구독해서 처리\r\n    }\r\n}\r\n\r\n// chunking 모듈에서 이벤트 수신\r\npackage com.synapse.knowledge.chunking.application;\r\n\r\nimport com.synapse.knowledge.note.domain.event.NoteCreatedEvent;\r\n\r\n@EventListener\r\npublic void onNoteCreated(NoteCreatedEvent event) {\r\n    // ✅ 이벤트의 public API만 사용 — note 내부 구현에 의존 안 함\r\n    chunkContent(event.noteId(), event.content());\r\n}\r\n```\r\n\r\n> **이유**: 같은 레포에 있으면 IDE가 import 자동완성을 해주니까 경계를 넘기 쉬워. `allowedDependencies`를 명시하고 `ApplicationModules.verify()`를 CI에서 돌리면, 경계 침범을 컴파일 타임에 잡을 수 있어. 이벤트 기반 통신이 모듈 분리의 핵심이야.\r\n\r\n---\r\n\r\n> **다음**: [7.1 Spring Boot 4 + Modulith RULE](./07-platform-spring.md)에서 구체적인 Spring 컨벤션을 다뤄.\r\n"
+}

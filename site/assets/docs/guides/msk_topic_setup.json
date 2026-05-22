@@ -1,0 +1,92 @@
+{
+  "slug": "msk_topic_setup",
+  "title": "MSK 토픽 생성 가이드\r",
+  "category": "guides",
+  "source": "synapse-shared",
+  "tags": [
+    "kafka",
+    "terraform",
+    "msk",
+    "dev",
+    "tls"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-21",
+    "status": "active",
+    "completionRate": null
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "사전 조건",
+      "anchor": "사전-조건"
+    },
+    {
+      "level": 2,
+      "text": "환경별 브로커 주소",
+      "anchor": "환경별-브로커-주소"
+    },
+    {
+      "level": 2,
+      "text": "실행 방법",
+      "anchor": "실행-방법"
+    },
+    {
+      "level": 3,
+      "text": "Step 1: Bastion 접속",
+      "anchor": "step-1-bastion-접속"
+    },
+    {
+      "level": 3,
+      "text": "Step 2: 스크립트 실행",
+      "anchor": "step-2-스크립트-실행"
+    },
+    {
+      "level": 3,
+      "text": "Step 3: 생성 확인",
+      "anchor": "step-3-생성-확인"
+    },
+    {
+      "level": 2,
+      "text": "생성되는 토픽 목록",
+      "anchor": "생성되는-토픽-목록"
+    },
+    {
+      "level": 2,
+      "text": "롤백 (토픽 삭제)",
+      "anchor": "롤백-토픽-삭제"
+    },
+    {
+      "level": 2,
+      "text": "MSK 보안 설정",
+      "anchor": "msk-보안-설정"
+    },
+    {
+      "level": 3,
+      "text": "TLS 통신 확인",
+      "anchor": "tls-통신-확인"
+    },
+    {
+      "level": 3,
+      "text": "SASL/IAM 인증 (선택)",
+      "anchor": "sasliam-인증-선택"
+    },
+    {
+      "level": 3,
+      "text": "Kafka ACL 설정 (SASL 비사용 시)",
+      "anchor": "kafka-acl-설정-sasl-비사용-시"
+    },
+    {
+      "level": 2,
+      "text": "다음 세션 실행 절차 (terraform apply 후)",
+      "anchor": "다음-세션-실행-절차-terraform-apply-후"
+    },
+    {
+      "level": 2,
+      "text": "트러블슈팅",
+      "anchor": "트러블슈팅"
+    }
+  ],
+  "body": "# MSK 토픽 생성 가이드\r\n\r\n## 사전 조건\r\n\r\n1. **AWS 인증**: `aws sts get-caller-identity`로 확인\r\n2. **네트워크 접근**: VPN 또는 SSM Bastion을 통해 MSK 보안그룹 내부 접근 필요\r\n3. **Kafka CLI**: `kafka-topics.sh` 사용 가능 (MSK Bastion에 설치됨)\r\n4. **브로커 주소**: 환경별 bootstrap server 확인\r\n\r\n## 환경별 브로커 주소\r\n\r\n| 환경 | Bootstrap Servers |\r\n|------|------------------|\r\n| dev | `b-1.synapsedevkafka.fark5c.c2.kafka.ap-northeast-2.amazonaws.com:9094,b-2.synapsedevkafka.fark5c.c2.kafka.ap-northeast-2.amazonaws.com:9094` |\r\n| staging | TBD (인프라 프로비저닝 후 업데이트) |\r\n| prod | TBD (인프라 프로비저닝 후 업데이트) |\r\n\r\n## 실행 방법\r\n\r\n### Step 1: Bastion 접속\r\n\r\n```bash\r\naws ssm start-session --target <bastion-instance-id> --region ap-northeast-2\r\n```\r\n\r\n### Step 2: 스크립트 실행\r\n\r\n**Dev 환경 (replication-factor=3, min.insync.replicas=2):**\r\n```bash\r\nKAFKA_BROKERS=\"b-1.synapsedevkafka.fark5c.c2.kafka.ap-northeast-2.amazonaws.com:9094,b-2.synapsedevkafka.fark5c.c2.kafka.ap-northeast-2.amazonaws.com:9094\" \\\r\n  bash scripts/create-kafka-topics.sh\r\n```\r\n\r\n**로컬 Docker Compose (replication-factor=1):**\r\n```bash\r\nKAFKA_BROKERS=\"localhost:9092\" REPLICATION_FACTOR=1 MIN_INSYNC_REPLICAS=1 \\\r\n  bash scripts/create-kafka-topics.sh\r\n```\r\n\r\n### Step 3: 생성 확인\r\n\r\n```bash\r\nkafka-topics.sh --bootstrap-server \"$KAFKA_BROKERS\" --describe --topic platform.auth.user-registered-v1\r\n```\r\n\r\nExpected:\r\n- Partitions: 3\r\n- ReplicationFactor: 3 (dev/staging/prod) or 1 (local)\r\n- Configs: retention.ms=604800000, cleanup.policy=delete, min.insync.replicas=2\r\n\r\n## 생성되는 토픽 목록\r\n\r\n| 토픽 | 도메인 | 설명 |\r\n|------|--------|------|\r\n| `platform.auth.user-registered-v1` | Platform | 회원가입 이벤트 |\r\n| `knowledge.note.note-created-v1` | Knowledge | 노트 생성 이벤트 |\r\n| `knowledge.note.note-updated-v1` | Knowledge | 노트 수정 이벤트 |\r\n| `learning.card.review-completed-v1` | Learning | 카드 복습 완료 이벤트 |\r\n| `learning.ai.cards-generated-v1` | Learning | AI 카드 생성 완료 이벤트 |\r\n\r\n## 롤백 (토픽 삭제)\r\n\r\n> **주의**: 토픽 삭제는 데이터 손실을 수반합니다. dev 환경에서만 사용하세요.\r\n\r\n```bash\r\nkafka-topics.sh --bootstrap-server \"$KAFKA_BROKERS\" \\\r\n  --delete --topic platform.auth.user-registered-v1\r\n```\r\n\r\n전체 삭제:\r\n```bash\r\nfor topic in platform.auth.user-registered-v1 knowledge.note.note-created-v1 knowledge.note.note-updated-v1 learning.card.review-completed-v1 learning.ai.cards-generated-v1; do\r\n  kafka-topics.sh --bootstrap-server \"$KAFKA_BROKERS\" --delete --topic \"$topic\"\r\ndone\r\n```\r\n\r\n## MSK 보안 설정\r\n\r\n### TLS 통신 확인\r\n\r\nMSK 브로커가 TLS(포트 9094)로 통신하는지 확인:\r\n\r\n```bash\r\n# bastion에서 실행\r\nopenssl s_client -connect <broker-host>:9094 -brief 2>&1 | head -5\r\n```\r\n\r\nExpected: `CONNECTION ESTABLISHED`, `Protocol: TLSv1.2` 또는 `TLSv1.3`\r\n\r\n서비스 application.yml에서 TLS 설정:\r\n\r\n```yaml\r\nspring:\r\n  kafka:\r\n    bootstrap-servers: ${KAFKA_BROKERS}\r\n    properties:\r\n      security.protocol: SSL\r\n      ssl.truststore.type: JKS\r\n```\r\n\r\n> MSK Serverless/Provisioned는 기본적으로 TLS를 제공합니다. PLAINTEXT(9092)는 비활성화 권장.\r\n\r\n### SASL/IAM 인증 (선택)\r\n\r\nMSK가 IAM 인증을 사용하는 경우:\r\n\r\n```yaml\r\nspring:\r\n  kafka:\r\n    properties:\r\n      security.protocol: SASL_SSL\r\n      sasl.mechanism: AWS_MSK_IAM\r\n      sasl.jaas.config: >\r\n        software.amazon.msk.auth.iam.IAMLoginModule required;\r\n      sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler\r\n```\r\n\r\nPython (learning-ai):\r\n```python\r\nfrom aws_msk_iam_sasl_signer import MSKAuthTokenProvider\r\n\r\ntp = MSKAuthTokenProvider(region='ap-northeast-2')\r\nproducer = KafkaProducer(\r\n    bootstrap_servers=brokers,\r\n    security_protocol='SASL_SSL',\r\n    sasl_mechanism='OAUTHBEARER',\r\n    sasl_oauth_token_provider=tp,\r\n)\r\n```\r\n\r\n### Kafka ACL 설정 (SASL 비사용 시)\r\n\r\n서비스별 최소 권한 ACL:\r\n\r\n```bash\r\nBROKER=\"$KAFKA_BROKERS\"\r\n\r\n# platform-svc: produce user-registered, consume cards-generated\r\nkafka-acls.sh --bootstrap-server \"$BROKER\" --add \\\r\n  --allow-principal \"User:platform-svc\" \\\r\n  --producer --topic \"platform.auth.user-registered-v1\"\r\nkafka-acls.sh --bootstrap-server \"$BROKER\" --add \\\r\n  --allow-principal \"User:platform-svc\" \\\r\n  --consumer --topic \"learning.ai.cards-generated-v1\" \\\r\n  --group \"platform-svc-group\"\r\n\r\n# knowledge-svc: produce note-created, note-updated\r\nkafka-acls.sh --bootstrap-server \"$BROKER\" --add \\\r\n  --allow-principal \"User:knowledge-svc\" \\\r\n  --producer --topic \"knowledge.note.note-created-v1\"\r\nkafka-acls.sh --bootstrap-server \"$BROKER\" --add \\\r\n  --allow-principal \"User:knowledge-svc\" \\\r\n  --producer --topic \"knowledge.note.note-updated-v1\"\r\n\r\n# learning-card: produce review-completed\r\nkafka-acls.sh --bootstrap-server \"$BROKER\" --add \\\r\n  --allow-principal \"User:learning-card\" \\\r\n  --producer --topic \"learning.card.review-completed-v1\"\r\n\r\n# learning-ai: produce cards-generated, consume note-created\r\nkafka-acls.sh --bootstrap-server \"$BROKER\" --add \\\r\n  --allow-principal \"User:learning-ai\" \\\r\n  --producer --topic \"learning.ai.cards-generated-v1\"\r\nkafka-acls.sh --bootstrap-server \"$BROKER\" --add \\\r\n  --allow-principal \"User:learning-ai\" \\\r\n  --consumer --topic \"knowledge.note.note-created-v1\" \\\r\n  --group \"learning-ai-svc-group\"\r\n\r\n# engagement-svc: consume user-registered, review-completed\r\nkafka-acls.sh --bootstrap-server \"$BROKER\" --add \\\r\n  --allow-principal \"User:engagement-svc\" \\\r\n  --consumer --topic \"platform.auth.user-registered-v1\" \\\r\n  --group \"engagement-svc-group\"\r\nkafka-acls.sh --bootstrap-server \"$BROKER\" --add \\\r\n  --allow-principal \"User:engagement-svc\" \\\r\n  --consumer --topic \"learning.card.review-completed-v1\" \\\r\n  --group \"engagement-svc-group\"\r\n\r\n# ACL 확인\r\nkafka-acls.sh --bootstrap-server \"$BROKER\" --list\r\n```\r\n\r\n> **Note**: MSK IAM 인증 사용 시 ACL 대신 IAM Policy로 토픽 접근을 제어합니다. 이 경우 위 ACL 설정은 불필요합니다.\r\n\r\n---\r\n\r\n## 다음 세션 실행 절차 (terraform apply 후)\r\n\r\n인프라 재기동 후 아래 순서대로 한 번에 실행:\r\n\r\n```bash\r\n# 1. terraform apply (gitops 레포에서)\r\ncd synapse-gitops && terraform apply\r\n\r\n# 2. EKS kubeconfig 갱신\r\naws eks update-kubeconfig --name synapse-dev --region ap-northeast-2\r\n\r\n# 3. MSK 브로커 주소 확인 (terraform apply 후 변경될 수 있음)\r\naws kafka get-bootstrap-brokers --cluster-arn <cluster-arn> --region ap-northeast-2\r\n\r\n# 4. bastion SSM 접속\r\naws ssm start-session --target <bastion-instance-id> --region ap-northeast-2\r\n\r\n# 5. MSK 토픽 생성\r\nKAFKA_BROKERS=\"<new-broker-address>\" bash scripts/create-kafka-topics.sh\r\n\r\n# 6. TLS 통신 확인\r\nopenssl s_client -connect <broker-host>:9094 -brief 2>&1 | head -5\r\n\r\n# 7. 송수신 테스트 (bastion 또는 kafka Pod에서)\r\necho '{\"test\":\"ping\"}' | kafka-console-producer.sh \\\r\n  --bootstrap-server \"$KAFKA_BROKERS\" --topic platform.auth.user-registered-v1\r\nkafka-console-consumer.sh --bootstrap-server \"$KAFKA_BROKERS\" \\\r\n  --topic platform.auth.user-registered-v1 --from-beginning --max-messages 1 --timeout-ms 10000\r\n\r\n# 8. (선택) ACL 설정 — SASL 비사용 환경에서만\r\n# 위 ACL 섹션 명령어 실행\r\n\r\n# 9. ArgoCD 서비스 상태 확인\r\nkubectl get pods -n synapse-dev\r\nbash scripts/verify-argocd-deploy.sh synapse-dev\r\n```\r\n\r\n---\r\n\r\n## 트러블슈팅\r\n\r\n| 증상 | 원인 | 해결 |\r\n|------|------|------|\r\n| Connection refused | 보안그룹 미허용 또는 VPN 미연결 | SG inbound 9094 확인, VPN/Bastion 연결 확인 |\r\n| TopicExistsException | 토픽 이미 존재 | 정상 — 스크립트가 자동 스킵 |\r\n| InvalidReplicationFactorException | RF > broker 수 | `REPLICATION_FACTOR` 값을 broker 수 이하로 설정 |\r\n"
+}

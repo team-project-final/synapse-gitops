@@ -1,0 +1,155 @@
+{
+  "slug": "step12-cost-optimization",
+  "title": "Runbook: 비용 최적화 + 안정화 + 핸드오프 (Step 12 상세)",
+  "category": "infra",
+  "source": "synapse-gitops",
+  "tags": [
+    "argocd",
+    "prod",
+    "deploy"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-18",
+    "status": "active",
+    "completionRate": 0
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "12-A. 비용 가시성 확보 (1시간)",
+      "anchor": "12-a-비용-가시성-확보-1시간"
+    },
+    {
+      "level": 3,
+      "text": "태그 정책",
+      "anchor": "태그-정책"
+    },
+    {
+      "level": 3,
+      "text": "태그 미적용 자원 식별 + 추가",
+      "anchor": "태그-미적용-자원-식별-추가"
+    },
+    {
+      "level": 3,
+      "text": "비용 분포 측정",
+      "anchor": "비용-분포-측정"
+    },
+    {
+      "level": 2,
+      "text": "12-B. 리소스 적정화 (2시간)",
+      "anchor": "12-b-리소스-적정화-2시간"
+    },
+    {
+      "level": 3,
+      "text": "P95 사용량 측정",
+      "anchor": "p95-사용량-측정"
+    },
+    {
+      "level": 3,
+      "text": "requests/limits 조정 기준",
+      "anchor": "requestslimits-조정-기준"
+    },
+    {
+      "level": 3,
+      "text": "HPA 정의 (platform-svc, engagement-svc)",
+      "anchor": "hpa-정의-platform-svc-engagement-svc"
+    },
+    {
+      "level": 3,
+      "text": "PDB 정의 (5개 앱 공통)",
+      "anchor": "pdb-정의-5개-앱-공통"
+    },
+    {
+      "level": 3,
+      "text": "검증",
+      "anchor": "검증"
+    },
+    {
+      "level": 2,
+      "text": "12-C. 안정화 + 회귀 검증 (2시간)",
+      "anchor": "12-c-안정화-회귀-검증-2시간"
+    },
+    {
+      "level": 3,
+      "text": "잔여 이슈 점검",
+      "anchor": "잔여-이슈-점검"
+    },
+    {
+      "level": 3,
+      "text": "전체 환경 헬스체크",
+      "anchor": "전체-환경-헬스체크"
+    },
+    {
+      "level": 3,
+      "text": "CI/CD 회귀 점검",
+      "anchor": "cicd-회귀-점검"
+    },
+    {
+      "level": 3,
+      "text": "알람 false-positive 점검",
+      "anchor": "알람-false-positive-점검"
+    },
+    {
+      "level": 3,
+      "text": "미사용 리소스 정리",
+      "anchor": "미사용-리소스-정리"
+    },
+    {
+      "level": 2,
+      "text": "12-D. 핸드오프 + 종료 (2시간)",
+      "anchor": "12-d-핸드오프-종료-2시간"
+    },
+    {
+      "level": 3,
+      "text": "문서 최종 검토",
+      "anchor": "문서-최종-검토"
+    },
+    {
+      "level": 3,
+      "text": "HISTORY W5 회고 추가",
+      "anchor": "history-w5-회고-추가"
+    },
+    {
+      "level": 3,
+      "text": "트랜지션 미팅 (30분)",
+      "anchor": "트랜지션-미팅-30분"
+    },
+    {
+      "level": 3,
+      "text": "team-lead 사인오프",
+      "anchor": "team-lead-사인오프"
+    },
+    {
+      "level": 2,
+      "text": "자주 막히는 지점",
+      "anchor": "자주-막히는-지점"
+    },
+    {
+      "level": 3,
+      "text": "HPA 미동작 (metrics-server 미설치)",
+      "anchor": "hpa-미동작-metrics-server-미설치"
+    },
+    {
+      "level": 3,
+      "text": "Cost Explorer 태그 반영 24시간 지연",
+      "anchor": "cost-explorer-태그-반영-24시간-지연"
+    },
+    {
+      "level": 3,
+      "text": "PDB로 인한 노드 드레인 블로킹",
+      "anchor": "pdb로-인한-노드-드레인-블로킹"
+    },
+    {
+      "level": 3,
+      "text": "핸드오프 문서 누락",
+      "anchor": "핸드오프-문서-누락"
+    },
+    {
+      "level": 2,
+      "text": "다음 단계",
+      "anchor": "다음-단계"
+    }
+  ],
+  "body": "# Runbook: 비용 최적화 + 안정화 + 핸드오프 (Step 12 상세)\n\n> **소요 시간**: 2일 (약 7시간 실작업)\n> **결과**: 비용 가시성 확보, HPA 동작 검증, P0/P1 이슈 0건, 핸드오프 완료\n> **상위 문서**: [w5-stabilize-runbook.md](./w5-stabilize-runbook.md) Step 12\n> **사전 조건**: Step 11 완료 (장애 Runbook 5개 + 시뮬레이션 + On-call 체계)\n\n---\n\n## 12-A. 비용 가시성 확보 (1시간)\n\n### 태그 정책\n\n| 태그 키 | 값 | 설명 |\n|---|---|---|\n| `Project` | `synapse` | 프로젝트 식별 |\n| `Environment` | `dev` / `staging` / `prod` | 환경 구분 |\n| `Service` | `platform-svc` / `engagement-svc` / `knowledge-svc` / `learning-card` / `learning-ai` | 서비스 구분 |\n| `ManagedBy` | `terraform` / `argocd` / `manual` | 관리 주체 |\n\n### 태그 미적용 자원 식별 + 추가\n\n```bash\n# 미태깅 자원 검색\naws resourcegroupstaggingapi get-resources --region ap-northeast-2 \\\n  --no-tag-filters --resource-type-filters ec2:instance ec2:volume rds:db \\\n  --query 'ResourceTagMappingList[?!Tags[?Key==`Project`]].ResourceARN' --output table\n\n# 태그 추가 예시\naws ec2 create-tags --resources <instance-id> --tags \\\n  Key=Project,Value=synapse Key=Environment,Value=prod Key=Service,Value=platform-svc\n```\n\n### 비용 분포 측정\n\n```bash\n# 서비스별 비용\naws ce get-cost-and-usage \\\n  --time-period Start=$(date -u +%Y-%m-01),End=$(date -u +%Y-%m-%d) \\\n  --granularity MONTHLY --metrics \"UnblendedCost\" \\\n  --group-by Type=DIMENSION,Key=SERVICE \\\n  --filter '{\"Tags\":{\"Key\":\"Project\",\"Values\":[\"synapse\"]}}' --output table\n\n# 환경별 비용\naws ce get-cost-and-usage \\\n  --time-period Start=$(date -u +%Y-%m-01),End=$(date -u +%Y-%m-%d) \\\n  --granularity MONTHLY --metrics \"UnblendedCost\" \\\n  --group-by Type=TAG,Key=Environment \\\n  --filter '{\"Tags\":{\"Key\":\"Project\",\"Values\":[\"synapse\"]}}' --output table\n```\n\nCost Explorer 콘솔에서 월별 추이 그래프 스크린샷 캡처 (HISTORY 첨부용).\n\n**Expected**: 미태깅 자원 0건, 비용 분포 서비스/환경별 가시화.\n\n---\n\n## 12-B. 리소스 적정화 (2시간)\n\n### P95 사용량 측정\n\n```promql\n# Prometheus — P95 메모리 (최근 7일, MB)\nquantile_over_time(0.95, container_memory_working_set_bytes{namespace=\"prod\", container!=\"POD\"}[7d]) / 1024 / 1024\n\n# P95 CPU (최근 7일, millicores)\nquantile_over_time(0.95, rate(container_cpu_usage_seconds_total{namespace=\"prod\", container!=\"POD\"}[5m])[7d:]) * 1000\n```\n\n```bash\nkubectl top pods -n prod --sort-by=memory\nkubectl top pods -n prod --sort-by=cpu\n```\n\n### requests/limits 조정 기준\n\n| 항목 | 산출 | 예시 |\n|---|---|---|\n| requests.cpu | P95 CPU | 100m |\n| requests.memory | P95 메모리 | 128Mi |\n| limits.cpu | P95 CPU × 2 | 200m |\n| limits.memory | P95 메모리 × 1.3 | 256Mi |\n\n각 앱 prod overlay에 리소스 패치:\n```yaml\n# apps/<app>/overlays/prod/resource-patch.yaml\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: <app>\nspec:\n  template:\n    spec:\n      containers:\n        - name: <app>\n          resources:\n            requests: { cpu: \"100m\", memory: \"128Mi\" }\n            limits: { cpu: \"200m\", memory: \"256Mi\" }\n```\n\n### HPA 정의 (platform-svc, engagement-svc)\n\n```yaml\n# apps/platform-svc/overlays/prod/hpa.yaml\napiVersion: autoscaling/v2\nkind: HorizontalPodAutoscaler\nmetadata:\n  name: platform-svc\n  namespace: prod\nspec:\n  scaleTargetRef:\n    apiVersion: apps/v1\n    kind: Deployment\n    name: platform-svc\n  minReplicas: 2\n  maxReplicas: 8\n  metrics:\n    - type: Resource\n      resource:\n        name: cpu\n        target: { type: Utilization, averageUtilization: 70 }\n  behavior:\n    scaleDown:\n      stabilizationWindowSeconds: 300\n      policies: [{ type: Percent, value: 25, periodSeconds: 60 }]\n    scaleUp:\n      stabilizationWindowSeconds: 60\n      policies: [{ type: Percent, value: 50, periodSeconds: 60 }]\n```\n\nengagement-svc도 동일 구조 (maxReplicas: 6).\n\n### PDB 정의 (5개 앱 공통)\n\n```bash\nfor app in platform-svc engagement-svc knowledge-svc learning-card learning-ai; do\n  cat > \"apps/${app}/overlays/prod/pdb.yaml\" << EOF\napiVersion: policy/v1\nkind: PodDisruptionBudget\nmetadata:\n  name: ${app}\n  namespace: prod\nspec:\n  minAvailable: 2\n  selector:\n    matchLabels:\n      app: ${app}\nEOF\ndone\n```\n\nkustomization.yaml에 리소스 추가:\n```yaml\nresources:\n  - ../../base\n  - hpa.yaml   # platform-svc, engagement-svc만\n  - pdb.yaml\npatches:\n  - path: resource-patch.yaml\n```\n\n### 검증\n```bash\nkubectl get hpa -n prod   # TARGETS에 실제 수치 표시 (not <unknown>)\nkubectl get pdb -n prod   # 5개 앱 ALLOWED DISRUPTIONS >= 0\n```\n\n---\n\n## 12-C. 안정화 + 회귀 검증 (2시간)\n\n### 잔여 이슈 점검\n```bash\ngh issue list --label \"priority:P0\" --state open\ngh issue list --label \"priority:P1\" --state open\n# → open 이슈 처리 후 close\n```\n\n### 전체 환경 헬스체크\n```bash\nargocd app list   # 15개 Synced + Healthy\nfor env in dev staging prod; do\n  echo \"=== ${env} ===\" && kubectl get pods -n ${env}\ndone   # 모든 pod Running+Ready\n```\n\n### CI/CD 회귀 점검\n```bash\ngh run list --limit 10 --json name,conclusion \\\n  --jq '.[] | \"\\(.name) | \\(.conclusion)\"'\n# 실행 시간이 이전 대비 증가하지 않았는지 확인\n```\n\n### 알람 false-positive 점검\n```bash\nkubectl exec -n monitoring deploy/alertmanager -- amtool alert query\n```\nfalse-positive 다수 시 임계치 조정: CPU 80%→90%, 메모리 85%→90%, Pod 재시작 3회→5회/5분.\n\n### 미사용 리소스 정리\n```bash\n# unattached EBS\naws ec2 describe-volumes --filters Name=status,Values=available \\\n  --query 'Volumes[].{ID:VolumeId,Size:Size}' --output table\n\n# Completed/Failed pod\nkubectl get pods --all-namespaces --field-selector=status.phase=Succeeded\nkubectl delete pods --all-namespaces --field-selector=status.phase=Succeeded\nkubectl delete pods --all-namespaces --field-selector=status.phase=Failed\n```\n\n---\n\n## 12-D. 핸드오프 + 종료 (2시간)\n\n### 문서 최종 검토\n\n| 문서 | 경로 | 점검 |\n|---|---|---|\n| KICKOFF | `docs/project-management/KICKOFF.md` | 배경+목표 정확 |\n| TASK | `docs/project-management/TASK.md` | 전체 태스크 완료 반영 |\n| SCOPE | `docs/project-management/SCOPE.md` | 최종 스코프 변경 반영 |\n| HISTORY | `docs/project-management/history/HISTORY_gitops.md` | W5까지 기록 완료 |\n| README | `README.md` | 개요+사용법 최신화 |\n\n### HISTORY W5 회고 추가\n\nHISTORY_gitops.md에 W5 섹션 추가: 실행 결과, 잘된 점, 아쉬운 점, 다음 사이클 권고 (실행 후 기록).\n\n### 트랜지션 미팅 (30분)\n\n어젠다: 아키텍처 개요(5분) → 배포 흐름(5분) → 운영 포인트(5분) → 장애 대응(5분) → 비용 관리(5분) → Q&A(5분)\n\n미팅 후:\n- [ ] 운영 인수자 ArgoCD 계정 + RBAC 역할 부여\n- [ ] AWS IAM 권한 확인\n- [ ] Slack #synapse-oncall 참여\n- [ ] GitHub 레포 Collaborator 추가\n\n### team-lead 사인오프\n- [ ] 15개 Application 정상 동작\n- [ ] 장애 Runbook 검토 완료\n- [ ] On-call 체계 승인\n- [ ] 비용 현황 예산 범위 내\n- [ ] 핸드오프 문서 충분성\n- [ ] 프로젝트 종료 승인\n\n---\n\n## 자주 막히는 지점\n\n### HPA 미동작 (metrics-server 미설치)\n\n`kubectl top pods` 시 `Metrics API not available` 또는 HPA TARGETS `<unknown>`:\n```bash\nkubectl get deploy metrics-server -n kube-system   # 미설치 확인\nkubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml\nkubectl patch deploy metrics-server -n kube-system --type='json' \\\n  -p='[{\"op\":\"add\",\"path\":\"/spec/template/spec/containers/0/args/-\",\"value\":\"--kubelet-insecure-tls\"}]'\n```\n\n### Cost Explorer 태그 반영 24시간 지연\n\n태그 추가 후 Cost Explorer 필터에 바로 반영되지 않음 → 최대 24시간 대기. Cost Allocation Tags에서 해당 태그 \"Active\" 상태 확인.\n\n### PDB로 인한 노드 드레인 블로킹\n\n`Cannot evict pod as it would violate the pod's disruption budget` → replica를 minAvailable+1 이상으로 설정 (prod replica >= 3). 긴급 시 PDB 임시 삭제 → 드레인 → PDB 재적용.\n\n### 핸드오프 문서 누락\n\n```bash\nfor doc in docs/project-management/KICKOFF.md docs/project-management/TASK.md \\\n  docs/project-management/SCOPE.md README.md; do\n  [ -f \"$doc\" ] && echo \"[OK] $doc\" || echo \"[MISSING] $doc\"\ndone\n```\n\n---\n\n## 다음 단계\n\nStep 12 완료 = W5 완료 = **프로젝트 종료**.\n\n운영 인수자 정기 작업:\n\n| 주기 | 작업 |\n|---|---|\n| 매일 | ArgoCD 상태 확인, Alertmanager 알람 점검 |\n| 매주 | Grafana 메트릭 리뷰 (CPU/메모리 추이) |\n| 매월 | Cost Explorer 비용 리뷰, Velero 백업 복원 테스트 |\n| 분기 | TLS 인증서 만료 점검, EKS/ArgoCD 버전 업그레이드 검토 |\n"
+}

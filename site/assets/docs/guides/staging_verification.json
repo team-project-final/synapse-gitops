@@ -1,0 +1,102 @@
+{
+  "slug": "staging_verification",
+  "title": "Staging 환경 검증 가이드\r",
+  "category": "guides",
+  "source": "synapse-shared",
+  "tags": [
+    "kafka",
+    "argocd",
+    "staging",
+    "dev",
+    "deploy"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-21",
+    "status": "active",
+    "completionRate": 0
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "개요",
+      "anchor": "개요"
+    },
+    {
+      "level": 2,
+      "text": "사전 조건",
+      "anchor": "사전-조건"
+    },
+    {
+      "level": 2,
+      "text": "1. 리소스 분리 확인",
+      "anchor": "1-리소스-분리-확인"
+    },
+    {
+      "level": 3,
+      "text": "1-1. Namespace 분리",
+      "anchor": "1-1-namespace-분리"
+    },
+    {
+      "level": 3,
+      "text": "1-2. Pod 리소스 비교",
+      "anchor": "1-2-pod-리소스-비교"
+    },
+    {
+      "level": 3,
+      "text": "1-3. ConfigMap 환경변수 분리",
+      "anchor": "1-3-configmap-환경변수-분리"
+    },
+    {
+      "level": 2,
+      "text": "2. 서비스 상태 확인",
+      "anchor": "2-서비스-상태-확인"
+    },
+    {
+      "level": 3,
+      "text": "2-1. ArgoCD 검증 스크립트 실행",
+      "anchor": "2-1-argocd-검증-스크립트-실행"
+    },
+    {
+      "level": 3,
+      "text": "2-2. 헬스체크 스크립트 실행",
+      "anchor": "2-2-헬스체크-스크립트-실행"
+    },
+    {
+      "level": 2,
+      "text": "3. staging E2E 시나리오",
+      "anchor": "3-staging-e2e-시나리오"
+    },
+    {
+      "level": 3,
+      "text": "3-1. Kafka 메시지 흐름 검증",
+      "anchor": "3-1-kafka-메시지-흐름-검증"
+    },
+    {
+      "level": 3,
+      "text": "3-2. API 레벨 검증",
+      "anchor": "3-2-api-레벨-검증"
+    },
+    {
+      "level": 2,
+      "text": "4. 롤백 시나리오",
+      "anchor": "4-롤백-시나리오"
+    },
+    {
+      "level": 3,
+      "text": "4-1. ArgoCD 빠른 롤백",
+      "anchor": "4-1-argocd-빠른-롤백"
+    },
+    {
+      "level": 3,
+      "text": "4-2. Git Revert (영구 롤백)",
+      "anchor": "4-2-git-revert-영구-롤백"
+    },
+    {
+      "level": 2,
+      "text": "5. 검증 완료 체크리스트",
+      "anchor": "5-검증-완료-체크리스트"
+    }
+  ],
+  "body": "# Staging 환경 검증 가이드\r\n\r\n## 개요\r\n\r\ndev 환경에서 검증 완료된 서비스를 staging으로 승격한 후 확인할 항목을 정의한다.\r\ngitops 세션에서 staging overlay 생성 완료 후 이 가이드를 기반으로 검증한다.\r\n\r\n## 사전 조건\r\n\r\n- [ ] staging overlay 5개 앱 생성 완료 (`apps/{app}/overlays/staging/`)\r\n- [ ] ApplicationSet에 `env: staging` 추가\r\n- [ ] `synapse-staging` namespace 생성\r\n- [ ] staging용 ExternalSecret / ConfigMap 적용\r\n- [ ] bastion SSM 접속 + kubectl context 설정\r\n\r\n## 1. 리소스 분리 확인\r\n\r\ndev와 staging이 독립적으로 운영되는지 확인한다.\r\n\r\n### 1-1. Namespace 분리\r\n\r\n```bash\r\nkubectl get ns | grep synapse\r\n```\r\n\r\nExpected:\r\n```\r\nsynapse-dev       Active\r\nsynapse-staging   Active\r\n```\r\n\r\n### 1-2. Pod 리소스 비교\r\n\r\n```bash\r\necho \"=== dev ===\"\r\nkubectl get deploy -n synapse-dev -o custom-columns='NAME:.metadata.name,REPLICAS:.spec.replicas,CPU_REQ:.spec.template.spec.containers[0].resources.requests.cpu,MEM_REQ:.spec.template.spec.containers[0].resources.requests.memory'\r\n\r\necho \"=== staging ===\"\r\nkubectl get deploy -n synapse-staging -o custom-columns='NAME:.metadata.name,REPLICAS:.spec.replicas,CPU_REQ:.spec.template.spec.containers[0].resources.requests.cpu,MEM_REQ:.spec.template.spec.containers[0].resources.requests.memory'\r\n```\r\n\r\nExpected: staging replicas >= 2, resource limits가 dev보다 크거나 같음\r\n\r\n### 1-3. ConfigMap 환경변수 분리\r\n\r\n```bash\r\nkubectl get configmap -n synapse-staging -o yaml | grep -E \"SPRING_PROFILES_ACTIVE|LOG_LEVEL\"\r\n```\r\n\r\nExpected: `SPRING_PROFILES_ACTIVE: staging`, `LOG_LEVEL: INFO`\r\n\r\n## 2. 서비스 상태 확인\r\n\r\n### 2-1. ArgoCD 검증 스크립트 실행\r\n\r\n```bash\r\nbash scripts/verify-argocd-deploy.sh synapse-staging\r\n```\r\n\r\nExpected: ALL PASSED (5개 앱 Synced + Healthy)\r\n\r\n### 2-2. 헬스체크 스크립트 실행\r\n\r\nstaging port-forward 설정 후:\r\n\r\n```bash\r\n# 각 서비스 port-forward (별도 터미널)\r\nkubectl port-forward -n synapse-staging svc/platform-svc 18081:8081 &\r\nkubectl port-forward -n synapse-staging svc/engagement-svc 18082:8082 &\r\nkubectl port-forward -n synapse-staging svc/knowledge-svc 18083:8083 &\r\nkubectl port-forward -n synapse-staging svc/learning-card-svc 18084:8084 &\r\nkubectl port-forward -n synapse-staging svc/learning-ai-svc 18085:8085 &\r\n\r\nbash scripts/verify-service-health.sh --env eks\r\n```\r\n\r\nExpected: ALL HEALTHY\r\n\r\n## 3. staging E2E 시나리오\r\n\r\ndev와 동일한 4개 시나리오를 staging endpoint로 실행한다.\r\n\r\n### 3-1. Kafka 메시지 흐름 검증\r\n\r\nstaging의 Kafka는 동일한 MSK 클러스터를 공유하되 consumer group이 다르다.\r\n서비스 구현 완료 후 아래 시나리오를 순서대로 실행:\r\n\r\n| # | Producer → Topic → Consumer | 검증 |\r\n|---|---|---|\r\n| 1 | platform-svc → user-registered-v1 → engagement-svc | 프로필 생성 |\r\n| 2 | knowledge-svc → note-created-v1 → learning-ai-svc | 카드 생성 트리거 |\r\n| 3 | learning-card → review-completed-v1 → engagement-svc | XP 적립 |\r\n| 4 | learning-ai → cards-generated-v1 → platform-svc | 알림 |\r\n\r\n### 3-2. API 레벨 검증\r\n\r\n```bash\r\n# 회원가입 → 프로필 자동 생성\r\ncurl -X POST http://localhost:18081/api/v1/auth/register \\\r\n  -H \"Content-Type: application/json\" \\\r\n  -d '{\"email\":\"staging-e2e@test.synapse.dev\",\"password\":\"Test1234!\"}'\r\n\r\n# 잠시 대기 (Kafka 비동기)\r\nsleep 3\r\n\r\n# engagement-svc에서 프로필 확인\r\ncurl http://localhost:18082/api/v1/profiles?email=staging-e2e@test.synapse.dev\r\n```\r\n\r\n## 4. 롤백 시나리오\r\n\r\nstaging에서 문제 발견 시 절차:\r\n\r\n### 4-1. ArgoCD 빠른 롤백\r\n\r\n```bash\r\n# 이전 리비전 확인\r\nargocd app history synapse-platform-svc-staging\r\n\r\n# 롤백\r\nargocd app rollback synapse-platform-svc-staging <REVISION>\r\n\r\n# 상태 확인\r\nbash scripts/verify-argocd-deploy.sh synapse-staging\r\n```\r\n\r\n### 4-2. Git Revert (영구 롤백)\r\n\r\n```bash\r\ngit log --oneline -5\r\ngit revert <COMMIT_SHA>\r\ngit push origin main\r\n# ArgoCD가 자동 sync (또는 수동 sync)\r\n```\r\n\r\n## 5. 검증 완료 체크리스트\r\n\r\n- [ ] synapse-staging namespace 존재\r\n- [ ] 5개 앱 ArgoCD Synced + Healthy\r\n- [ ] staging replicas >= 2\r\n- [ ] SPRING_PROFILES_ACTIVE=staging 확인\r\n- [ ] ExternalSecret 5/5 SecretSynced\r\n- [ ] 헬스체크 ALL HEALTHY\r\n- [ ] (서비스 구현 후) E2E 4개 시나리오 PASS\r\n- [ ] 롤백 절차 1회 검증\r\n"
+}

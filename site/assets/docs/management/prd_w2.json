@@ -1,0 +1,89 @@
+{
+  "slug": "prd_w2",
+  "title": "PRD: Week 2 — 핵심 기능 완성\r",
+  "category": "management",
+  "source": "synapse-shared",
+  "tags": [
+    "kafka",
+    "schema"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-14",
+    "status": "active",
+    "completionRate": 0
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "1. 주차 개요",
+      "anchor": "1-주차-개요"
+    },
+    {
+      "level": 2,
+      "text": "2. 기능 요구사항",
+      "anchor": "2-기능-요구사항"
+    },
+    {
+      "level": 3,
+      "text": "2.1 @team-lead — Kafka + Gateway",
+      "anchor": "21-team-lead-kafka-gateway"
+    },
+    {
+      "level": 3,
+      "text": "2.2 @platform-owner — Billing + Notification 기초",
+      "anchor": "22-platform-owner-billing-notification-기초"
+    },
+    {
+      "level": 3,
+      "text": "2.3 @engagement-owner — Gamification XP + 공유",
+      "anchor": "23-engagement-owner-gamification-xp-공유"
+    },
+    {
+      "level": 3,
+      "text": "2.4 @knowledge-owner-1 — Graph + ES",
+      "anchor": "24-knowledge-owner-1-graph-es"
+    },
+    {
+      "level": 3,
+      "text": "2.5 @knowledge-owner-2 — Chunking + BM25",
+      "anchor": "25-knowledge-owner-2-chunking-bm25"
+    },
+    {
+      "level": 3,
+      "text": "2.6 @learning-card-owner — SRS 복습 세션",
+      "anchor": "26-learning-card-owner-srs-복습-세션"
+    },
+    {
+      "level": 3,
+      "text": "2.7 @learning-ai-owner — 시맨틱 검색 + AI 카드 골격",
+      "anchor": "27-learning-ai-owner-시맨틱-검색-ai-카드-골격"
+    },
+    {
+      "level": 3,
+      "text": "2.8 Frontend (전체 협업)",
+      "anchor": "28-frontend-전체-협업"
+    },
+    {
+      "level": 2,
+      "text": "3. 비기능 요구사항",
+      "anchor": "3-비기능-요구사항"
+    },
+    {
+      "level": 2,
+      "text": "4. 의존성 맵",
+      "anchor": "4-의존성-맵"
+    },
+    {
+      "level": 2,
+      "text": "5. 성공 기준 체크리스트",
+      "anchor": "5-성공-기준-체크리스트"
+    },
+    {
+      "level": 2,
+      "text": "6. 리스크 & 대안",
+      "anchor": "6-리스크-대안"
+    }
+  ],
+  "body": "# PRD: Week 2 — 핵심 기능 완성\r\n\r\n## 1. 주차 개요\r\n\r\n| 항목 | 내용 |\r\n|------|------|\r\n| 기간 | 2026-05-19 (월) ~ 2026-05-23 (금) |\r\n| 목표 | SRS 복습 / AI 카드 골격 / Graph + ES / 커뮤니티 공유 / Schema Registry 등록 |\r\n| 전주 결과 | W1에서 4-서비스 골격 + 기본 CRUD + 인프라 셋업 완료 |\r\n| GitHub Repositories | [synapse-platform-svc](https://github.com/team-project-final/synapse-platform-svc) · [synapse-engagement-svc](https://github.com/team-project-final/synapse-engagement-svc) · [synapse-knowledge-svc](https://github.com/team-project-final/synapse-knowledge-svc) · [synapse-learning-svc](https://github.com/team-project-final/synapse-learning-svc) · [synapse-frontend](https://github.com/team-project-final/synapse-frontend) · [synapse-shared](https://github.com/team-project-final/synapse-shared) |\r\n\r\n## 2. 기능 요구사항\r\n\r\n### 2.1 @team-lead — Kafka + Gateway\r\n\r\n| ID | 유저 스토리 | 수용 기준 | 우선순위 |\r\n|----|------------|-----------|----------|\r\n| FR-TL-101 | 팀장이 Kafka 토픽을 설계하고 생성할 수 있다 | 도메인별 토픽 목록 확정 + Kafka에 토픽 생성 완료 | P0 |\r\n| FR-TL-102 | Schema Registry에서 BACKWARD 호환성이 글로벌로 강제된다 | 호환성 정책 설정 + 비호환 스키마 등록 거부 확인 | P0 |\r\n| FR-TL-103 | Gateway가 4개 서비스로 라우팅한다 | /api/v1/notes → knowledge, /api/v1/cards → learning 등 경로 매핑 동작 | P0 |\r\n\r\n### 2.2 @platform-owner — Billing + Notification 기초\r\n\r\n| ID | 유저 스토리 | 수용 기준 | 우선순위 |\r\n|----|------------|-----------|----------|\r\n| FR-PL-101 | 사용자가 Stripe Checkout으로 유료 플랜을 결제할 수 있다 | Checkout 세션 생성 → 결제 완료 → Webhook 수신 → 플랜 활성화 | P0 |\r\n| FR-PL-102 | Stripe Webhook이 결제 이벤트를 처리한다 | checkout.session.completed → 구독 상태 갱신 | P0 |\r\n| FR-PL-103 | 사용자가 플랜별 기능 제한을 확인할 수 있다 | GET /api/v1/billing/plan → 현재 플랜 + 한도 반환 | P1 |\r\n| FR-PL-104 | 사용자가 FCM 푸시 알림을 받기 위해 디바이스를 등록할 수 있다 | POST /api/v1/notifications/devices → device_token 저장 | P1 |\r\n\r\n### 2.3 @engagement-owner — Gamification XP + 공유\r\n\r\n| ID | 유저 스토리 | 수용 기준 | 우선순위 |\r\n|----|------------|-----------|----------|\r\n| FR-EG-101 | 사용자가 학습 활동으로 XP를 적립할 수 있다 | card.reviewed 이벤트 → xp_events 기록 → 누적 XP 조회 | P0 |\r\n| FR-EG-102 | 사용자가 덱/노트를 share_token으로 공유할 수 있다 | POST /api/v1/shares → share_token 발행 + 공유 링크 생성 | P0 |\r\n| FR-EG-103 | 사용자가 공유된 콘텐츠를 검색하고 복사할 수 있다 | GET /api/v1/shares/search + POST /api/v1/shares/{token}/copy → 내 덱으로 복사 | P0 |\r\n\r\n### 2.4 @knowledge-owner-1 — Graph + ES\r\n\r\n| ID | 유저 스토리 | 수용 기준 | 우선순위 |\r\n|----|------------|-----------|----------|\r\n| FR-KN-101 | 사용자가 노트 간 백링크를 조회할 수 있다 | GET /api/v1/notes/{id}/backlinks → 이 노트를 참조하는 노트 목록 | P0 |\r\n| FR-KN-102 | 사용자가 D3.js 지식 그래프 데이터를 조회할 수 있다 | GET /api/v1/graph → 노드(노트) + 엣지(위키링크) JSON | P0 |\r\n| FR-KN-103 | 노트 변경 시 Elasticsearch에 자동 동기화된다 | 노트 생성/수정 → Kafka → ES 인덱싱 + 검색 반영 | P0 |\r\n\r\n### 2.5 @knowledge-owner-2 — Chunking + BM25\r\n\r\n| ID | 유저 스토리 | 수용 기준 | 우선순위 |\r\n|----|------------|-----------|----------|\r\n| FR-K2-101 | 노트가 비동기로 청크 분할된다 | 노트 생성 → 비동기 청크 분할 → chunks 테이블 저장 | P0 |\r\n| FR-K2-102 | 사용자가 키워드로 노트를 검색할 수 있다 | GET /api/v1/search?q=keyword → BM25 기반 ES 검색 결과 | P0 |\r\n\r\n### 2.6 @learning-card-owner — SRS 복습 세션\r\n\r\n| ID | 유저 스토리 | 수용 기준 | 우선순위 |\r\n|----|------------|-----------|----------|\r\n| FR-LC-101 | 사용자가 복습 세션을 시작하여 오늘 복습할 카드를 받을 수 있다 | GET /api/v1/review/session → 오늘 복습 대상 카드 큐 반환 | P0 |\r\n| FR-LC-102 | 사용자가 카드에 난이도(Again/Hard/Good/Easy)를 매기면 다음 복습일이 계산된다 | POST /api/v1/review/{cardId} + rating → SM-2 → 다음 복습일 갱신 | P0 |\r\n| FR-LC-103 | 복습 완료 시 card.reviewed Kafka 이벤트가 발행된다 | 복습 → Kafka knowledge.card.reviewed.v1 발행 → engagement XP 적립 트리거 | P0 |\r\n| FR-LC-104 | 사용자가 복습 통계(일별 카드 수, 정답률)를 조회할 수 있다 | GET /api/v1/review/stats → review_sessions 기반 통계 | P1 |\r\n\r\n### 2.7 @learning-ai-owner — 시맨틱 검색 + AI 카드 골격\r\n\r\n| ID | 유저 스토리 | 수용 기준 | 우선순위 |\r\n|----|------------|-----------|----------|\r\n| FR-LA-101 | 시스템이 노트 텍스트를 벡터로 변환하여 pgvector에 저장한다 | 노트 → Embedding API → 1536차원 벡터 → pgvector 저장 | P0 |\r\n| FR-LA-102 | 사용자가 시맨틱 검색으로 유사한 노트를 찾을 수 있다 | GET /api/v1/ai/search?q=텍스트 → 코사인 유사도 상위 N개 | P0 |\r\n| FR-LA-103 | 시스템이 노트 내용으로 플래시카드를 자동 생성할 수 있다 | POST /api/v1/ai/generate-cards → LLM → 앞면/뒷면 카드 목록 반환 | P1 |\r\n\r\n### 2.8 Frontend (전체 협업)\r\n\r\n| ID | 유저 스토리 | 수용 기준 | 우선순위 |\r\n|----|------------|-----------|----------|\r\n| FR-FE-101 | 사용자가 노트 에디터에서 Markdown을 편집할 수 있다 | 노트 에디터 화면 + Markdown 미리보기 + 저장 | P0 |\r\n| FR-FE-102 | 사용자가 SRS 복습 화면에서 카드를 복습할 수 있다 | 카드 제시 → 뒤집기 → 난이도 선택 → 다음 카드 | P0 |\r\n| FR-FE-103 | 사용자가 커뮤니티 그룹 목록과 상세를 볼 수 있다 | 그룹 목록 + 그룹 상세(멤버, 공유 콘텐츠) | P0 |\r\n\r\n## 3. 비기능 요구사항\r\n\r\n| ID | 항목 | 기준 |\r\n|----|------|------|\r\n| NFR-101 | API 응답 시간 | P95 < 200ms (CRUD), P95 < 2s (AI/검색) |\r\n| NFR-102 | Kafka 이벤트 지연 | 발행 → 소비 < 5초 |\r\n| NFR-103 | Schema Registry | 모든 v1 Avro 스키마 등록 + BACKWARD 호환 |\r\n| NFR-104 | 검색 품질 | BM25 키워드 검색 상위 10개 관련도 70% 이상 |\r\n| NFR-105 | 테스트 커버리지 | 신규 코드 80% 이상 |\r\n\r\n## 4. 의존성 맵\r\n\r\n| From | To | 내용 | 시점 |\r\n|------|-----|------|------|\r\n| @team-lead (Kafka) | 전체 | Kafka 토픽 생성 + Schema Registry 정책 | W2 Day 1 |\r\n| @team-lead (Gateway) | 전체 | 서비스별 라우팅 설정 | W2 Day 1-2 |\r\n| @learning-card-owner | @engagement-owner | card.reviewed 이벤트 → XP 적립 | W2 Day 3~ |\r\n| @knowledge-owner-1 (ES) | @knowledge-owner-2 (검색) | ES 인덱스에 노트 데이터 | W2 Day 2~ |\r\n| @knowledge-owner-1 (note) | @learning-ai-owner | 노트 데이터 → 임베딩 변환 | W2 Day 3~ |\r\n\r\n## 5. 성공 기준 체크리스트\r\n\r\n- [ ] 복습 세션 완전 동작 (카드 → 난이도 → SM-2 → 다음 복습일)\r\n- [ ] 덱 공유 → 복사 플로우 동작 (community → learning-card internal API)\r\n- [ ] 그래프 시각화 기본 동작\r\n- [ ] 검색(키워드 BM25 + 시맨틱 pgvector) 동작\r\n- [ ] Schema Registry에 모든 v1 Avro 스키마 등록 + 호환성 검증 통과\r\n\r\n## 6. 리스크 & 대안\r\n\r\n| 리스크 | 영향 | 확률 | 대안 |\r\n|--------|------|------|------|\r\n| Kafka 이벤트 연동 지연 | XP 적립 플로우 블로킹 | 중 | REST API 폴백으로 XP 직접 호출 |\r\n| Stripe 심사 지연 | 결제 테스트 불가 | 중 | Stripe Test Mode로 개발, 실제 결제는 W3 |\r\n| ES 동기화 누락 | 검색 결과 불일치 | 낮 | 수동 재인덱싱 API 제공 |\r\n| AI API 비용 초과 | 개발 환경 LLM 호출 제한 | 낮 | 테스트용 Mock 응답 + 일일 호출 한도 설정 |\r\n"
+}

@@ -1,0 +1,102 @@
+{
+  "slug": "2026-05-21-shared-preemptive-prep-design",
+  "title": "설계: synapse-shared 선제 준비 (W2→W3 전환)\r",
+  "category": "prd",
+  "source": "synapse-shared",
+  "tags": [
+    "kafka",
+    "argocd",
+    "staging",
+    "dev",
+    "deploy"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-21",
+    "status": "active",
+    "completionRate": null
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "배경",
+      "anchor": "배경"
+    },
+    {
+      "level": 2,
+      "text": "경계 규칙",
+      "anchor": "경계-규칙"
+    },
+    {
+      "level": 2,
+      "text": "작업 구조",
+      "anchor": "작업-구조"
+    },
+    {
+      "level": 2,
+      "text": "Phase 1: E2E 테스트 인프라 완성",
+      "anchor": "phase-1-e2e-테스트-인프라-완성"
+    },
+    {
+      "level": 3,
+      "text": "1-1. E2E 테스트 스크립트 보강 (`scripts/kafka-e2e-test.sh`)",
+      "anchor": "1-1-e2e-테스트-스크립트-보강-scriptskafka-e2e-testsh"
+    },
+    {
+      "level": 3,
+      "text": "1-2. E2E 샘플 이벤트 데이터 확충 (`src/test/resources/e2e-samples/`)",
+      "anchor": "1-2-e2e-샘플-이벤트-데이터-확충-srctestresourcese2e-samples"
+    },
+    {
+      "level": 3,
+      "text": "1-3. DB 시드 데이터 보강 (`src/test/resources/seed/`)",
+      "anchor": "1-3-db-시드-데이터-보강-srctestresourcesseed"
+    },
+    {
+      "level": 2,
+      "text": "Phase 2: 배포 검증 사전 준비",
+      "anchor": "phase-2-배포-검증-사전-준비"
+    },
+    {
+      "level": 3,
+      "text": "2-1. ArgoCD 배포 검증 자동화 스크립트 (`scripts/verify-argocd-deploy.sh`)",
+      "anchor": "2-1-argocd-배포-검증-자동화-스크립트-scriptsverify-argocd-deploysh"
+    },
+    {
+      "level": 3,
+      "text": "2-2. 서비스 헬스체크 통합 검증 스크립트 (`scripts/verify-service-health.sh`)",
+      "anchor": "2-2-서비스-헬스체크-통합-검증-스크립트-scriptsverify-service-healthsh"
+    },
+    {
+      "level": 3,
+      "text": "2-3. staging 환경 검증 시나리오 문서 (`docs/guides/STAGING_VERIFICATION.md`)",
+      "anchor": "2-3-staging-환경-검증-시나리오-문서-docsguidesstagingverificationmd"
+    },
+    {
+      "level": 2,
+      "text": "Phase 3: 코드 품질 + 문서 정비",
+      "anchor": "phase-3-코드-품질-문서-정비"
+    },
+    {
+      "level": 3,
+      "text": "3-1. 미해결 항목 상태 갱신",
+      "anchor": "3-1-미해결-항목-상태-갱신"
+    },
+    {
+      "level": 3,
+      "text": "3-2. HANDOFF 문서 갱신",
+      "anchor": "3-2-handoff-문서-갱신"
+    },
+    {
+      "level": 3,
+      "text": "3-3. gitops 세션 합류 체크리스트",
+      "anchor": "3-3-gitops-세션-합류-체크리스트"
+    },
+    {
+      "level": 2,
+      "text": "산출물 목록",
+      "anchor": "산출물-목록"
+    }
+  ],
+  "body": "# 설계: synapse-shared 선제 준비 (W2→W3 전환)\r\n\r\n> **작성일**: 2026-05-21\r\n> **작성자**: @velka\r\n> **상태**: Draft\r\n> **관련 세션**: synapse-gitops 별도 세션 (서비스 안정화 + W3 staging/Observability 진행 중)\r\n\r\n---\r\n\r\n## 배경\r\n\r\nsynapse-gitops 세션에서 서비스 안정화(CrashLoop 해결) + W3 작업(staging overlay, Observability)이\r\n병렬 진행 중이다. synapse-shared 세션에서는 gitops 영역과 겹치지 않으면서, gitops 결과가 나오는\r\n즉시 검증에 착수할 수 있도록 테스트 인프라와 검증 체크리스트를 완비한다.\r\n\r\n## 경계 규칙\r\n\r\n- **이 세션 영역**: `scripts/`, `src/test/`, `docs/guides/`, `docs/project-management/`\r\n- **gitops 세션 영역**: `argocd/`, `apps/` overlay, `infra/` terraform — 이 세션에서 수정하지 않음\r\n\r\n## 작업 구조\r\n\r\n```\r\nPhase 1: E2E 테스트 인프라 완성 (gitops 무관, 바로 가능)\r\n├── 1-1. E2E 테스트 스크립트 보강\r\n├── 1-2. E2E 샘플 이벤트 데이터 확충\r\n└── 1-3. DB 시드 데이터 보강\r\n         ↓\r\nPhase 2: 배포 검증 사전 준비 (gitops 결과 수령 전 준비)\r\n├── 2-1. ArgoCD 배포 검증 자동화 스크립트\r\n├── 2-2. 서비스 헬스체크 통합 검증 스크립트\r\n└── 2-3. staging 환경 검증 시나리오 문서화\r\n         ↓\r\nPhase 3: 코드 품질 + 문서 정비\r\n├── 3-1. 미해결 항목 상태 갱신\r\n├── 3-2. HANDOFF 문서 갱신\r\n└── 3-3. gitops 세션 합류 체크리스트\r\n```\r\n\r\n---\r\n\r\n## Phase 1: E2E 테스트 인프라 완성\r\n\r\n### 1-1. E2E 테스트 스크립트 보강 (`scripts/kafka-e2e-test.sh`)\r\n\r\n현재 상태:\r\n- 단순 produce/consume smoke test\r\n- `--all`에 `note-updated-v1` 토픽 누락\r\n- 결과 판정 로직 없음 (consume 출력을 사람이 판단)\r\n- 에러 케이스 테스트 없음\r\n\r\n보강 내용:\r\n- `note-updated-v1` 토픽을 `--all`에 추가\r\n- consume 결과에서 key 필드 존재 여부로 pass/fail 자동 판정\r\n- 종합 리포트 출력 (pass/fail 카운트, 소요 시간)\r\n- `--error-cases` 플래그: 잘못된 토픽, 빈 메시지 등 에러 시나리오 테스트\r\n- 종료 코드 반환 (CI 연동 가능)\r\n\r\n### 1-2. E2E 샘플 이벤트 데이터 확충 (`src/test/resources/e2e-samples/`)\r\n\r\n현재: 4개 정상 케이스 (user-registered, note-created, review-completed, cards-generated)\r\n\r\n추가:\r\n- `note-updated.json` — 누락된 토픽용 정상 샘플\r\n- `error/missing-required-field.json` — 필수 필드 누락\r\n- `error/invalid-tenant.json` — 존재하지 않는 tenant\r\n- `error/empty-data.json` — data 필드 비어있음\r\n- `multi-tenant/user-registered-tenant2.json` — tenant-e2e-002 시나리오\r\n\r\n### 1-3. DB 시드 데이터 보강 (`src/test/resources/seed/`)\r\n\r\n현재: V001 (users 3명), V002 (notes 2개), V003 (cards 3개)\r\n\r\n추가:\r\n- `V004__test_engagement_profiles.sql` — engagement 프로필 + XP 초기 데이터\r\n- `V005__test_learning_ai.sql` — AI 생성 카드 이력 (cards-generated 이벤트 검증용)\r\n\r\n---\r\n\r\n## Phase 2: 배포 검증 사전 준비\r\n\r\n### 2-1. ArgoCD 배포 검증 자동화 스크립트 (`scripts/verify-argocd-deploy.sh`)\r\n\r\ngitops 세션에서 서비스 안정화 완료 후 실행할 스크립트:\r\n- 5개 앱 ArgoCD Sync 상태 확인 (Synced + Healthy)\r\n- Pod readiness + restart count 체크 (restart > 3이면 WARN)\r\n- ExternalSecret 동기화 상태 확인 (SecretSynced)\r\n- 결과를 pass/fail 리포트로 출력\r\n\r\n사전 조건: bastion SSM 접속 상태, kubectl 컨텍스트 설정 완료\r\n\r\n### 2-2. 서비스 헬스체크 통합 검증 스크립트 (`scripts/verify-service-health.sh`)\r\n\r\n안정화된 서비스의 상태를 일괄 확인:\r\n- Spring Boot 서비스: `/actuator/health` 응답 200 + `status: UP`\r\n- FastAPI 서비스 (learning-ai): `/health` 응답 200\r\n- DB 연결 상태 (health 응답 내 db 항목)\r\n- Kafka consumer group 등록 여부 (`kafka-consumer-groups --list`)\r\n\r\n로컬 Docker Compose와 EKS(port-forward) 양쪽에서 동작하도록 endpoint를 환경변수로 받음.\r\n\r\n### 2-3. staging 환경 검증 시나리오 문서 (`docs/guides/STAGING_VERIFICATION.md`)\r\n\r\ngitops 세션에서 staging overlay 생성 후 검증할 항목:\r\n- dev → staging 승격 후 확인 항목 체크리스트\r\n- staging 전용 리소스 분리 확인 (namespace, replicas, resource limits)\r\n- staging E2E 시나리오 (dev와 동일 흐름, staging endpoint)\r\n- 롤백 시나리오 (staging에서 문제 발견 시 절차)\r\n\r\n---\r\n\r\n## Phase 3: 코드 품질 + 문서 정비\r\n\r\n### 3-1. 미해결 항목 상태 갱신\r\n\r\nHANDOFF 문서의 미해결 항목 3건 상태 업데이트:\r\n- MSK dev 클러스터 토픽 생성: 인프라 담당자 대기 (변동 없음)\r\n- synapse-gateway ApplicationSet: gitops 영역, 이슈 기록만\r\n- staging 오버레이: gitops 세션에서 진행 중으로 상태 변경\r\n\r\n### 3-2. HANDOFF 문서 갱신\r\n\r\n`docs/project-management/HANDOFF_2026-05-19.md`에 이번 세션 작업 내역 반영:\r\n- 05-21 세션 작업 내역 섹션 추가\r\n- Phase 1~2에서 추가/수정한 파일 목록\r\n- 다음 작업 섹션 업데이트\r\n\r\n### 3-3. gitops 세션 합류 체크리스트\r\n\r\nHANDOFF 문서에 \"합류 조건\" 섹션 추가:\r\n\r\n```\r\n합류 조건 (gitops 세션 → shared 검증 착수):\r\n[ ] 5개 서비스 모두 ArgoCD Healthy\r\n[ ] staging namespace 존재 + ApplicationSet staging 포함\r\n[ ] ExternalSecret 5/5 SecretSynced\r\n→ 위 조건 충족 시: verify-argocd-deploy.sh 실행 → STAGING_VERIFICATION.md 기반 검증\r\n```\r\n\r\n---\r\n\r\n## 산출물 목록\r\n\r\n| Phase | 파일 | 유형 |\r\n|:-----:|------|------|\r\n| 1-1 | `scripts/kafka-e2e-test.sh` (수정) | 스크립트 |\r\n| 1-2 | `src/test/resources/e2e-samples/note-updated.json` | 테스트 데이터 |\r\n| 1-2 | `src/test/resources/e2e-samples/error/*.json` (3개) | 테스트 데이터 |\r\n| 1-2 | `src/test/resources/e2e-samples/multi-tenant/*.json` | 테스트 데이터 |\r\n| 1-3 | `src/test/resources/seed/V004__test_engagement_profiles.sql` | 시드 데이터 |\r\n| 1-3 | `src/test/resources/seed/V005__test_learning_ai.sql` | 시드 데이터 |\r\n| 2-1 | `scripts/verify-argocd-deploy.sh` (신규) | 스크립트 |\r\n| 2-2 | `scripts/verify-service-health.sh` (신규) | 스크립트 |\r\n| 2-3 | `docs/guides/STAGING_VERIFICATION.md` (신규) | 가이드 |\r\n| 3-2 | `docs/project-management/HANDOFF_2026-05-19.md` (수정) | 문서 |\r\n"
+}

@@ -1,0 +1,172 @@
+{
+  "slug": "2026-05-20-w2w3-ops-and-prep-design",
+  "title": "W2/W3 운영 정비 + E2E 검증 준비 설계",
+  "category": "prd",
+  "source": "synapse-shared",
+  "tags": [
+    "kafka",
+    "argocd",
+    "msk",
+    "staging",
+    "dev"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-20",
+    "status": "active",
+    "completionRate": null
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "1. 개요",
+      "anchor": "1-개요"
+    },
+    {
+      "level": 3,
+      "text": "작업 우선순위",
+      "anchor": "작업-우선순위"
+    },
+    {
+      "level": 3,
+      "text": "제약 조건",
+      "anchor": "제약-조건"
+    },
+    {
+      "level": 2,
+      "text": "2. Gateway master → main 브랜치 변경",
+      "anchor": "2-gateway-master-main-브랜치-변경"
+    },
+    {
+      "level": 3,
+      "text": "범위",
+      "anchor": "범위"
+    },
+    {
+      "level": 3,
+      "text": "순서",
+      "anchor": "순서"
+    },
+    {
+      "level": 2,
+      "text": "3. GitHub Actions Node.js 20 Deprecation 일괄 수정",
+      "anchor": "3-github-actions-nodejs-20-deprecation-일괄-수정"
+    },
+    {
+      "level": 3,
+      "text": "수정 대상 (9건, 7개 레포)",
+      "anchor": "수정-대상-9건-7개-레포"
+    },
+    {
+      "level": 3,
+      "text": "작업 방식",
+      "anchor": "작업-방식"
+    },
+    {
+      "level": 3,
+      "text": "주의사항",
+      "anchor": "주의사항"
+    },
+    {
+      "level": 2,
+      "text": "4. MSK 클러스터 토픽 반영",
+      "anchor": "4-msk-클러스터-토픽-반영"
+    },
+    {
+      "level": 3,
+      "text": "스크립트 보강 (`scripts/create-kafka-topics.sh`)",
+      "anchor": "스크립트-보강-scriptscreate-kafka-topicssh"
+    },
+    {
+      "level": 3,
+      "text": "실행 가이드 (`docs/guides/MSK_TOPIC_SETUP.md`)",
+      "anchor": "실행-가이드-docsguidesmsktopicsetupmd"
+    },
+    {
+      "level": 2,
+      "text": "5. Kafka E2E 검증 계획",
+      "anchor": "5-kafka-e2e-검증-계획"
+    },
+    {
+      "level": 3,
+      "text": "테스트 시나리오 (4개 이벤트 흐름)",
+      "anchor": "테스트-시나리오-4개-이벤트-흐름"
+    },
+    {
+      "level": 3,
+      "text": "인프라 준비 (이번 세션)",
+      "anchor": "인프라-준비-이번-세션"
+    },
+    {
+      "level": 3,
+      "text": "실행 시점",
+      "anchor": "실행-시점"
+    },
+    {
+      "level": 2,
+      "text": "6. ArgoCD dev/staging 배포 검증",
+      "anchor": "6-argocd-devstaging-배포-검증"
+    },
+    {
+      "level": 3,
+      "text": "매니페스트 점검 (이번 세션)",
+      "anchor": "매니페스트-점검-이번-세션"
+    },
+    {
+      "level": 3,
+      "text": "dev 환경 배포 검증 계획",
+      "anchor": "dev-환경-배포-검증-계획"
+    },
+    {
+      "level": 3,
+      "text": "staging 환경 배포 검증 계획",
+      "anchor": "staging-환경-배포-검증-계획"
+    },
+    {
+      "level": 3,
+      "text": "산출물",
+      "anchor": "산출물"
+    },
+    {
+      "level": 2,
+      "text": "7. 사전 준비",
+      "anchor": "7-사전-준비"
+    },
+    {
+      "level": 3,
+      "text": "팀원 Kafka 구현 체크리스트",
+      "anchor": "팀원-kafka-구현-체크리스트"
+    },
+    {
+      "level": 3,
+      "text": "테스트 데이터 시드",
+      "anchor": "테스트-데이터-시드"
+    },
+    {
+      "level": 3,
+      "text": "산출물",
+      "anchor": "산출물"
+    },
+    {
+      "level": 2,
+      "text": "8. 전체 산출물 요약",
+      "anchor": "8-전체-산출물-요약"
+    },
+    {
+      "level": 3,
+      "text": "직접 실행 (코드 변경)",
+      "anchor": "직접-실행-코드-변경"
+    },
+    {
+      "level": 3,
+      "text": "문서 산출물",
+      "anchor": "문서-산출물"
+    },
+    {
+      "level": 3,
+      "text": "PR 목록",
+      "anchor": "pr-목록"
+    }
+  ],
+  "body": "# W2/W3 운영 정비 + E2E 검증 준비 설계\n\n> **작성일**: 2026-05-20\n> **작성자**: @team-lead\n> **상태**: 승인됨\n\n---\n\n## 1. 개요\n\nW1/W2에서 완료된 인프라 위에서, 미해결 운영 항목을 정리하고 W3 Kafka E2E 검증에 필요한 사전 준비를 완료한다.\n\n### 작업 우선순위\n\n| 순서 | 작업 | 성격 | 실행 방식 |\n|:----:|------|------|-----------|\n| 1 | Gateway master → main 브랜치 변경 | 직접 실행 | 브랜치 → PR |\n| 2 | GitHub Actions Node.js 20 deprecation 수정 | 직접 실행 | 9개 레포 각각 브랜치 → dev PR |\n| 3 | MSK 토픽 생성 스크립트 보강 | 직접 실행 | 스크립트 + 가이드 |\n| 4 | Kafka E2E 검증 계획 | 계획 + 인프라 준비 | 시나리오 + 스크립트 + 샘플 |\n| 5 | ArgoCD dev/staging 배포 검증 | 점검 + 계획 | 매니페스트 점검 + 가이드 |\n| 6 | 사전 준비 (팀원 체크리스트 + 시드) | 문서 + 스크립트 | 체크리스트 + SQL 시드 |\n\n### 제약 조건\n\n- main/dev 직접 푸시 불가 — 별도 브랜치에서 dev PR 필수\n- 브랜치명 컨벤션: `chore/...` 형태\n- MSK 토픽 실행은 인프라 담당자가 수행 — 스크립트 + 가이드만 준비\n- Kafka E2E 실제 검증은 팀원 Producer/Consumer 구현 후 (W3~W4)\n\n---\n\n## 2. Gateway master → main 브랜치 변경\n\n### 범위\n\n**synapse-gateway:**\n- `.github/workflows/ci.yml` — `branches: [master]` → `[main]`\n- `.github/workflows/deploy.yml` — `branches: [master]` → `[main]`\n- 기타 `master` 참조 일괄 교체\n\n**synapse-shared:**\n- `docs/project-management/HANDOFF_2026-05-19.md` — 참조 업데이트\n\n**synapse-gitops:**\n- ArgoCD 매니페스트 `targetRevision: master` → `main` (해당되는 경우)\n\n### 순서\n\n1. synapse-gateway에서 `chore/rename-master-to-main` 브랜치 생성\n2. 워크플로 파일 master → main 교체\n3. PR 생성 → 머지 후 GitHub settings에서 default branch 변경\n4. synapse-shared / synapse-gitops 참조 업데이트\n\n---\n\n## 3. GitHub Actions Node.js 20 Deprecation 일괄 수정\n\n### 수정 대상 (9건, 7개 레포)\n\n| 레포 | 워크플로 | 변경 내용 |\n|------|----------|-----------|\n| synapse-gateway | deploy.yml | `amazon-ecr-login@v2` → `@v3` |\n| synapse-gitops | deploy-pages.yml | `setup-dart@v1` → `@v2`, `upload-pages-artifact@v3` → `@v4` |\n| synapse-gitops | validate-manifests.yml | `setup-kustomize@v2` → `@v3` |\n| documents | deploy-workflow-guide.yml | `node-version: '20'` → `'22'` |\n| schedule-repo | deploy.yml | `node-version: 20` → `22`, `upload-pages-artifact@v3` → `@v4` |\n| moking-data-guide | deploy.yml | `upload-pages-artifact@v3` → `@v4` |\n| workflow-dashboard | build.yml | `upload-pages-artifact@v3` → `@v4` |\n\n### 작업 방식\n\n- 각 레포에서 `dev` 기반으로 `chore/upgrade-github-actions` 브랜치 생성\n- 워크플로 수정 후 커밋 → dev PR 생성\n- synapse-shared는 이슈 없으므로 수정 없음\n\n### 주의사항\n\n- `amazon-ecr-login@v3` 출력 파라미터 호환성 확인\n- `setup-kustomize@v3` 동작 호환 확인\n- `setup-dart@v2` Dart SDK 버전 호환 확인\n- 각 PR 설명에 deprecation 경고 설명 포함\n\n---\n\n## 4. MSK 클러스터 토픽 반영\n\n### 스크립트 보강 (`scripts/create-kafka-topics.sh`)\n\n1. 실행 전 MSK 연결 확인 (bootstrap server 접근 체크)\n2. 이미 존재하는 토픽 스킵 (멱등성 보장)\n3. 생성 후 토픽 목록 검증 출력\n4. production 설정 (replication-factor: 3, min.insync.replicas: 2)\n5. 실행 결과 로그 파일 출력\n\n### 실행 가이드 (`docs/guides/MSK_TOPIC_SETUP.md`)\n\n- 사전 조건 (AWS 인증, MSK 보안그룹, VPN/Bastion)\n- 환경별 실행 방법 (dev / staging / prod)\n- 실행 후 검증 명령어\n- 롤백 방법 (토픽 삭제 명령)\n- 인프라 담당자 step-by-step 가이드\n\n---\n\n## 5. Kafka E2E 검증 계획\n\n### 테스트 시나리오 (4개 이벤트 흐름)\n\n| # | 흐름 | Producer | Topic | Consumer | 검증 기준 |\n|---|------|----------|-------|----------|-----------|\n| 1 | 회원가입 → 프로필 생성 | platform-svc | `platform.auth.user-registered-v1` | engagement-svc | 이벤트 수신 후 프로필 레코드 생성 |\n| 2 | 노트 생성 → AI 카드 생성 | knowledge-svc | `knowledge.note.note-created-v1` | learning-ai-svc | AI 카드 생성 트리거 |\n| 3 | 카드 복습 → XP 적립 | learning-card-svc | `learning.card.review-completed-v1` | engagement-svc | XP 포인트 증가 |\n| 4 | AI 카드 완료 → 알림 | learning-ai-svc | `learning.ai.cards-generated-v1` | platform-svc | 알림 트리거 |\n\n### 인프라 준비 (이번 세션)\n\n- **`scripts/kafka-e2e-test.sh`** — 샘플 메시지 produce/consume 테스트 스크립트\n- **`src/test/resources/e2e-samples/`** — 토픽별 JSON 샘플 메시지\n- **`docs/guides/KAFKA_E2E_TEST.md`** — 검증 체크리스트 + 트러블슈팅\n\n### 실행 시점\n\n팀원 Producer/Consumer 구현 완료 후 (W3~W4), Docker Compose 전체 기동 → 시나리오 순서 검증\n\n---\n\n## 6. ArgoCD dev/staging 배포 검증\n\n### 매니페스트 점검 (이번 세션)\n\n- ApplicationSet / Application 정의 (4개 서비스 + gateway)\n- 환경별 오버레이 (base / dev / staging / prod)\n- 이미지 태그 전략 (deploy.yml → ECR push → gitops tag)\n- 리소스 요청/제한, ConfigMap/Secret 참조\n\n### dev 환경 배포 검증 계획\n\n- ArgoCD Sync → 서비스 healthy 확인\n- Pod readiness/liveness 통과\n- gateway → 서비스 네트워크 통신\n- Kafka (MSK) 연결 확인\n\n### staging 환경 배포 검증 계획\n\n- Manual Sync 워크플로 확인\n- dev → staging 프로모션 절차\n- Rollback 시나리오 (이전 버전 복원 + 검증)\n\n### 산출물\n\n- 매니페스트 점검 결과 (이슈 시 수정 PR)\n- `docs/guides/ARGOCD_DEPLOY_VERIFICATION.md`\n\n---\n\n## 7. 사전 준비\n\n### 팀원 Kafka 구현 체크리스트\n\n| 서비스 | Producer 토픽 | Consumer 토픽 | 체크 항목 |\n|--------|--------------|--------------|-----------|\n| platform-svc | `user-registered-v1` | `cards-generated-v1` | Avro 직렬화, CloudEvent 래핑, 에러 핸들링 |\n| knowledge-svc | `note-created-v1`, `note-updated-v1` | — | 동일 |\n| learning-card-svc | `review-completed-v1` | — | 동일 |\n| learning-ai-svc | `cards-generated-v1` | `note-created-v1` | Python Avro, consumer group |\n| engagement-svc | — | `user-registered-v1`, `review-completed-v1` | 멱등성, dead-letter 토픽 |\n\n### 테스트 데이터 시드\n\n- **`scripts/seed-test-data.sh`** — PostgreSQL 시드 실행 스크립트\n- **`src/test/resources/seed/V001__test_users.sql`** — 테스트 유저 3명\n- **`src/test/resources/seed/V002__test_notes.sql`** — 테스트 노트 2개\n- **`src/test/resources/seed/V003__test_cards.sql`** — 기본 카드 데이터\n\n### 산출물\n\n- `docs/guides/TEAM_CHECKLIST_W3.md`\n- 시드 스크립트 + SQL 파일\n\n---\n\n## 8. 전체 산출물 요약\n\n### 직접 실행 (코드 변경)\n- synapse-gateway 워크플로 `master` → `main` 교체\n- 7개 레포 GitHub Actions 버전 업그레이드\n- `scripts/create-kafka-topics.sh` 보강\n- `scripts/kafka-e2e-test.sh` 신규\n- `scripts/seed-test-data.sh` 신규\n- 테스트 SQL 시드 파일\n\n### 문서 산출물\n- `docs/guides/MSK_TOPIC_SETUP.md`\n- `docs/guides/KAFKA_E2E_TEST.md`\n- `docs/guides/ARGOCD_DEPLOY_VERIFICATION.md`\n- `docs/guides/TEAM_CHECKLIST_W3.md`\n- synapse-gitops 매니페스트 점검 결과\n\n### PR 목록\n- synapse-gateway: `chore/rename-master-to-main` → dev\n- 7개 레포 각각: `chore/upgrade-github-actions` → dev\n- synapse-shared: `chore/w2w3-ops-prep` → dev (스크립트, 문서, 시드)\n- synapse-gitops: 이슈 발견 시 수정 PR\n"
+}

@@ -1,0 +1,44 @@
+{
+  "slug": "handoff_shared",
+  "title": "핸드오프: synapse-shared",
+  "category": "management",
+  "source": "synapse-shared",
+  "tags": [
+    "kafka",
+    "msk"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-22",
+    "status": "active",
+    "completionRate": null
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "1. Avro 스키마 현황",
+      "anchor": "1-avro-스키마-현황"
+    },
+    {
+      "level": 2,
+      "text": "2. Kafka 토픽 / MSK 상태",
+      "anchor": "2-kafka-토픽-msk-상태"
+    },
+    {
+      "level": 2,
+      "text": "3. Docker Compose 현황",
+      "anchor": "3-docker-compose-현황"
+    },
+    {
+      "level": 2,
+      "text": "4. CI/CD 파이프라인 상태",
+      "anchor": "4-cicd-파이프라인-상태"
+    },
+    {
+      "level": 2,
+      "text": "5. 팀원 체크리스트",
+      "anchor": "5-팀원-체크리스트"
+    }
+  ],
+  "body": "# 핸드오프: synapse-shared\n\n> **최종 갱신**: 2026-05-22 (W2 → W3 전환)\n> **허브 참조**: → [HANDOFF_HUB.md](./HANDOFF_HUB.md)\n\n---\n\n## 1. Avro 스키마 현황\n\n| 스키마 | 네임스페이스 | 토픽 | 호환성 |\n|---|---|---|---|\n| CloudEventEnvelope | com.synapse.shared | (래퍼) | ✅ BACKWARD |\n| UserRegistered | com.synapse.platform | platform.auth.user-registered-v1 | ✅ BACKWARD |\n| NoteCreated | com.synapse.knowledge | knowledge.note.note-created-v1 | ✅ BACKWARD |\n| NoteUpdated | com.synapse.knowledge | knowledge.note.note-updated-v1 | ✅ BACKWARD |\n| ReviewCompleted | com.synapse.learning | learning.card.review-completed-v1 | ✅ BACKWARD |\n| CardsGenerated | com.synapse.learning | learning.ai.cards-generated-v1 | ✅ BACKWARD |\n| TenantId | com.synapse.shared | (공통) | ✅ |\n| UserId | com.synapse.shared | (공통) | ✅ |\n\n## 2. Kafka 토픽 / MSK 상태\n\n| 토픽 | MSK 생성 | 파티션 | 복제 | 프로듀서 | 컨슈머 |\n|---|---|---|---|---|---|\n| platform.auth.user-registered-v1 | ✅ | 3 | 2 | platform-svc | engagement, learning-card |\n| knowledge.note.note-created-v1 | ✅ | 3 | 2 | knowledge-svc | learning-ai |\n| knowledge.note.note-updated-v1 | ✅ | 3 | 2 | knowledge-svc | learning-ai, opensearch |\n| learning.card.review-completed-v1 | ✅ | 3 | 2 | learning-card | engagement-svc |\n| learning.ai.cards-generated-v1 | ✅ | 3 | 2 | learning-ai | learning-card |\n\n**MSK 브로커**: PR #42 반영 완료 (endpoint 변경 시 gitops ConfigMap 갱신 필요)\n\n## 3. Docker Compose 현황\n\n13개 서비스 로컬 환경: ✅ 전체 Healthy\n- DB/Cache: postgres, redis, zookeeper\n- Kafka: kafka, schema-registry\n- Search: opensearch\n- App: platform, engagement, knowledge, learning-card, learning-ai, gateway\n\n## 4. CI/CD 파이프라인 상태\n\n| 워크플로 | 트리거 | 상태 |\n|---|---|---|\n| ci-java.yml | PR/push → Gradle build + Modulith verify | ✅ PASS |\n| schema-check.yml | PR (*.avsc 변경) → 호환성 검증 | ✅ PASS |\n| mirror.yml | push → synapse-mirror 동기화 | ✅ PASS |\n\n## 5. 팀원 체크리스트\n\n→ [TEAM_CHECKLIST_W3.md](../guides/TEAM_CHECKLIST_W3.md)\n\n**서비스별 Kafka 구현 상태**:\n\n| 서비스 | 역할 | 구현 상태 |\n|---|---|---|\n| platform-svc | Producer (UserRegistered) + Consumer (CardsGenerated) | 🔴 미착수 |\n| engagement-svc | Consumer (UserRegistered, ReviewCompleted) | 🔴 미착수 |\n| knowledge-svc | Producer (NoteCreated, NoteUpdated) | 🔴 미착수 |\n| learning-card | Producer (ReviewCompleted) | 🔴 미착수 |\n| learning-ai | Producer (CardsGenerated) + Consumer (NoteCreated) | 🔴 미착수 |\n"
+}
