@@ -70,6 +70,7 @@ class _DocPageState extends State<DocPage> {
 
     return Column(
       children: [
+        // Header: title + metadata + summary
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(20),
@@ -107,24 +108,20 @@ class _DocPageState extends State<DocPage> {
                   ),
                 ),
               ],
+              if (doc.summary.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                SummaryCard(summary: doc.summary),
+              ],
             ],
           ),
         ),
+        // Body: markdown + optional TOC
         Expanded(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SummaryCard(summary: doc.summary),
-                      MarkdownViewer(data: doc.body),
-                    ],
-                  ),
-                ),
+                child: MarkdownViewer(data: doc.body),
               ),
               if (isWide && doc.toc.isNotEmpty)
                 TocPanel(
