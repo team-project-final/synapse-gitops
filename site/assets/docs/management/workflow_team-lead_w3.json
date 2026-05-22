@@ -1,0 +1,132 @@
+{
+  "slug": "workflow_team-lead_w3",
+  "title": "WORKFLOW: @team-lead — Week 3\r",
+  "category": "management",
+  "source": "synapse-shared",
+  "tags": [
+    "kafka",
+    "argocd",
+    "staging",
+    "dev",
+    "security"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-22",
+    "status": "active",
+    "completionRate": 4
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "Step 7: 전체 통합 테스트 조율",
+      "anchor": "step-7-전체-통합-테스트-조율"
+    },
+    {
+      "level": 3,
+      "text": "1.1 TASK 시작",
+      "anchor": "11-task-시작"
+    },
+    {
+      "level": 3,
+      "text": "1.2 요구사항 분석",
+      "anchor": "12-요구사항-분석"
+    },
+    {
+      "level": 3,
+      "text": "1.3 Security 1차 검토",
+      "anchor": "13-security-1차-검토"
+    },
+    {
+      "level": 3,
+      "text": "1.4 E2E 테스트 시나리오 설계",
+      "anchor": "14-e2e-테스트-시나리오-설계"
+    },
+    {
+      "level": 3,
+      "text": "1.5 Security 2차 검토",
+      "anchor": "15-security-2차-검토"
+    },
+    {
+      "level": 3,
+      "text": "1.6 테스트 데이터 준비",
+      "anchor": "16-테스트-데이터-준비"
+    },
+    {
+      "level": 3,
+      "text": "1.7 E2E 테스트 구현 및 조율",
+      "anchor": "17-e2e-테스트-구현-및-조율"
+    },
+    {
+      "level": 3,
+      "text": "1.8 통합 테스트 실행 및 검증",
+      "anchor": "18-통합-테스트-실행-및-검증"
+    },
+    {
+      "level": 3,
+      "text": "1.9 코드 리뷰 조율",
+      "anchor": "19-코드-리뷰-조율"
+    },
+    {
+      "level": 3,
+      "text": "1.10 결과 정리",
+      "anchor": "110-결과-정리"
+    },
+    {
+      "level": 2,
+      "text": "Step 8: ArgoCD dev/staging 배포 검증",
+      "anchor": "step-8-argocd-devstaging-배포-검증"
+    },
+    {
+      "level": 3,
+      "text": "1.1 TASK 시작",
+      "anchor": "11-task-시작"
+    },
+    {
+      "level": 3,
+      "text": "1.2 요구사항 분석",
+      "anchor": "12-요구사항-분석"
+    },
+    {
+      "level": 3,
+      "text": "1.3 Security 1차 검토",
+      "anchor": "13-security-1차-검토"
+    },
+    {
+      "level": 3,
+      "text": "1.4 배포 전략 설계",
+      "anchor": "14-배포-전략-설계"
+    },
+    {
+      "level": 3,
+      "text": "1.5 Security 2차 검토",
+      "anchor": "15-security-2차-검토"
+    },
+    {
+      "level": 3,
+      "text": "1.6 배포 설정 구현",
+      "anchor": "16-배포-설정-구현"
+    },
+    {
+      "level": 3,
+      "text": "1.7 배포 실행",
+      "anchor": "17-배포-실행"
+    },
+    {
+      "level": 3,
+      "text": "1.8 배포 후 검증",
+      "anchor": "18-배포-후-검증"
+    },
+    {
+      "level": 3,
+      "text": "1.9 배포 이슈 대응",
+      "anchor": "19-배포-이슈-대응"
+    },
+    {
+      "level": 3,
+      "text": "1.10 결과 정리",
+      "anchor": "110-결과-정리"
+    }
+  ],
+  "body": "# WORKFLOW: @team-lead — Week 3\r\n\r\n> **Task 문서**: [TASK_team-lead.md](../task/TASK_team-lead.md)  \r\n> **기간**: 2026-05-26 ~ 2026-05-30  \r\n> **PRD**: [PRD_W3.md](../prd/PRD_W3.md)\r\n\r\n---\r\n\r\n## Step 7: 전체 통합 테스트 조율\r\n\r\n### 1.1 TASK 시작\r\n- [x] Step Goal / Done When / Scope / Input 확인\r\n- [x] PRD_W3 해당 요구사항 확인 (서비스 간 통합 검증 — FR-TL-201)\r\n- [x] Duration 산정 확인 (2일: Day 3~4)\r\n\r\n### 1.2 요구사항 분석\r\n- [ ] Kafka 이벤트 체인 E2E 시나리오 목록 도출\r\n- [ ] 서비스 간 이벤트 발행/소비 매핑표 작성\r\n- [ ] 코드 리뷰 승인 기준 정의 (PR 템플릿, 리뷰어 지정)\r\n- [ ] Instructions 초안 → TASK 문서 반영\r\n\r\n### 1.3 Security 1차 검토\r\n- [ ] Kafka 토픽 ACL 설정 확인 (서비스별 발행/소비 권한)\r\n- [ ] 이벤트 페이로드 민감정보 포함 여부 점검\r\n- [ ] 서비스 간 인증 토큰 전파 방식 확인\r\n- [ ] 결과 → TASK Constraints 반영\r\n\r\n### 1.4 E2E 테스트 시나리오 설계\r\n- [ ] gamification 이벤트 체인 시나리오 (카드 복습 → XP 적립 → 레벨업 → 배지 수여 → 알림)\r\n- [ ] community 이벤트 체인 시나리오 (신고 접수 → 모더레이션 → 알림)\r\n- [ ] card.review.due 이벤트 체인 시나리오 (스케줄러 → Kafka → 알림 발송)\r\n- [ ] audit 이벤트 소비 시나리오 (각 서비스 이벤트 → audit_logs 적재)\r\n- [ ] Duration(final) 갱신\r\n\r\n### 1.5 Security 2차 검토\r\n- [ ] E2E 테스트 환경 시크릿 분리 확인\r\n- [ ] 테스트 데이터 민감정보 마스킹 확인\r\n- [ ] 테스트 환경 네트워크 격리 확인\r\n- [ ] 결과 → TASK Constraints 반영\r\n\r\n### 1.6 테스트 데이터 준비\r\n- [ ] E2E 테스트용 시드 데이터 정의 (사용자, 카드, 노트, 커뮤니티 게시글)\r\n- [ ] Kafka 토픽 사전 생성 스크립트 작성\r\n- [ ] 테스트 실행 순서 의존성 정리\r\n\r\n### 1.7 E2E 테스트 구현 및 조율\r\n- [ ] Kafka 이벤트 체인 E2E 테스트 작성 (Testcontainers)\r\n- [ ] 서비스 간 이벤트 발행 → 소비 → 결과 검증 자동화\r\n- [ ] 코드 리뷰 전 PR 승인 프로세스 적용\r\n- [ ] 각 서비스 담당자 테스트 결과 취합\r\n\r\n### 1.8 통합 테스트 실행 및 검증\r\n- [ ] 전체 서비스 Docker Compose 기동 → E2E 테스트 실행\r\n- [ ] Kafka 이벤트 전파 지연 시간 측정 (< 3초 기준)\r\n- [ ] 이벤트 유실 여부 확인 (재시도 로직 검증)\r\n- [ ] 실패 테스트 원인 분석 및 담당자 배정\r\n\r\n### 1.9 코드 리뷰 조율\r\n- [ ] 각 서비스 PR 리뷰 현황 취합\r\n- [ ] 크로스 서비스 영향도 리뷰 (이벤트 스키마 호환성)\r\n- [ ] PR 승인 및 main 브랜치 머지 조율\r\n\r\n### 1.10 결과 정리\r\n- [ ] E2E 테스트 결과 리포트 작성\r\n- [ ] 미해결 이슈 목록화 및 우선순위 지정\r\n- [ ] RULE Reference → TASK 반영\r\n\r\n**Step 7 Status**: [ ] Not Started / [x] In Progress / [ ] Done\r\n\r\n---\r\n\r\n## Step 8: ArgoCD dev/staging 배포 검증\r\n\r\n### 1.1 TASK 시작\r\n- [ ] Step Goal / Done When / Scope / Input 확인\r\n- [ ] PRD_W3 해당 요구사항 확인 (배포 검증)\r\n- [ ] Duration 산정 확인\r\n\r\n### 1.2 요구사항 분석\r\n- [ ] dev 환경 autoSync 설정 요건 분석\r\n- [ ] staging 환경 수동 승인 배포 플로우 분석\r\n- [ ] 배포 후 헬스체크 기준 정의\r\n- [ ] Instructions 초안 → TASK 문서 반영\r\n\r\n### 1.3 Security 1차 검토\r\n- [ ] ArgoCD RBAC 설정 확인 (dev: 자동, staging: 승인 필요)\r\n- [ ] 배포 시 시크릿 주입 방식 확인 (Sealed Secrets / External Secrets)\r\n- [ ] 환경별 접근 권한 분리 확인\r\n- [ ] 결과 → TASK Constraints 반영\r\n\r\n### 1.4 배포 전략 설계\r\n- [ ] dev 환경 ArgoCD autoSync 정책 설정\r\n- [ ] staging 환경 수동 승인 워크플로우 설계\r\n- [ ] 롤백 절차 정의 (자동/수동)\r\n- [ ] Duration(final) 갱신\r\n\r\n### 1.5 Security 2차 검토\r\n- [ ] 환경별 환경변수/시크릿 분리 확인\r\n- [ ] staging 배포 승인 권한자 지정\r\n- [ ] 배포 이력 추적 (audit trail) 확인\r\n- [ ] 결과 → TASK Constraints 반영\r\n\r\n### 1.6 배포 설정 구현\r\n- [ ] ArgoCD Application 매니페스트 갱신 (dev autoSync: true)\r\n- [ ] staging Application 매니페스트 갱신 (syncPolicy: manual)\r\n- [ ] 환경별 values.yaml 분리 확인\r\n\r\n### 1.7 배포 실행\r\n- [ ] dev 환경: main push → autoSync 자동 배포 확인\r\n- [ ] staging 환경: 수동 Sync 버튼 → 배포 실행\r\n- [ ] ECR 이미지 태그 일치 확인\r\n\r\n### 1.8 배포 후 검증\r\n- [ ] dev 환경 전체 서비스 Health OK 확인\r\n- [ ] staging 환경 전체 서비스 Health OK 확인\r\n- [ ] Kafka 연결 상태 확인 (각 서비스 consumer group lag = 0)\r\n- [ ] RDS/Redis/OpenSearch 연결 상태 확인\r\n\r\n### 1.9 배포 이슈 대응\r\n- [ ] 배포 실패 시 롤백 절차 실행 및 검증\r\n- [ ] 환경별 로그 수집 및 이슈 분석\r\n- [ ] 배포 성공 기준 충족 여부 최종 확인\r\n\r\n### 1.10 결과 정리\r\n- [ ] 배포 검증 결과 리포트 작성\r\n- [ ] staging 배포 승인 프로세스 문서화\r\n- [ ] RULE Reference → TASK 반영\r\n\r\n**Step 8 Status**: [ ] Not Started / [x] In Progress / [ ] Done\r\n"
+}

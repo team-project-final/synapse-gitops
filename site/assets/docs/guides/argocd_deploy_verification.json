@@ -1,0 +1,117 @@
+{
+  "slug": "argocd_deploy_verification",
+  "title": "ArgoCD Dev/Staging 배포 검증 가이드\r",
+  "category": "guides",
+  "source": "synapse-shared",
+  "tags": [
+    "kafka",
+    "argocd",
+    "staging",
+    "dev",
+    "deploy"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-21",
+    "status": "active",
+    "completionRate": 0
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "현재 ArgoCD 구성 요약",
+      "anchor": "현재-argocd-구성-요약"
+    },
+    {
+      "level": 3,
+      "text": "ApplicationSet (`argocd/applicationset.yaml`)",
+      "anchor": "applicationset-argocdapplicationsetyaml"
+    },
+    {
+      "level": 3,
+      "text": "서비스별 오버레이 구조",
+      "anchor": "서비스별-오버레이-구조"
+    },
+    {
+      "level": 3,
+      "text": "Staging 환경 현황 (2026-05-21 갱신)",
+      "anchor": "staging-환경-현황-2026-05-21-갱신"
+    },
+    {
+      "level": 3,
+      "text": "이미지 업데이트 전략",
+      "anchor": "이미지-업데이트-전략"
+    },
+    {
+      "level": 2,
+      "text": "Dev 환경 배포 검증",
+      "anchor": "dev-환경-배포-검증"
+    },
+    {
+      "level": 3,
+      "text": "Step 1: ArgoCD 접속",
+      "anchor": "step-1-argocd-접속"
+    },
+    {
+      "level": 3,
+      "text": "Step 2: Application 상태 확인",
+      "anchor": "step-2-application-상태-확인"
+    },
+    {
+      "level": 3,
+      "text": "Step 3: Pod 상태 확인",
+      "anchor": "step-3-pod-상태-확인"
+    },
+    {
+      "level": 3,
+      "text": "Step 4: 서비스 간 네트워크 확인",
+      "anchor": "step-4-서비스-간-네트워크-확인"
+    },
+    {
+      "level": 3,
+      "text": "Step 5: Kafka 연결 확인",
+      "anchor": "step-5-kafka-연결-확인"
+    },
+    {
+      "level": 2,
+      "text": "Staging 환경 배포 검증",
+      "anchor": "staging-환경-배포-검증"
+    },
+    {
+      "level": 3,
+      "text": "사전 작업: staging 오버레이 생성",
+      "anchor": "사전-작업-staging-오버레이-생성"
+    },
+    {
+      "level": 3,
+      "text": "Manual Sync 워크플로",
+      "anchor": "manual-sync-워크플로"
+    },
+    {
+      "level": 3,
+      "text": "Dev → Staging 프로모션 절차",
+      "anchor": "dev-staging-프로모션-절차"
+    },
+    {
+      "level": 2,
+      "text": "Rollback 절차",
+      "anchor": "rollback-절차"
+    },
+    {
+      "level": 3,
+      "text": "ArgoCD Rollback (빠른 복구)",
+      "anchor": "argocd-rollback-빠른-복구"
+    },
+    {
+      "level": 3,
+      "text": "Git Revert (영구 롤백)",
+      "anchor": "git-revert-영구-롤백"
+    },
+    {
+      "level": 3,
+      "text": "긴급 롤백 체크리스트",
+      "anchor": "긴급-롤백-체크리스트"
+    }
+  ],
+  "body": "# ArgoCD Dev/Staging 배포 검증 가이드\r\n\r\n## 현재 ArgoCD 구성 요약\r\n\r\n### ApplicationSet (`argocd/applicationset.yaml`)\r\n\r\n- **Generator**: Matrix (5 services x environments)\r\n- **Services**: platform-svc, engagement-svc, knowledge-svc, learning-card, learning-ai\r\n- **Environments**: dev (자동 sync), staging (수동 sync, `applicationset-staging.yaml`)\r\n- **Sync Policy**: automated (prune: true, selfHeal: true)\r\n- **Source**: `synapse-gitops` repo, `apps/{service}/overlays/{env}` 경로\r\n- **targetRevision**: `main`\r\n\r\n### 서비스별 오버레이 구조\r\n\r\n```\r\napps/\r\n├── platform-svc/\r\n│   ├── base/              (deployment, service, configmap, externalsecret)\r\n│   └── overlays/\r\n│       ├── dev/           (replicas=1, DEBUG, automated sync)\r\n│       └── staging/       (replicas=2, INFO, manual sync)\r\n├── engagement-svc/\r\n│   ├── base/\r\n│   └── overlays/{dev,staging}/\r\n├── knowledge-svc/\r\n│   ├── base/\r\n│   └── overlays/{dev,staging}/\r\n├── learning-card/\r\n│   ├── base/\r\n│   └── overlays/{dev,staging}/\r\n└── learning-ai/\r\n    ├── base/\r\n    └── overlays/{dev,staging}/\r\n```\r\n\r\n### Staging 환경 현황 (2026-05-21 갱신)\r\n\r\n- staging overlay 생성 완료 (5개 서비스)\r\n- ApplicationSet: `synapse-apps-staging` (수동 Sync)\r\n- namespace: `synapse-staging`\r\n- replicas: 2, LOG_LEVEL: INFO, SPRING_PROFILES_ACTIVE: staging\r\n\r\n```bash\r\n# Staging 앱 상태 확인\r\nkubectl get applications -n argocd -l environment=staging\r\n\r\n# Staging 수동 Sync\r\nargocd app sync synapse-<service>-staging\r\n\r\n# Staging Pod 확인\r\nkubectl get pods -n synapse-staging\r\n```\r\n\r\n### 이미지 업데이트 전략\r\n\r\n- **ArgoCD Image Updater** 사용 (semver 태그 매칭)\r\n- ECR: `963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/{service}`\r\n- Write-back: Git (kustomization)\r\n\r\n> **주의**: synapse-gateway는 ApplicationSet에 미포함. 별도 Application 또는 ApplicationSet 확장 필요.\r\n\r\n## Dev 환경 배포 검증\r\n\r\n### Step 1: ArgoCD 접속\r\n\r\n```bash\r\n# ArgoCD 서버 포트포워드 (EKS 클러스터에서)\r\nkubectl port-forward svc/argocd-server -n argocd 8443:443\r\n\r\n# 브라우저: https://localhost:8443\r\n# 또는 CLI:\r\nargocd login localhost:8443 --insecure\r\n```\r\n\r\n### Step 2: Application 상태 확인\r\n\r\n```bash\r\n# 전체 Application 목록\r\nargocd app list\r\n\r\n# 개별 서비스 상태\r\nargocd app get synapse-platform-svc-dev\r\nargocd app get synapse-engagement-svc-dev\r\nargocd app get synapse-knowledge-svc-dev\r\nargocd app get synapse-learning-card-dev\r\nargocd app get synapse-learning-ai-dev\r\n```\r\n\r\nExpected: 각 앱이 `Synced` + `Healthy` 상태\r\n\r\n### Step 3: Pod 상태 확인\r\n\r\n```bash\r\nkubectl get pods -n synapse-dev\r\nkubectl describe pod -n synapse-dev -l app.kubernetes.io/component=platform-svc\r\n```\r\n\r\nExpected: 모든 Pod `Running`, readiness/liveness probe 통과\r\n\r\n### Step 4: 서비스 간 네트워크 확인\r\n\r\n```bash\r\n# Gateway → 각 서비스 통신 (gateway Pod에서)\r\nkubectl exec -n synapse-dev deploy/gateway -- curl -s http://platform-svc:8081/actuator/health\r\nkubectl exec -n synapse-dev deploy/gateway -- curl -s http://engagement-svc:8082/actuator/health\r\nkubectl exec -n synapse-dev deploy/gateway -- curl -s http://knowledge-svc:8083/actuator/health\r\nkubectl exec -n synapse-dev deploy/gateway -- curl -s http://learning-card-svc:8084/actuator/health\r\n```\r\n\r\n### Step 5: Kafka 연결 확인\r\n\r\n```bash\r\n# 서비스 로그에서 Kafka 연결 확인\r\nkubectl logs -n synapse-dev deploy/platform-svc | grep -i \"kafka\\|bootstrap\"\r\n```\r\n\r\nExpected: Kafka bootstrap 연결 성공 로그\r\n\r\n## Staging 환경 배포 검증\r\n\r\n### 사전 작업: staging 오버레이 생성\r\n\r\n각 서비스의 `overlays/staging/kustomization.yaml` 생성 필요:\r\n- replicas: 2 (HA)\r\n- LOG_LEVEL: INFO\r\n- SPRING_PROFILES_ACTIVE: staging\r\n- staging DB/Redis/Kafka endpoints\r\n\r\nApplicationSet generator에 `env: staging` 추가:\r\n\r\n```yaml\r\n- list:\r\n    elements:\r\n      - env: dev\r\n      - env: staging  # 추가\r\n```\r\n\r\n### Manual Sync 워크플로\r\n\r\nStaging은 자동 sync 대신 수동 승인:\r\n\r\n```yaml\r\nsyncPolicy:\r\n  # automated 제거 → 수동 sync\r\n  syncOptions:\r\n    - CreateNamespace=true\r\n```\r\n\r\n```bash\r\n# 수동 sync 실행\r\nargocd app sync synapse-platform-svc-staging\r\n```\r\n\r\n### Dev → Staging 프로모션 절차\r\n\r\n1. Dev에서 검증 완료된 이미지 태그 확인\r\n2. Staging kustomization에 동일 태그 설정\r\n3. PR → main 머지 → ArgoCD manual sync\r\n\r\n```bash\r\n# Dev 이미지 태그 확인\r\nkubectl get deploy -n synapse-dev platform-svc -o jsonpath='{.spec.template.spec.containers[0].image}'\r\n\r\n# Staging kustomization 업데이트\r\ncd apps/platform-svc/overlays/staging\r\nkustomize edit set image 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/platform-svc:TAG\r\n```\r\n\r\n## Rollback 절차\r\n\r\n### ArgoCD Rollback (빠른 복구)\r\n\r\n```bash\r\n# 이전 배포 이력 확인\r\nargocd app history synapse-platform-svc-dev\r\n\r\n# 특정 리비전으로 롤백\r\nargocd app rollback synapse-platform-svc-dev <REVISION>\r\n```\r\n\r\n### Git Revert (영구 롤백)\r\n\r\n```bash\r\n# 문제 커밋 식별\r\ngit log --oneline -5\r\n\r\n# Revert 커밋\r\ngit revert <COMMIT_SHA>\r\ngit push\r\n\r\n# ArgoCD가 자동 sync (dev) 또는 수동 sync (staging)\r\n```\r\n\r\n### 긴급 롤백 체크리스트\r\n\r\n- [ ] 문제 서비스 식별\r\n- [ ] ArgoCD에서 이전 리비전으로 롤백\r\n- [ ] Pod 상태 확인 (Running, Healthy)\r\n- [ ] 헬스체크 통과 확인\r\n- [ ] 로그에서 에러 없음 확인\r\n- [ ] 원인 분석 후 Git revert PR 생성\r\n"
+}

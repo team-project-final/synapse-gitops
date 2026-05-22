@@ -1,0 +1,187 @@
+{
+  "slug": "workflow_team-lead_w2",
+  "title": "WORKFLOW: @team-lead — Week 2\r",
+  "category": "management",
+  "source": "synapse-shared",
+  "tags": [
+    "kafka",
+    "docker",
+    "security",
+    "tls",
+    "acl"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-21",
+    "status": "active",
+    "completionRate": 91
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "Step 4: Kafka 토픽 설계 + 생성",
+      "anchor": "step-4-kafka-토픽-설계-생성"
+    },
+    {
+      "level": 3,
+      "text": "4.1 TASK 시작",
+      "anchor": "41-task-시작"
+    },
+    {
+      "level": 3,
+      "text": "4.2 요구사항 분석",
+      "anchor": "42-요구사항-분석"
+    },
+    {
+      "level": 3,
+      "text": "4.3 Security 1차 검토 (네트워크 보안)",
+      "anchor": "43-security-1차-검토-네트워크-보안"
+    },
+    {
+      "level": 3,
+      "text": "4.4 인프라 아키텍처 설계",
+      "anchor": "44-인프라-아키텍처-설계"
+    },
+    {
+      "level": 3,
+      "text": "4.5 Security 2차 검토",
+      "anchor": "45-security-2차-검토"
+    },
+    {
+      "level": 3,
+      "text": "4.6 N/A (인프라 — DTO/Entity 해당 없음)",
+      "anchor": "46-na-인프라-dtoentity-해당-없음"
+    },
+    {
+      "level": 3,
+      "text": "4.7 Kafka 토픽 생성",
+      "anchor": "47-kafka-토픽-생성"
+    },
+    {
+      "level": 3,
+      "text": "4.8 토픽 검증 테스트",
+      "anchor": "48-토픽-검증-테스트"
+    },
+    {
+      "level": 3,
+      "text": "4.9 N/A (인프라 — Controller 해당 없음)",
+      "anchor": "49-na-인프라-controller-해당-없음"
+    },
+    {
+      "level": 3,
+      "text": "4.10 N/A (인프라 — View 해당 없음)",
+      "anchor": "410-na-인프라-view-해당-없음"
+    },
+    {
+      "level": 2,
+      "text": "Step 5: Schema Registry BACKWARD 호환성 강제",
+      "anchor": "step-5-schema-registry-backward-호환성-강제"
+    },
+    {
+      "level": 3,
+      "text": "5.1 TASK 시작",
+      "anchor": "51-task-시작"
+    },
+    {
+      "level": 3,
+      "text": "5.2 요구사항 분석",
+      "anchor": "52-요구사항-분석"
+    },
+    {
+      "level": 3,
+      "text": "5.3 Security 1차 검토 (네트워크 보안)",
+      "anchor": "53-security-1차-검토-네트워크-보안"
+    },
+    {
+      "level": 3,
+      "text": "5.4 인프라 아키텍처 설계",
+      "anchor": "54-인프라-아키텍처-설계"
+    },
+    {
+      "level": 3,
+      "text": "5.5 Security 2차 검토",
+      "anchor": "55-security-2차-검토"
+    },
+    {
+      "level": 3,
+      "text": "5.6 N/A (인프라 — DTO/Entity 해당 없음)",
+      "anchor": "56-na-인프라-dtoentity-해당-없음"
+    },
+    {
+      "level": 3,
+      "text": "5.7 Schema Registry 설정 적용",
+      "anchor": "57-schema-registry-설정-적용"
+    },
+    {
+      "level": 3,
+      "text": "5.8 호환성 검증 테스트",
+      "anchor": "58-호환성-검증-테스트"
+    },
+    {
+      "level": 3,
+      "text": "5.9 N/A (인프라 — Controller 해당 없음)",
+      "anchor": "59-na-인프라-controller-해당-없음"
+    },
+    {
+      "level": 3,
+      "text": "5.10 N/A (인프라 — View 해당 없음)",
+      "anchor": "510-na-인프라-view-해당-없음"
+    },
+    {
+      "level": 2,
+      "text": "Step 6: Gateway 라우팅",
+      "anchor": "step-6-gateway-라우팅"
+    },
+    {
+      "level": 3,
+      "text": "6.1 TASK 시작",
+      "anchor": "61-task-시작"
+    },
+    {
+      "level": 3,
+      "text": "6.2 요구사항 분석",
+      "anchor": "62-요구사항-분석"
+    },
+    {
+      "level": 3,
+      "text": "6.3 Security 1차 검토 (네트워크 보안)",
+      "anchor": "63-security-1차-검토-네트워크-보안"
+    },
+    {
+      "level": 3,
+      "text": "6.4 인프라 아키텍처 설계",
+      "anchor": "64-인프라-아키텍처-설계"
+    },
+    {
+      "level": 3,
+      "text": "6.5 Security 2차 검토",
+      "anchor": "65-security-2차-검토"
+    },
+    {
+      "level": 3,
+      "text": "6.6 N/A (인프라 — DTO/Entity 해당 없음)",
+      "anchor": "66-na-인프라-dtoentity-해당-없음"
+    },
+    {
+      "level": 3,
+      "text": "6.7 Gateway 구현",
+      "anchor": "67-gateway-구현"
+    },
+    {
+      "level": 3,
+      "text": "6.8 라우팅 테스트",
+      "anchor": "68-라우팅-테스트"
+    },
+    {
+      "level": 3,
+      "text": "6.9 N/A (인프라 — Controller 해당 없음)",
+      "anchor": "69-na-인프라-controller-해당-없음"
+    },
+    {
+      "level": 3,
+      "text": "6.10 N/A (인프라 — View 해당 없음)",
+      "anchor": "610-na-인프라-view-해당-없음"
+    }
+  ],
+  "body": "# WORKFLOW: @team-lead — Week 2\r\n\r\n> **Task 문서**: [TASK_team-lead.md](../task/TASK_team-lead.md)  \r\n> **기간**: 2026-05-19 ~ 2026-05-23  \r\n> **PRD**: [PRD_W2.md](../prd/PRD_W2.md)\r\n\r\n---\r\n\r\n## Step 4: Kafka 토픽 설계 + 생성\r\n\r\n### 4.1 TASK 시작\r\n- [x] Step Goal / Done When / Scope / Input 확인\r\n- [x] PRD_W2 해당 요구사항 확인 (FR-TL-101)\r\n- [x] Duration 산정 확인\r\n\r\n### 4.2 요구사항 분석\r\n- [x] 도메인별 토픽 목록 확정 (5개: user-registered, note-created, note-updated, review-completed, cards-generated)\r\n- [x] 토픽 파티션 수 / 복제 팩터 정의 (3 partitions, replication-factor 2)\r\n- [x] 토픽 네이밍 컨벤션 확정 (`{service}.{domain}.{event}-v1`)\r\n- [x] 메시지 보존 기간 정책 정의 (7일)\r\n- [x] Instructions 초안 → TASK 문서 반영\r\n\r\n### 4.3 Security 1차 검토 (네트워크 보안)\r\n- [ ] Kafka ACL 토픽별 생산자/소비자 권한 정의 — 다음 gitops 세션에서 실행 (절차서: `MSK_TOPIC_SETUP.md` ACL 섹션)\r\n- [ ] SASL/TLS 인증 설정 확인 — 다음 gitops 세션에서 실행 (절차서: `MSK_TOPIC_SETUP.md` TLS 섹션)\r\n- [x] 토픽 접근 제어 최소 권한 원칙 적용 (설계 완료)\r\n- [x] 결과 → TASK Constraints 반영\r\n\r\n### 4.4 인프라 아키텍처 설계\r\n- [x] 도메인별 토픽 목록 및 파티션 구성도 작성\r\n- [x] 프로듀서/컨슈머 매핑 다이어그램 작성\r\n- [x] 토픽 보존 기간 / cleanup.policy 설정 설계\r\n- [x] Duration(final) 갱신\r\n\r\n### 4.5 Security 2차 검토\r\n- [ ] 토픽 메시지 암호화 전송 (TLS) 확인 — 다음 gitops 세션에서 openssl s_client로 검증\r\n- [ ] 민감 데이터 토픽 접근 제한 확인 — 다음 gitops 세션에서 ACL 또는 IAM Policy 적용\r\n- [x] 결과 → TASK Constraints 반영\r\n\r\n### 4.6 N/A (인프라 — DTO/Entity 해당 없음)\r\n\r\n### 4.7 Kafka 토픽 생성\r\n- [ ] MSK/Kafka 클러스터에 토픽 생성 — 다음 gitops 세션에서 실행 (절차서: `MSK_TOPIC_SETUP.md` \"다음 세션 실행 절차\" 섹션)\r\n- [x] 각 토픽 파티션 수 / 복제 팩터 설정 (스크립트에 반영)\r\n- [x] 토픽 config 설정 (retention.ms, cleanup.policy)\r\n- [x] docker-compose에 토픽 자동 생성 스크립트 반영 (`kafka-init` 서비스)\r\n\r\n### 4.8 토픽 검증 테스트\r\n- [x] kafka-topics.sh --list 로 토픽 목록 확인 (Docker Compose 검증)\r\n- [ ] kafka-console-producer/consumer 로 메시지 송수신 테스트 — 다음 gitops 세션에서 MSK 토픽 생성 직후 실행\r\n- [x] 파티션 배분 확인 (Docker Compose 검증)\r\n- [x] docker compose 환경에서 토픽 자동 생성 확인\r\n\r\n### 4.9 N/A (인프라 — Controller 해당 없음)\r\n\r\n### 4.10 N/A (인프라 — View 해당 없음)\r\n\r\n**Step 4 Status**: [ ] Not Started / [ ] In Progress / [x] Done\r\n\r\n---\r\n\r\n## Step 5: Schema Registry BACKWARD 호환성 강제\r\n\r\n### 5.1 TASK 시작\r\n- [x] Step Goal / Done When / Scope / Input 확인\r\n- [x] PRD_W2 해당 요구사항 확인 (FR-TL-102)\r\n- [x] Duration 산정 확인\r\n\r\n### 5.2 요구사항 분석\r\n- [x] Schema Registry 글로벌 호환성 정책 요건 분석 (BACKWARD)\r\n- [x] Avro 스키마 호환성 규칙 분석 (필드 추가=default 필수, 삭제 불가)\r\n- [x] 서비스별 스키마 등록 절차 정의\r\n- [x] Instructions 초안 → TASK 문서 반영\r\n\r\n### 5.3 Security 1차 검토 (네트워크 보안)\r\n- [x] Schema Registry API 접근 제한 (내부 네트워크만) — VPC 내부 설계\r\n- [x] 스키마 등록/수정 권한 관리 확인\r\n- [x] 결과 → TASK Constraints 반영\r\n\r\n### 5.4 인프라 아키텍처 설계\r\n- [x] 글로벌 호환성 레벨 설정 전략 수립 (BACKWARD)\r\n- [x] 스키마 버전 관리 정책 정의 (`docs/SCHEMA_EVOLUTION.md`)\r\n- [x] Duration(final) 갱신\r\n\r\n### 5.5 Security 2차 검토\r\n- [x] 스키마 삭제 방지 정책 확인 (soft delete만)\r\n- [x] 비인가 스키마 등록 방지 확인\r\n- [x] 결과 → TASK Constraints 반영\r\n\r\n### 5.6 N/A (인프라 — DTO/Entity 해당 없음)\r\n\r\n### 5.7 Schema Registry 설정 적용\r\n- [x] 글로벌 호환성 레벨 BACKWARD 설정 (Docker Compose `SCHEMA_REGISTRY_COMPATIBILITY_LEVEL: BACKWARD`)\r\n- [x] 기존 토픽 subject별 호환성 레벨 확인\r\n- [x] docker-compose Schema Registry 환경변수 반영 (포트 8085)\r\n\r\n### 5.8 호환성 검증 테스트\r\n- [x] 호환 스키마 등록 → 성공 확인\r\n- [x] 비호환 스키마 등록 → 409 거부 확인 (필드 삭제 시)\r\n- [x] `GET /config` → BACKWARD 확인\r\n- [x] 각 서비스별 호환성 테스트\r\n\r\n### 5.9 N/A (인프라 — Controller 해당 없음)\r\n\r\n### 5.10 N/A (인프라 — View 해당 없음)\r\n\r\n**Step 5 Status**: [ ] Not Started / [ ] In Progress / [x] Done\r\n\r\n---\r\n\r\n## Step 6: Gateway 라우팅\r\n\r\n### 6.1 TASK 시작\r\n- [x] Step Goal / Done When / Scope / Input 확인\r\n- [x] PRD_W2 해당 요구사항 확인 (Gateway 라우팅)\r\n- [x] Duration 산정 확인\r\n\r\n### 6.2 요구사항 분석\r\n- [x] 4-서비스 경로 매핑 요건 정의 (/api/platform/**, /api/engagement/**, /api/knowledge/**, /api/learning/**)\r\n- [x] Rate Limit 요건 분석 (서비스별/글로벌 제한)\r\n- [x] CORS 설정 요건 확인\r\n- [x] Instructions 초안 → TASK 문서 반영\r\n\r\n### 6.3 Security 1차 검토 (네트워크 보안)\r\n- [x] Gateway → 서비스 간 내부 통신만 허용\r\n- [x] 외부 접근 Gateway 단일 진입점 확인\r\n- [x] Rate Limit으로 DDoS 완화 확인\r\n- [x] 결과 → TASK Constraints 반영\r\n\r\n### 6.4 인프라 아키텍처 설계\r\n- [x] 서비스별 라우팅 테이블 설계\r\n- [x] Rate Limit 정책 설계 (req/sec per IP)\r\n- [x] Health check 엔드포인트 바이패스 설계\r\n- [x] Duration(final) 갱신\r\n\r\n### 6.5 Security 2차 검토\r\n- [ ] JWT 검증 Gateway 레벨 적용 확인 — Out of Scope (향후 Step)\r\n- [x] Rate Limit 버스트 정책 확인\r\n- [x] 민감 헤더 전파 제한 확인\r\n- [x] 결과 → TASK Constraints 반영\r\n\r\n### 6.6 N/A (인프라 — DTO/Entity 해당 없음)\r\n\r\n### 6.7 Gateway 구현\r\n- [x] Spring Cloud Gateway 라우트 설정 (4-서비스 경로 매핑) — RoutesConfig.java (프로그래밍 방식, Boot 4.0.6 YAML 라우트 버그 대응)\r\n- [x] Rate Limit 필터 설정 (Redis 기반 RedisRateLimiter) — RoutesConfig.java (1 req/sec, burst 60)\r\n- [x] CORS 글로벌 설정 — CorsConfig.java (CorsWebFilter)\r\n- [x] docker-compose에 Gateway 서비스 추가/갱신 (실제 빌드 이미지)\r\n\r\n### 6.8 라우팅 테스트\r\n- [x] 각 서비스 경로 라우팅 동작 확인 (500 — stub upstream, 404 — 미매치 경로)\r\n- [x] Rate Limit 초과 시 429 응답 확인 (#64에서 429 발생)\r\n- [x] CORS preflight 요청 처리 확인 (Access-Control-Allow-Origin 헤더 확인)\r\n- [x] Health endpoint 확인 (/actuator/health → UP, Redis UP)\r\n\r\n### 6.9 N/A (인프라 — Controller 해당 없음)\r\n\r\n### 6.10 N/A (인프라 — View 해당 없음)\r\n\r\n**Step 6 Status**: [ ] Not Started / [ ] In Progress / [x] Done\r\n"
+}

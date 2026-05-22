@@ -1,0 +1,147 @@
+{
+  "slug": "step9-prod-approval",
+  "title": "Runbook: Prod 환경 + 승인 게이트 구성 (Step 9 상세)",
+  "category": "infra",
+  "source": "synapse-gitops",
+  "tags": [
+    "argocd",
+    "staging",
+    "dev",
+    "prod",
+    "rollback"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-18",
+    "status": "active",
+    "completionRate": null
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "9-A. 사전 분석 (30분)",
+      "anchor": "9-a-사전-분석-30분"
+    },
+    {
+      "level": 3,
+      "text": "prod 클러스터/네임스페이스 분리 전략",
+      "anchor": "prod-클러스터네임스페이스-분리-전략"
+    },
+    {
+      "level": 3,
+      "text": "승인 방식 비교",
+      "anchor": "승인-방식-비교"
+    },
+    {
+      "level": 3,
+      "text": "prod RBAC 설계",
+      "anchor": "prod-rbac-설계"
+    },
+    {
+      "level": 2,
+      "text": "9-B. prod overlay 작성 (3시간)",
+      "anchor": "9-b-prod-overlay-작성-3시간"
+    },
+    {
+      "level": 3,
+      "text": "환경별 설정 비교",
+      "anchor": "환경별-설정-비교"
+    },
+    {
+      "level": 3,
+      "text": "9-B-1. prod 네임스페이스 생성",
+      "anchor": "9-b-1-prod-네임스페이스-생성"
+    },
+    {
+      "level": 3,
+      "text": "9-B-2. prod overlay 작성 (5앱)",
+      "anchor": "9-b-2-prod-overlay-작성-5앱"
+    },
+    {
+      "level": 3,
+      "text": "9-B-3. prod ExternalSecret",
+      "anchor": "9-b-3-prod-externalsecret"
+    },
+    {
+      "level": 3,
+      "text": "9-B-4. Kustomize 빌드 검증",
+      "anchor": "9-b-4-kustomize-빌드-검증"
+    },
+    {
+      "level": 2,
+      "text": "9-C. AppProject + RBAC (1시간)",
+      "anchor": "9-c-appproject-rbac-1시간"
+    },
+    {
+      "level": 3,
+      "text": "9-C-1. AppProject 정의",
+      "anchor": "9-c-1-appproject-정의"
+    },
+    {
+      "level": 3,
+      "text": "9-C-2. RBAC ConfigMap 업데이트",
+      "anchor": "9-c-2-rbac-configmap-업데이트"
+    },
+    {
+      "level": 2,
+      "text": "9-D. ApplicationSet 확장 (30분)",
+      "anchor": "9-d-applicationset-확장-30분"
+    },
+    {
+      "level": 2,
+      "text": "9-E. 권한 검증 (1시간)",
+      "anchor": "9-e-권한-검증-1시간"
+    },
+    {
+      "level": 3,
+      "text": "9-E-1. 비권한 계정 prod sync 시도",
+      "anchor": "9-e-1-비권한-계정-prod-sync-시도"
+    },
+    {
+      "level": 3,
+      "text": "9-E-2. 권한 계정 prod sync",
+      "anchor": "9-e-2-권한-계정-prod-sync"
+    },
+    {
+      "level": 3,
+      "text": "9-E-3. 전체 파이프라인 시뮬레이션",
+      "anchor": "9-e-3-전체-파이프라인-시뮬레이션"
+    },
+    {
+      "level": 2,
+      "text": "9-F. 문서화 (30분)",
+      "anchor": "9-f-문서화-30분"
+    },
+    {
+      "level": 2,
+      "text": "자주 막히는 지점",
+      "anchor": "자주-막히는-지점"
+    },
+    {
+      "level": 3,
+      "text": "RBAC policy 오타",
+      "anchor": "rbac-policy-오타"
+    },
+    {
+      "level": 3,
+      "text": "AppProject destination 불일치",
+      "anchor": "appproject-destination-불일치"
+    },
+    {
+      "level": 3,
+      "text": "Manual Sync 후 OutOfSync 지속",
+      "anchor": "manual-sync-후-outofsync-지속"
+    },
+    {
+      "level": 3,
+      "text": "prod Ingress TLS 인증서 에러",
+      "anchor": "prod-ingress-tls-인증서-에러"
+    },
+    {
+      "level": 2,
+      "text": "다음 단계",
+      "anchor": "다음-단계"
+    }
+  ],
+  "body": "# Runbook: Prod 환경 + 승인 게이트 구성 (Step 9 상세)\n\n> **소요 시간**: 약 2일 (2026-06-01 ~ 06-02)\n> **결과**: 15 Application (5앱 x 3환경), prod는 Manual Sync, 권한 분리 확인\n> **상위 문서**: [w4-prod-rollback-runbook.md](./w4-prod-rollback-runbook.md) Step 9\n> **사전 조건**: W3 완료 (staging overlay 10 Application + Observability 스택 동작)\n\n---\n\n## 9-A. 사전 분석 (30분)\n\n### prod 클러스터/네임스페이스 분리 전략\n\n| 옵션 | 장점 | 단점 | 판정 |\n|---|---|---|---|\n| **별도 namespace** (`prod`) | 비용 절감, 관리 단순 | 노드 자원 공유 | **추천 (학습 환경)** |\n| 별도 클러스터 | 완전 격리 | 비용 2배, 운영 복잡 | 후순위 |\n\n### 승인 방식 비교\n\n| 옵션 | 동작 | 판정 |\n|---|---|---|\n| **ArgoCD Manual Sync** | syncPolicy 제거 → UI/CLI 수동 sync | **추천** |\n| GitHub Environment Approval | GitHub Actions reviewer 지정 | 대안 (이중 관리) |\n\n### prod RBAC 설계\n\n- `gitops-admin`: prod sync/override/get 전체 권한\n- `gitops-developer`: prod get 읽기 전용\n- `gitops-viewer`: prod get 읽기 전용\n\n---\n\n## 9-B. prod overlay 작성 (3시간)\n\n### 환경별 설정 비교\n\n| 항목 | dev | staging | **prod** |\n|---|---|---|---|\n| replicas | 1 | 2 | **3** |\n| CPU request | 100m | 200m | **500m** |\n| Memory request | 128Mi | 256Mi | **512Mi** |\n| LOG_LEVEL | DEBUG | INFO | **WARN** |\n| Ingress TLS | 없음 | self-signed | **CA 인증서** |\n\n### 9-B-1. prod 네임스페이스 생성\n\n```bash\nkubectl create namespace prod --dry-run=client -o yaml | kubectl apply -f -\n```\n\n### 9-B-2. prod overlay 작성 (5앱)\n\n```bash\nfor app in platform-svc engagement-svc knowledge-svc learning-card learning-ai; do\n  mkdir -p apps/$app/overlays/prod\ndone\n```\n\n**예시: `apps/platform-svc/overlays/prod/kustomization.yaml`**\n\n```yaml\napiVersion: kustomize.config.k8s.io/v1beta1\nkind: Kustomization\nnamespace: prod\nresources:\n  - ../../base\npatches:\n  - target:\n      kind: Deployment\n      name: platform-svc\n    patch: |\n      apiVersion: apps/v1\n      kind: Deployment\n      metadata:\n        name: platform-svc\n      spec:\n        replicas: 3\n        template:\n          spec:\n            containers:\n              - name: platform-svc\n                resources:\n                  requests: { cpu: 500m, memory: 512Mi }\n                  limits: { cpu: \"1\", memory: 1Gi }\n                env:\n                  - name: LOG_LEVEL\n                    value: \"WARN\"\n                  - name: NODE_ENV\n                    value: \"production\"\n```\n\n> 나머지 4개 앱도 동일 패턴. 포트/앱 이름만 변경.\n\n### 9-B-3. prod ExternalSecret\n\n각 앱의 `apps/{app}/overlays/prod/externalsecret.yaml`:\n\n```yaml\napiVersion: external-secrets.io/v1beta1\nkind: ExternalSecret\nmetadata:\n  name: platform-svc-secrets\n  namespace: prod\nspec:\n  refreshInterval: 1h\n  secretStoreRef: { name: aws-secrets-manager, kind: ClusterSecretStore }\n  target: { name: platform-svc-secrets }\n  data:\n    - secretKey: DB_PASSWORD\n      remoteRef: { key: synapse/prod/platform-svc/db-password }\n```\n\n### 9-B-4. Kustomize 빌드 검증\n\n```bash\nfor app in platform-svc engagement-svc knowledge-svc learning-card learning-ai; do\n  echo \"=== $app ===\" && kubectl kustomize apps/$app/overlays/prod | head -20\ndone\n```\n\n**Expected**: `namespace: prod`, `replicas: 3`, `cpu: 500m` 반영.\n\n---\n\n## 9-C. AppProject + RBAC (1시간)\n\n### 9-C-1. AppProject 정의\n\n```yaml\n# argocd/projects/synapse-prod.yaml\napiVersion: argoproj.io/v1alpha1\nkind: AppProject\nmetadata:\n  name: synapse-prod\n  namespace: argocd\nspec:\n  description: \"Synapse Production - Manual Sync Only\"\n  sourceRepos: [\"https://github.com/team-project-final/synapse-gitops.git\"]\n  destinations:\n    - namespace: prod\n      server: https://kubernetes.default.svc\n  roles:\n    - name: admin\n      policies:\n        - p, proj:synapse-prod:admin, applications, sync, synapse-prod/*, allow\n        - p, proj:synapse-prod:admin, applications, override, synapse-prod/*, allow\n        - p, proj:synapse-prod:admin, applications, get, synapse-prod/*, allow\n      groups: [gitops-admin]\n    - name: viewer\n      policies:\n        - p, proj:synapse-prod:viewer, applications, get, synapse-prod/*, allow\n      groups: [gitops-developer, gitops-viewer]\n```\n\n```bash\nkubectl apply -f argocd/projects/synapse-prod.yaml\n```\n\n### 9-C-2. RBAC ConfigMap 업데이트\n\n`argocd-rbac-cm`의 `data.policy.csv`에 추가:\n\n```csv\np, role:prod-admin, applications, sync, synapse-prod/*, allow\np, role:prod-admin, applications, override, synapse-prod/*, allow\ng, gitops-admin, role:prod-admin\ng, gitops-developer, role:prod-viewer\n```\n\n```bash\nkubectl apply -f argocd/rbac/argocd-rbac-cm.yaml\n```\n\n---\n\n## 9-D. ApplicationSet 확장 (30분)\n\n기존 ApplicationSet env list에 `prod` 추가. prod만 syncPolicy를 제거(manual).\n\n```bash\nkubectl apply -f argocd/applicationsets/synapse-apps.yaml\nsleep 30\nargocd app list --output name | wc -l   # Expected: 15\nargocd app get synapse-platform-svc-prod -o json | jq '.spec.syncPolicy'  # Expected: null\n```\n\n---\n\n## 9-E. 권한 검증 (1시간)\n\n### 9-E-1. 비권한 계정 prod sync 시도\n\n```bash\nargocd login <argocd-server> --username developer --password <dev-password>\nargocd app sync synapse-platform-svc-prod\n```\n\n**Expected**: `permission denied: applications, sync, synapse-prod/synapse-platform-svc-prod`\n\n### 9-E-2. 권한 계정 prod sync\n\n```bash\nargocd login <argocd-server> --username admin --password <admin-password>\nargocd app sync synapse-platform-svc-prod\n```\n\n**Expected**: `Phase: Succeeded`, `Synced` + `Healthy`.\n\n### 9-E-3. 전체 파이프라인 시뮬레이션\n\n```bash\n# 코드 변경 → PR → 머지\ngit checkout -b test/prod-pipeline-sim\necho \"  TEST_KEY: sim-$(date +%s)\" >> apps/platform-svc/base/configmap.yaml\ngit add . && git commit -m \"test: prod pipeline simulation\"\ngit push -u origin test/prod-pipeline-sim\ngh pr create --title \"test: prod pipeline sim\" --body \"W4 Step 9-E 검증용\"\ngh pr merge --merge --delete-branch\n\n# dev/staging 자동 sync 확인 (2~3분 대기)\nargocd app get synapse-platform-svc-dev | grep \"Sync Status\"      # Synced\nargocd app get synapse-platform-svc-staging | grep \"Sync Status\"  # Synced\nargocd app get synapse-platform-svc-prod | grep \"Sync Status\"     # OutOfSync\n\n# prod 수동 sync\nargocd app sync synapse-platform-svc-prod                         # Synced\n```\n\n---\n\n## 9-F. 문서화 (30분)\n\n- prod 배포 절차: PR → CI → main 머지 → dev/staging auto sync → staging 검증 → prod 수동 sync\n- 권한 신청 절차: Slack #synapse-gitops 신청 → gitops-admin 승인 → RBAC 업데이트\n\n---\n\n## 자주 막히는 지점\n\n### RBAC policy 오타\n`argocd admin settings rbac validate`로 정책 검증. 수정 후 `kubectl rollout restart deployment argocd-server -n argocd`.\n\n### AppProject destination 불일치\n**증상**: `application destination is not permitted in project`. AppProject `destinations`에 올바른 namespace 추가.\n\n### Manual Sync 후 OutOfSync 지속\n`argocd app diff`로 diff 확인. `managedFields` 등 server-side 필드면 `ignoreDifferences` 설정.\n\n### prod Ingress TLS 인증서 에러\n`aws acm describe-certificate --certificate-arn <arn>`로 검증 상태 확인. DNS 검증 CNAME 미생성이 흔한 원인.\n\n---\n\n## 다음 단계\n\n📖 **[step10-rollback-backup.md](./step10-rollback-backup.md)** — Velero 설치, 백업 스케줄, 복구 시뮬레이션, 모니터링 알람.\n"
+}

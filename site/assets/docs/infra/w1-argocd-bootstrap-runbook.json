@@ -1,0 +1,112 @@
+{
+  "slug": "w1-argocd-bootstrap-runbook",
+  "title": "Runbook: W1 ArgoCD 부트스트랩 실행 가이드\r",
+  "category": "infra",
+  "source": "synapse-gitops",
+  "tags": [
+    "argocd",
+    "terraform",
+    "eks",
+    "rds",
+    "dev"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-18",
+    "status": "active",
+    "completionRate": 0
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "0. 준비물 체크리스트",
+      "anchor": "0-준비물-체크리스트"
+    },
+    {
+      "level": 2,
+      "text": "1. AWS 크레덴셜 설정 (25분, 첫 실행 시)",
+      "anchor": "1-aws-크레덴셜-설정-25분-첫-실행-시"
+    },
+    {
+      "level": 2,
+      "text": "2. Terraform 변수 채우기 (8분)",
+      "anchor": "2-terraform-변수-채우기-8분"
+    },
+    {
+      "level": 2,
+      "text": "3. Terraform Apply (25~45분, 실패 + 재시도 포함)",
+      "anchor": "3-terraform-apply-2545분-실패-재시도-포함"
+    },
+    {
+      "level": 2,
+      "text": "4. kubeconfig 갱신 + 노드 확인 (1분)",
+      "anchor": "4-kubeconfig-갱신-노드-확인-1분"
+    },
+    {
+      "level": 2,
+      "text": "5. ArgoCD 부트스트랩 (5분)",
+      "anchor": "5-argocd-부트스트랩-5분"
+    },
+    {
+      "level": 2,
+      "text": "6. 브라우저 접속 + 로그인 확인 (5분)",
+      "anchor": "6-브라우저-접속-로그인-확인-5분"
+    },
+    {
+      "level": 2,
+      "text": "7. 의도적 오류 PR로 CI 실패 검증 (10분, FR-GO-104 검수)",
+      "anchor": "7-의도적-오류-pr로-ci-실패-검증-10분-fr-go-104-검수"
+    },
+    {
+      "level": 2,
+      "text": "8. HISTORY 최종 갱신 (5분)",
+      "anchor": "8-history-최종-갱신-5분"
+    },
+    {
+      "level": 2,
+      "text": "검증 체크리스트 (Done 표시용)",
+      "anchor": "검증-체크리스트-done-표시용"
+    },
+    {
+      "level": 2,
+      "text": "트러블슈팅",
+      "anchor": "트러블슈팅"
+    },
+    {
+      "level": 3,
+      "text": "terraform apply가 도중에 멈춤",
+      "anchor": "terraform-apply가-도중에-멈춤"
+    },
+    {
+      "level": 3,
+      "text": "bootstrap-argocd.sh 5단계에서 멈춤",
+      "anchor": "bootstrap-argocdsh-5단계에서-멈춤"
+    },
+    {
+      "level": 3,
+      "text": "브라우저 self-signed 경고를 못 넘김",
+      "anchor": "브라우저-self-signed-경고를-못-넘김"
+    },
+    {
+      "level": 3,
+      "text": "5개 Application이 표시 안 됨",
+      "anchor": "5개-application이-표시-안-됨"
+    },
+    {
+      "level": 2,
+      "text": "실 환경 정리 (학습 완료 후 비용 절감)",
+      "anchor": "실-환경-정리-학습-완료-후-비용-절감"
+    },
+    {
+      "level": 2,
+      "text": "대체 path — AWS 불가 시 kind 로컬 클러스터",
+      "anchor": "대체-path-aws-불가-시-kind-로컬-클러스터"
+    },
+    {
+      "level": 2,
+      "text": "도움 요청",
+      "anchor": "도움-요청"
+    }
+  ],
+  "body": "# Runbook: W1 ArgoCD 부트스트랩 실행 가이드\r\n\r\n> **대상**: gitops 트랙 담당자 (@VelkaressiaBlutkrone) 또는 후속 환경 부트스트랩 작업자\r\n> **소요 시간**: 약 50~60분 (terraform apply 단계가 가장 김)\r\n> **전제**: PR #6 + PR #7이 main에 머지된 상태 (스펙: [2026-05-16-w1-argocd-bootstrap-design.md](../superpowers/specs/2026-05-16-w1-argocd-bootstrap-design.md))\r\n>\r\n> 💡 **다른 PC에서 작업 이어받기**: [dev-machine-setup.md](./dev-machine-setup.md)에서 도구/인증/시크릿 인계 절차 먼저 확인.\r\n\r\n---\r\n\r\n## 0. 준비물 체크리스트\r\n\r\n실행 전에 모두 확보:\r\n\r\n- [ ] AWS 계정의 IAM 사용자 Access Key + Secret Key (`AdministratorAccess` 또는 동등 권한)\r\n- [ ] 로컬 도구: `aws` CLI, `kubectl`, `terraform`, `argocd` CLI, `jq`, `openssl`, `bash`\r\n- [ ] `gh` CLI 로그인 + 본 레포 admin 권한\r\n- [ ] 작업 디렉토리: `synapse-gitops` 레포 루트, main 최신 sync 완료 (`git pull origin main`)\r\n\r\n도구 부재 시:\r\n```bash\r\n# macOS (Homebrew)\r\nbrew install awscli kubernetes-cli terraform argocd jq\r\n\r\n# Windows (Chocolatey)\r\nchoco install awscli kubernetes-cli terraform argocd-cli jq\r\n\r\n# Linux\r\n# 각 도구는 공식 문서 참조\r\n```\r\n\r\n---\r\n\r\n## 1. AWS 크레덴셜 설정 (25분, 첫 실행 시)\r\n\r\nAWS 계정만 있고 IAM 사용자 / Access Key / AWS CLI 설정이 아직이라면, 별도 가이드를 따른다:\r\n\r\n📖 **[step1-aws-account-setup.md](./step1-aws-account-setup.md)** — Budget 알람 → IAM 사용자 → Access Key → AWS CLI 설치 → configure → 검증까지 1-A~1-F 단계별로 안내.\r\n\r\n이미 `aws configure`가 완료됐다면 다음 한 줄로 검증만 하고 Step 2로 진행:\r\n\r\n```bash\r\naws sts get-caller-identity\r\n```\r\n\r\n**Expected**: `Arn`이 `arn:aws:iam::<ACCOUNT>:user/synapse-admin` 형식.\r\n\r\n**실패 시**:\r\n- `Unable to locate credentials` → `aws configure` 다시 실행 (또는 [step1-aws-account-setup.md](./step1-aws-account-setup.md) 1-E)\r\n- `AccessDenied` → IAM 사용자 권한 점검 (`AdministratorAccess` 또는 EKS/EC2/VPC/RDS/IAM 권한 필요)\r\n- `Arn`이 `:root`로 끝남 → Root 계정으로 작업 중. [step1-aws-account-setup.md](./step1-aws-account-setup.md) 1-B로 가서 IAM 사용자 사용\r\n\r\n---\r\n\r\n## 2. Terraform 변수 채우기 (8분)\r\n\r\nOS별 시크릿 생성 방법(openssl vs PowerShell native vs Git Bash), 비용 최소화 override, gitignore 재검증까지 별도 가이드로 분리:\r\n\r\n📖 **[step2-terraform-tfvars.md](./step2-terraform-tfvars.md)** — 2-A 변수 파일 생성 / 2-B 비번 생성 / 2-C 편집 / 2-D gitignore 검증 / 2-E Terraform 설치 확인.\r\n\r\n요약: `infra/aws/dev/terraform.tfvars`를 만들고 `rds_password` + `redis_auth_token` 두 시크릿 + 비용 최소화 override 3개(`eks_node_count=2`, `rds_instance_class=\"db.t3.micro\"`, `msk_broker_count=2`) 작성. 시크릿은 1Password 등에 보관 (학습 destroy 후 폐기).\r\n\r\n검증: `terraform version` 출력 + `git status`에 `terraform.tfvars`가 보이지 않음.\r\n\r\n---\r\n\r\n## 3. Terraform Apply (25~45분, 실패 + 재시도 포함)\r\n\r\nState backend 사전 생성(S3 bucket + DynamoDB), terraform init/plan/apply 절차, 실제 발생했던 트러블슈팅 케이스(EKS AMI 미지원, RDS parameter group, OpenSearch VPC policy, Free Tier 제약 등)는 별도 가이드로 분리:\r\n\r\n📖 **[step3-terraform-apply.md](./step3-terraform-apply.md)** — 3-Pre backend 생성 / 3-A init / 3-B plan / 3-C apply / 3-D 비용 모니터링 / 3-Cleanup destroy. 트러블슈팅 9건.\r\n\r\n⚠️ AWS **신규 가입 계정**은 결제수단 verification 완료 전엔 EKS 노드 launch가 막힌다(Free Tier eligible 인스턴스만 허용). 그 경우 destroy 후 verification 대기 또는 kind 로컬 대체.\r\n\r\n요약: `terraform init` → `terraform plan -out=tfplan` → `terraform apply tfplan` 후 output에 `argocd_namespace = \"argocd\"` 표시되면 Step 4로 진행.\r\n\r\n---\r\n\r\n## 4. kubeconfig 갱신 + 노드 확인 (1분)\r\n\r\n```bash\r\naws eks update-kubeconfig --name synapse-dev --region ap-northeast-2\r\nkubectl config current-context   # arn:aws:eks:ap-northeast-2:...:cluster/synapse-dev\r\n\r\nkubectl get nodes\r\nkubectl get pods -n argocd\r\n```\r\n\r\n**Expected**:\r\n- 노드 2개 이상 `Ready`\r\n- argocd 네임스페이스에 pod 10여 개 Running (controller, server×3, repo-server×2, applicationset×2, redis-ha×3, dex, notifications)\r\n\r\n**실패 시**:\r\n- `error: You must be logged in to the server (Unauthorized)`: kubeconfig가 IAM 권한과 매칭 안 됨. EKS 콘솔의 \"Access\" 탭에서 IAM 사용자/롤 매핑 추가.\r\n- argocd pod이 `Pending`: 노드 자원 부족. Node group 인스턴스 타입 업그레이드 또는 max_size 증설.\r\n\r\n---\r\n\r\n## 5. ArgoCD 부트스트랩 (5분)\r\n\r\n```bash\r\nbash scripts/bootstrap-argocd.sh\r\n```\r\n\r\n스크립트는 8단계로 진행 (각 단계 [OK] 출력):\r\n1. 사전 도구 점검\r\n2. kubeconfig 갱신\r\n3. argocd-server pod readiness 대기 (최대 10분)\r\n4. NLB 호스트 추출 (최대 10분)\r\n5. admin 비번 회전 + AWS Secrets Manager 저장 (`synapse/argocd/admin`)\r\n6. AppProject 적용\r\n7. RBAC + Notifications ConfigMap 적용\r\n8. ApplicationSet 적용 + 5개 Application 등록 검증\r\n\r\n**Expected (스크립트 마지막 출력)**:\r\n```\r\n================================================================\r\n ArgoCD 부트스트랩 완료\r\n================================================================\r\n UI: https://<nlb-dns>.elb.ap-northeast-2.amazonaws.com\r\n 비번 조회:\r\n   aws secretsmanager get-secret-value --secret-id synapse/argocd/admin ...\r\n 등록된 Application:\r\n NAME                          ...\r\n synapse-platform-svc-dev      ...\r\n synapse-engagement-svc-dev    ...\r\n ... (총 5개)\r\n================================================================\r\n```\r\n\r\n**실패 시**:\r\n- \"Application 등록 부족: 0 (기대 5)\": ApplicationSet 컨트롤러가 아직 reconcile 안 함. 10초 대기 후 `argocd app list` 직접 확인.\r\n- \"초기 secret도, Secrets Manager 항목도 없음\": ArgoCD가 이미 다른 비번으로 초기화됨. 수동 복구 — `kubectl -n argocd patch secret argocd-secret -p '{\"stringData\":{\"admin.password\":\"\"}}'` 후 재실행.\r\n- NLB 호스트 빈 채로 5분 대기: AWS Load Balancer Controller 미설치 가능성. 옵션 2는 in-tree NLB라 controller 불필요해야 하나, EKS 1.29에서 LoadBalancer Service 동작 확인.\r\n\r\n---\r\n\r\n## 6. 브라우저 접속 + 로그인 확인 (5분)\r\n\r\n1. **NLB 호스트** = 스크립트 출력의 UI URL\r\n2. **admin 비번 조회**:\r\n   ```bash\r\n   aws secretsmanager get-secret-value --secret-id synapse/argocd/admin \\\r\n     --region ap-northeast-2 --query SecretString --output text | jq -r .password\r\n   ```\r\n3. 브라우저로 `https://<nlb-dns>` 접속\r\n4. **self-signed 경고 처리**:\r\n   - Chrome/Edge: 고급 → \"안전하지 않음으로 진행\"\r\n   - Firefox: 고급 → 예외 추가 → 인증서 확인 후 확정\r\n   - Safari: 상세 정보 → \"이 웹사이트 방문\"\r\n5. `admin` + 위 비번으로 로그인\r\n6. UI에서 다음 확인:\r\n   - 5개 Application 표시: `synapse-platform-svc-dev`, `synapse-engagement-svc-dev`, `synapse-knowledge-svc-dev`, `synapse-learning-card-dev`, `synapse-learning-ai-dev`\r\n   - 각 Application 상태: **OutOfSync** (정상 — base/overlay manifest가 빈 상태)\r\n7. **스크린샷 1장 캡처** (HISTORY 첨부용)\r\n\r\n---\r\n\r\n## 7. 의도적 오류 PR로 CI 실패 검증 (10분, FR-GO-104 검수)\r\n\r\n```bash\r\ngit checkout main && git pull\r\ngit checkout -b test/intentional-ci-failure\r\nsed -i 's|apiVersion: apps/v1|apiVersion: apps/v999|' apps/platform-svc/base/deployment.yaml\r\ngit add apps/platform-svc/base/deployment.yaml\r\ngit commit -m \"test: intentional invalid apiVersion to verify CI\"\r\ngit push -u origin test/intentional-ci-failure\r\ngh pr create --title \"test: CI failure verification (DO NOT MERGE)\" \\\r\n  --body \"FR-GO-104 검수용. 머지 금지. kubeconform이 잘못된 apiVersion을 잡는지 확인.\"\r\ngh pr checks --watch\r\n```\r\n\r\n**Expected**: `validate` 단계가 FAIL. 로그에 `apps/platform-svc/overlays/dev` 또는 base 빌드 실패 메시지 + `apiVersion: apps/v999` 관련 에러.\r\n\r\n**Expected (정리)**:\r\n```bash\r\ngh pr close --delete-branch\r\ngit checkout main\r\n```\r\n\r\n---\r\n\r\n## 8. HISTORY 최종 갱신 (5분)\r\n\r\n`docs/project-management/history/HISTORY_gitops.md`의 2026-05-16 섹션에서 다음 자리를 실제 값으로 치환:\r\n\r\n```diff\r\n #### 산출물\r\n - 디자인 스펙: ...\r\n - 구현 플랜: ...\r\n- - PR: (PR 번호는 생성 후 추가)\r\n+ - PR #6 (W1 보강), PR #7 (Ruleset 정리), PR #<TEST_PR>(닫힘, CI 실패 검증)\r\n\r\n #### 이벤트\r\n- - 검증: 의도적 오류 PR로 kubeconform CI 실패 확인 (PR 번호는 실행 후 추가)\r\n+ - 검증: 의도적 오류 PR #<TEST_PR>로 kubeconform CI 실패 확인 (스크린샷 첨부: <링크>)\r\n```\r\n\r\n```bash\r\ngit checkout -b docs/w1-history-finalize\r\n# 위 변경 반영\r\ngit add docs/project-management/history/HISTORY_gitops.md\r\ngit commit -m \"docs(pm): finalize W1 HISTORY with PR numbers and screenshots\"\r\ngit push -u origin docs/w1-history-finalize\r\ngh pr create --title \"docs(pm): finalize W1 HISTORY\" --body \"Task 14 사용자 액션 결과 반영\"\r\ngh pr merge --merge --delete-branch\r\n```\r\n\r\n---\r\n\r\n## 검증 체크리스트 (Done 표시용)\r\n\r\nW1 PRD 검수 기준 최종 검증:\r\n\r\n- [ ] FR-GO-101: `kubectl get pods -n argocd -l app.kubernetes.io/name=argocd-server | grep Running` 3개 출력\r\n- [ ] FR-GO-102: 브라우저로 NLB URL HTTPS 접속 성공 (self-signed 경고 후) — **부분 충족, 도메인 확보 시 [docs/argocd-tls-migration.md](../argocd-tls-migration.md) 따라 옵션 1 마이그레이션**\r\n- [ ] FR-GO-103: `argocd app list` 출력에 5개 `synapse-*-dev` 표시\r\n- [ ] FR-GO-104: 의도적 오류 PR의 CI `validate`가 FAIL\r\n- [ ] FR-GO-105: main 직접 push 시도가 거부됨 (`git push origin main` from feature branch → blocked)\r\n\r\n---\r\n\r\n## 트러블슈팅\r\n\r\n### terraform apply가 도중에 멈춤\r\n\r\n원인 대부분이 AWS 자원 한도 또는 인증. 다음 순서로 진단:\r\n\r\n1. `aws sts get-caller-identity` — 크레덴셜 유효성\r\n2. `terraform plan` 다시 — diff가 새로 생기면 외부 변경\r\n3. AWS 콘솔의 Service Quotas + CloudTrail에서 실패 자원 검색\r\n\r\n### bootstrap-argocd.sh 5단계에서 멈춤\r\n\r\n```bash\r\n# pod 상태 직접 확인\r\nkubectl get pods -n argocd\r\nkubectl describe pod -n argocd <pending-pod>\r\n\r\n# Service 상태\r\nkubectl get svc argocd-server -n argocd -o yaml\r\n\r\n# AWS 콘솔 EC2 Load Balancers 탭에서 NLB 생성 진행 상황\r\n```\r\n\r\n### 브라우저 self-signed 경고를 못 넘김\r\n\r\n- Chrome: 주소창에 `thisisunsafe` 직접 타이핑 (페이지 클릭 후)\r\n- 또는 `curl -k https://<nlb-dns>/api/version` 으로 CLI 검증만 진행 후 가이드는 그대로\r\n\r\n### 5개 Application이 표시 안 됨\r\n\r\n```bash\r\nkubectl get applicationset -n argocd\r\nkubectl describe applicationset synapse-apps -n argocd\r\n# generator 평가 에러 또는 RBAC 거부 확인\r\n```\r\n\r\n---\r\n\r\n## 실 환경 정리 (학습 완료 후 비용 절감)\r\n\r\n```bash\r\n# ArgoCD Application 먼저 삭제 (orphan 자원 방지)\r\nargocd app delete -y synapse-platform-svc-dev synapse-engagement-svc-dev \\\r\n  synapse-knowledge-svc-dev synapse-learning-card-dev synapse-learning-ai-dev\r\n\r\nkubectl delete applicationset synapse-apps -n argocd\r\n\r\n# Terraform destroy\r\ncd infra/aws/dev\r\nterraform destroy\r\n# 약 15분 — EKS, RDS, ElastiCache, MSK, OpenSearch 모두 삭제됨\r\n```\r\n\r\n**주의**: `terraform destroy` 후에도 다음은 수동 정리 필요:\r\n- AWS Secrets Manager의 `synapse/argocd/admin` (7일 복구 대기 후 영구 삭제)\r\n- CloudWatch Logs (EKS 로그)\r\n- ECR 이미지 (있다면)\r\n\r\n---\r\n\r\n## 대체 path — AWS 불가 시 kind 로컬 클러스터\r\n\r\nEKS path가 막힐 때(예: AWS 신규 계정 결제수단 verification 미완료, 비용 제약, AWS 미사용 환경) **kind 로컬 클러스터로 동등 실증**:\r\n\r\n📖 **[kind-local-bootstrap.md](./kind-local-bootstrap.md)** — Docker Desktop / kind / kubectl 설치부터 ArgoCD HA + 5 Application 등록 + UI 접속 + CI 검증까지. 비용 0, 약 30~40분.\r\n\r\nEKS path와의 매핑(HA 토폴로지, 외부 노출, admin 비번 관리 등)도 같은 문서 끝에 정리되어 있음.\r\n\r\n---\r\n\r\n## 도움 요청\r\n\r\n- 본 runbook의 단계가 막힐 때: HISTORY에 \"도움 요청\" 항목으로 기록 + Slack #synapse-gitops 채널\r\n- ArgoCD 자체 문제: https://argo-cd.readthedocs.io/\r\n- Terraform AWS provider: https://registry.terraform.io/providers/hashicorp/aws/latest/docs\r\n"
+}

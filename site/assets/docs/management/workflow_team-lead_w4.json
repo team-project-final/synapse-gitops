@@ -1,0 +1,124 @@
+{
+  "slug": "workflow_team-lead_w4",
+  "title": "WORKFLOW: @team-lead — Week 4\r",
+  "category": "management",
+  "source": "synapse-shared",
+  "tags": [
+    "staging",
+    "e2e"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-14",
+    "status": "active",
+    "completionRate": 0
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "Step 9: 전체 E2E 시나리오 정의 + 테스트 실행 조율",
+      "anchor": "step-9-전체-e2e-시나리오-정의-테스트-실행-조율"
+    },
+    {
+      "level": 3,
+      "text": "9.1 E2E 시나리오 정의",
+      "anchor": "91-e2e-시나리오-정의"
+    },
+    {
+      "level": 3,
+      "text": "9.2 E2E 테스트 실행",
+      "anchor": "92-e2e-테스트-실행"
+    },
+    {
+      "level": 3,
+      "text": "9.3 버그 트리아지",
+      "anchor": "93-버그-트리아지"
+    },
+    {
+      "level": 3,
+      "text": "9.4 버그 수정",
+      "anchor": "94-버그-수정"
+    },
+    {
+      "level": 3,
+      "text": "9.5 회귀 테스트",
+      "anchor": "95-회귀-테스트"
+    },
+    {
+      "level": 3,
+      "text": "9.6 문서 업데이트",
+      "anchor": "96-문서-업데이트"
+    },
+    {
+      "level": 2,
+      "text": "Step 10: 성능 SLA 검증",
+      "anchor": "step-10-성능-sla-검증"
+    },
+    {
+      "level": 3,
+      "text": "10.1 E2E 시나리오 정의",
+      "anchor": "101-e2e-시나리오-정의"
+    },
+    {
+      "level": 3,
+      "text": "10.2 E2E 테스트 실행",
+      "anchor": "102-e2e-테스트-실행"
+    },
+    {
+      "level": 3,
+      "text": "10.3 버그 트리아지",
+      "anchor": "103-버그-트리아지"
+    },
+    {
+      "level": 3,
+      "text": "10.4 버그 수정",
+      "anchor": "104-버그-수정"
+    },
+    {
+      "level": 3,
+      "text": "10.5 회귀 테스트",
+      "anchor": "105-회귀-테스트"
+    },
+    {
+      "level": 3,
+      "text": "10.6 문서 업데이트",
+      "anchor": "106-문서-업데이트"
+    },
+    {
+      "level": 2,
+      "text": "Step 11: Staging 배포 + 모니터링 대시보드 가동",
+      "anchor": "step-11-staging-배포-모니터링-대시보드-가동"
+    },
+    {
+      "level": 3,
+      "text": "11.1 E2E 시나리오 정의",
+      "anchor": "111-e2e-시나리오-정의"
+    },
+    {
+      "level": 3,
+      "text": "11.2 E2E 테스트 실행",
+      "anchor": "112-e2e-테스트-실행"
+    },
+    {
+      "level": 3,
+      "text": "11.3 버그 트리아지",
+      "anchor": "113-버그-트리아지"
+    },
+    {
+      "level": 3,
+      "text": "11.4 버그 수정",
+      "anchor": "114-버그-수정"
+    },
+    {
+      "level": 3,
+      "text": "11.5 회귀 테스트",
+      "anchor": "115-회귀-테스트"
+    },
+    {
+      "level": 3,
+      "text": "11.6 문서 업데이트",
+      "anchor": "116-문서-업데이트"
+    }
+  ],
+  "body": "# WORKFLOW: @team-lead — Week 4\r\n\r\n> **Task 문서**: [TASK_team-lead.md](../task/TASK_team-lead.md)  \r\n> **기간**: 2026-06-02 ~ 2026-06-06  \r\n> **PRD**: [PRD_W4.md](../prd/PRD_W4.md)\r\n\r\n---\r\n\r\n## Step 9: 전체 E2E 시나리오 정의 + 테스트 실행 조율\r\n\r\n### 9.1 E2E 시나리오 정의\r\n- [ ] 전체 서비스 통합 E2E 시나리오 목록 작성\r\n- [ ] 테스트 데이터 준비\r\n\r\n### 9.2 E2E 테스트 실행\r\n- [ ] 각 파트별 E2E 테스트 실행 조율\r\n- [ ] 실패 항목 기록\r\n\r\n### 9.3 버그 트리아지\r\n- [ ] P0/P1/P2 분류\r\n- [ ] P0 즉시 수정 대상 확정\r\n\r\n### 9.4 버그 수정\r\n- [ ] P0 버그 수정 지시 + 추적\r\n- [ ] 수정 코드 리뷰 + 테스트\r\n\r\n### 9.5 회귀 테스트\r\n- [ ] 수정 후 전체 테스트 재실행\r\n- [ ] 커버리지 80% 이상 확인\r\n\r\n### 9.6 문서 업데이트\r\n- [ ] API 문서 최신화\r\n- [ ] HISTORY 완료 기록\r\n\r\n**Step 9 Status**: [ ] Not Started / [ ] In Progress / [ ] Done\r\n\r\n---\r\n\r\n## Step 10: 성능 SLA 검증\r\n\r\n### 10.1 E2E 시나리오 정의\r\n- [ ] 성능 SLA 검증 시나리오 목록 작성 (API P95, Kafka, 검색)\r\n- [ ] 테스트 데이터 준비 (부하 테스트용)\r\n\r\n### 10.2 E2E 테스트 실행\r\n- [ ] API P95 < 200ms 검증\r\n- [ ] Kafka 이벤트 처리 < 5s 검증\r\n- [ ] 검색 응답 < 2s 검증\r\n- [ ] 실패 항목 기록\r\n\r\n### 10.3 버그 트리아지\r\n- [ ] P0/P1/P2 분류\r\n- [ ] P0 즉시 수정 대상 확정\r\n\r\n### 10.4 버그 수정\r\n- [ ] 성능 미달 항목 P0 수정\r\n- [ ] 수정 코드 리뷰 + 테스트\r\n\r\n### 10.5 회귀 테스트\r\n- [ ] 수정 후 전체 테스트 재실행\r\n- [ ] 커버리지 80% 이상 확인\r\n\r\n### 10.6 문서 업데이트\r\n- [ ] 성능 SLA 검증 결과 문서화\r\n- [ ] HISTORY 완료 기록\r\n\r\n**Step 10 Status**: [ ] Not Started / [ ] In Progress / [ ] Done\r\n\r\n---\r\n\r\n## Step 11: Staging 배포 + 모니터링 대시보드 가동\r\n\r\n### 11.1 E2E 시나리오 정의\r\n- [ ] Staging 배포 검증 시나리오 목록 작성\r\n- [ ] 테스트 데이터 준비\r\n\r\n### 11.2 E2E 테스트 실행\r\n- [ ] Staging 환경 전체 서비스 배포 실행\r\n- [ ] 모니터링 대시보드 가동 확인\r\n- [ ] 실패 항목 기록\r\n\r\n### 11.3 버그 트리아지\r\n- [ ] P0/P1/P2 분류\r\n- [ ] P0 즉시 수정 대상 확정\r\n\r\n### 11.4 버그 수정\r\n- [ ] P0 버그 수정\r\n- [ ] 수정 코드 리뷰 + 테스트\r\n\r\n### 11.5 회귀 테스트\r\n- [ ] 수정 후 전체 테스트 재실행\r\n- [ ] 커버리지 80% 이상 확인\r\n\r\n### 11.6 문서 업데이트\r\n- [ ] Staging 배포 결과 문서화\r\n- [ ] HISTORY 완료 기록\r\n\r\n**Step 11 Status**: [ ] Not Started / [ ] In Progress / [ ] Done\r\n"
+}

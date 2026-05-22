@@ -1,0 +1,352 @@
+{
+  "slug": "2026-05-20-w2w3-ops-and-prep",
+  "title": "W2/W3 운영 정비 + E2E 검증 준비 구현 계획",
+  "category": "prd",
+  "source": "synapse-shared",
+  "tags": [
+    "kafka",
+    "argocd",
+    "msk",
+    "docker",
+    "staging"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-20",
+    "status": "active",
+    "completionRate": 0
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "File Structure",
+      "anchor": "file-structure"
+    },
+    {
+      "level": 3,
+      "text": "신규 생성 파일",
+      "anchor": "신규-생성-파일"
+    },
+    {
+      "level": 3,
+      "text": "수정 파일",
+      "anchor": "수정-파일"
+    },
+    {
+      "level": 3,
+      "text": "외부 레포 수정 파일 (각 레포에서 별도 브랜치)",
+      "anchor": "외부-레포-수정-파일-각-레포에서-별도-브랜치"
+    },
+    {
+      "level": 2,
+      "text": "Task 1: Gateway master → main 브랜치 변경",
+      "anchor": "task-1-gateway-master-main-브랜치-변경"
+    },
+    {
+      "level": 2,
+      "text": "Task 2: GitHub Actions Node.js 20 Deprecation 수정 — synapse-gateway",
+      "anchor": "task-2-github-actions-nodejs-20-deprecation-수정-synapse-gateway"
+    },
+    {
+      "level": 2,
+      "text": "Task 3: GitHub Actions Deprecation 수정 — synapse-gitops",
+      "anchor": "task-3-github-actions-deprecation-수정-synapse-gitops"
+    },
+    {
+      "level": 2,
+      "text": "Task 4: GitHub Actions Deprecation 수정 — documents",
+      "anchor": "task-4-github-actions-deprecation-수정-documents"
+    },
+    {
+      "level": 2,
+      "text": "Task 5: GitHub Actions Deprecation 수정 — schedule-repo",
+      "anchor": "task-5-github-actions-deprecation-수정-schedule-repo"
+    },
+    {
+      "level": 2,
+      "text": "Task 6: GitHub Actions Deprecation 수정 — moking-data-guide",
+      "anchor": "task-6-github-actions-deprecation-수정-moking-data-guide"
+    },
+    {
+      "level": 2,
+      "text": "Task 7: GitHub Actions Deprecation 수정 — workflow-dashboard",
+      "anchor": "task-7-github-actions-deprecation-수정-workflow-dashboard"
+    },
+    {
+      "level": 2,
+      "text": "Task 8: MSK 토픽 생성 스크립트 보강",
+      "anchor": "task-8-msk-토픽-생성-스크립트-보강"
+    },
+    {
+      "level": 2,
+      "text": "사전 조건",
+      "anchor": "사전-조건"
+    },
+    {
+      "level": 2,
+      "text": "환경별 브로커 주소",
+      "anchor": "환경별-브로커-주소"
+    },
+    {
+      "level": 2,
+      "text": "실행 방법",
+      "anchor": "실행-방법"
+    },
+    {
+      "level": 3,
+      "text": "Step 1: Bastion 접속",
+      "anchor": "step-1-bastion-접속"
+    },
+    {
+      "level": 3,
+      "text": "Step 2: 스크립트 실행",
+      "anchor": "step-2-스크립트-실행"
+    },
+    {
+      "level": 3,
+      "text": "Step 3: 생성 확인",
+      "anchor": "step-3-생성-확인"
+    },
+    {
+      "level": 2,
+      "text": "생성되는 토픽 목록",
+      "anchor": "생성되는-토픽-목록"
+    },
+    {
+      "level": 2,
+      "text": "롤백 (토픽 삭제)",
+      "anchor": "롤백-토픽-삭제"
+    },
+    {
+      "level": 2,
+      "text": "트러블슈팅",
+      "anchor": "트러블슈팅"
+    },
+    {
+      "level": 2,
+      "text": "Task 9: Kafka E2E 검증 — 테스트 인프라 준비",
+      "anchor": "task-9-kafka-e2e-검증-테스트-인프라-준비"
+    },
+    {
+      "level": 2,
+      "text": "개요",
+      "anchor": "개요"
+    },
+    {
+      "level": 2,
+      "text": "사전 조건",
+      "anchor": "사전-조건"
+    },
+    {
+      "level": 2,
+      "text": "검증 시나리오",
+      "anchor": "검증-시나리오"
+    },
+    {
+      "level": 3,
+      "text": "시나리오 1: 회원가입 → 프로필 생성",
+      "anchor": "시나리오-1-회원가입-프로필-생성"
+    },
+    {
+      "level": 3,
+      "text": "시나리오 2: 노트 생성 → AI 카드 생성",
+      "anchor": "시나리오-2-노트-생성-ai-카드-생성"
+    },
+    {
+      "level": 3,
+      "text": "시나리오 3: 카드 복습 → XP 적립",
+      "anchor": "시나리오-3-카드-복습-xp-적립"
+    },
+    {
+      "level": 3,
+      "text": "시나리오 4: AI 카드 완료 → 알림",
+      "anchor": "시나리오-4-ai-카드-완료-알림"
+    },
+    {
+      "level": 2,
+      "text": "전체 스모크 테스트 (한 번에 실행)",
+      "anchor": "전체-스모크-테스트-한-번에-실행"
+    },
+    {
+      "level": 2,
+      "text": "트러블슈팅",
+      "anchor": "트러블슈팅"
+    },
+    {
+      "level": 2,
+      "text": "Task 10: ArgoCD dev/staging 배포 검증 계획",
+      "anchor": "task-10-argocd-devstaging-배포-검증-계획"
+    },
+    {
+      "level": 2,
+      "text": "현재 ArgoCD 구성 요약",
+      "anchor": "현재-argocd-구성-요약"
+    },
+    {
+      "level": 3,
+      "text": "ApplicationSet (`argocd/applicationset.yaml`)",
+      "anchor": "applicationset-argocdapplicationsetyaml"
+    },
+    {
+      "level": 3,
+      "text": "서비스별 오버레이 구조",
+      "anchor": "서비스별-오버레이-구조"
+    },
+    {
+      "level": 3,
+      "text": "이미지 업데이트 전략",
+      "anchor": "이미지-업데이트-전략"
+    },
+    {
+      "level": 2,
+      "text": "Dev 환경 배포 검증",
+      "anchor": "dev-환경-배포-검증"
+    },
+    {
+      "level": 3,
+      "text": "Step 1: ArgoCD 접속",
+      "anchor": "step-1-argocd-접속"
+    },
+    {
+      "level": 3,
+      "text": "Step 2: Application 상태 확인",
+      "anchor": "step-2-application-상태-확인"
+    },
+    {
+      "level": 3,
+      "text": "Step 3: Pod 상태 확인",
+      "anchor": "step-3-pod-상태-확인"
+    },
+    {
+      "level": 3,
+      "text": "Step 4: 서비스 간 네트워크 확인",
+      "anchor": "step-4-서비스-간-네트워크-확인"
+    },
+    {
+      "level": 3,
+      "text": "Step 5: Kafka 연결 확인",
+      "anchor": "step-5-kafka-연결-확인"
+    },
+    {
+      "level": 2,
+      "text": "Staging 환경 배포 검증",
+      "anchor": "staging-환경-배포-검증"
+    },
+    {
+      "level": 3,
+      "text": "사전 작업: staging 오버레이 생성",
+      "anchor": "사전-작업-staging-오버레이-생성"
+    },
+    {
+      "level": 3,
+      "text": "Manual Sync 워크플로",
+      "anchor": "manual-sync-워크플로"
+    },
+    {
+      "level": 3,
+      "text": "Dev → Staging 프로모션 절차",
+      "anchor": "dev-staging-프로모션-절차"
+    },
+    {
+      "level": 2,
+      "text": "Rollback 절차",
+      "anchor": "rollback-절차"
+    },
+    {
+      "level": 3,
+      "text": "ArgoCD Rollback (빠른 복구)",
+      "anchor": "argocd-rollback-빠른-복구"
+    },
+    {
+      "level": 3,
+      "text": "Git Revert (영구 롤백)",
+      "anchor": "git-revert-영구-롤백"
+    },
+    {
+      "level": 3,
+      "text": "긴급 롤백 체크리스트",
+      "anchor": "긴급-롤백-체크리스트"
+    },
+    {
+      "level": 2,
+      "text": "Task 11: 팀원 체크리스트 + 테스트 데이터 시드",
+      "anchor": "task-11-팀원-체크리스트-테스트-데이터-시드"
+    },
+    {
+      "level": 2,
+      "text": "공통 요구사항",
+      "anchor": "공통-요구사항"
+    },
+    {
+      "level": 3,
+      "text": "공통 Kafka 설정 예시 (application.yml)",
+      "anchor": "공통-kafka-설정-예시-applicationyml"
+    },
+    {
+      "level": 2,
+      "text": "서비스별 체크리스트",
+      "anchor": "서비스별-체크리스트"
+    },
+    {
+      "level": 3,
+      "text": "platform-svc (@팀원A)",
+      "anchor": "platform-svc-팀원a"
+    },
+    {
+      "level": 3,
+      "text": "knowledge-svc (@팀원B)",
+      "anchor": "knowledge-svc-팀원b"
+    },
+    {
+      "level": 3,
+      "text": "learning-card-svc (@팀원C)",
+      "anchor": "learning-card-svc-팀원c"
+    },
+    {
+      "level": 3,
+      "text": "learning-ai-svc (@팀원D)",
+      "anchor": "learning-ai-svc-팀원d"
+    },
+    {
+      "level": 3,
+      "text": "engagement-svc (@팀원E)",
+      "anchor": "engagement-svc-팀원e"
+    },
+    {
+      "level": 2,
+      "text": "완료 기준",
+      "anchor": "완료-기준"
+    },
+    {
+      "level": 2,
+      "text": "E2E 검증 가이드",
+      "anchor": "e2e-검증-가이드"
+    },
+    {
+      "level": 2,
+      "text": "Task 12: synapse-shared 전체 변경사항 브랜치 + PR",
+      "anchor": "task-12-synapse-shared-전체-변경사항-브랜치-pr"
+    },
+    {
+      "level": 2,
+      "text": "Summary",
+      "anchor": "summary"
+    },
+    {
+      "level": 2,
+      "text": "관련 설계",
+      "anchor": "관련-설계"
+    },
+    {
+      "level": 2,
+      "text": "Test plan",
+      "anchor": "test-plan"
+    },
+    {
+      "level": 2,
+      "text": "Summary: PR 전체 목록",
+      "anchor": "summary-pr-전체-목록"
+    }
+  ],
+  "body": "# W2/W3 운영 정비 + E2E 검증 준비 구현 계획\n\n> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.\n\n**Goal:** 미해결 운영 항목(브랜치 통일, CI deprecation, MSK 토픽)을 정리하고, W3 Kafka E2E 검증 + ArgoCD 배포를 위한 사전 준비를 완료한다.\n\n**Architecture:** 6개 작업을 순차 실행한다. 직접 코드 변경은 별도 브랜치에서 수행 후 PR을 생성한다. 외부 의존(팀원 구현, MSK 실행)이 있는 작업은 스크립트/문서/계획만 준비한다.\n\n**Tech Stack:** GitHub Actions, Bash, Kafka CLI, Kustomize, ArgoCD, PostgreSQL\n\n**브랜치 전략:** 모든 코드 변경은 feature 브랜치에서 작업 후 PR 생성. main/dev 직접 푸시 금지. 대부분의 레포는 `main`이 기본 브랜치이므로 `main` 기준으로 브랜치 생성 → `main` 대상 PR.\n\n---\n\n## File Structure\n\n### 신규 생성 파일\n| 파일 | 역할 |\n|------|------|\n| `docs/guides/MSK_TOPIC_SETUP.md` | MSK 토픽 생성 실행 가이드 |\n| `docs/guides/KAFKA_E2E_TEST.md` | Kafka E2E 검증 체크리스트 |\n| `docs/guides/ARGOCD_DEPLOY_VERIFICATION.md` | ArgoCD 배포/검증/롤백 절차 |\n| `docs/guides/TEAM_CHECKLIST_W3.md` | 팀원별 Kafka 구현 체크리스트 |\n| `scripts/kafka-e2e-test.sh` | Kafka E2E produce/consume 테스트 스크립트 |\n| `scripts/seed-test-data.sh` | PostgreSQL 테스트 데이터 시드 스크립트 |\n| `src/test/resources/e2e-samples/*.json` | 토픽별 샘플 이벤트 데이터 |\n| `src/test/resources/seed/V001__test_users.sql` | 테스트 유저 시드 |\n| `src/test/resources/seed/V002__test_notes.sql` | 테스트 노트 시드 |\n| `src/test/resources/seed/V003__test_cards.sql` | 테스트 카드 시드 |\n\n### 수정 파일\n| 파일 | 변경 내용 |\n|------|-----------|\n| `scripts/create-kafka-topics.sh` | 연결 확인, 로깅, min.insync.replicas 추가 |\n| `docs/project-management/HANDOFF_2026-05-19.md` | gateway 브랜치 참조 업데이트 |\n\n### 외부 레포 수정 파일 (각 레포에서 별도 브랜치)\n| 레포 | 파일 | 변경 |\n|------|------|------|\n| synapse-gateway | `.github/workflows/ci.yml` | `master` → `main` |\n| synapse-gateway | `.github/workflows/deploy.yml` | `master` → `main`, `ecr-login@v2` → `@v3` |\n| synapse-gitops | `.github/workflows/deploy-pages.yml` | `setup-dart@v1` → `@v2`, `upload-pages-artifact@v3` → `@v4` |\n| synapse-gitops | `.github/workflows/validate-manifests.yml` | `setup-kustomize@v2` → `@v3` |\n| documents | `.github/workflows/deploy-workflow-guide.yml` | `node-version: '20'` → `'22'` |\n| schedule-repo | `.github/workflows/deploy.yml` | `node-version: 20` → `22`, `upload-pages-artifact@v3` → `@v4` |\n| moking-data-guide | `.github/workflows/deploy.yml` | `upload-pages-artifact@v3` → `@v4` |\n| workflow-dashboard | `.github/workflows/build.yml` | `upload-pages-artifact@v3` → `@v4` |\n\n---\n\n## Task 1: Gateway master → main 브랜치 변경\n\n**Files:**\n- Modify: `../synapse-gateway/.github/workflows/ci.yml:5,7`\n- Modify: `../synapse-gateway/.github/workflows/deploy.yml:5`\n- Modify: `docs/project-management/HANDOFF_2026-05-19.md:55`\n\n- [ ] **Step 1: synapse-gateway에서 브랜치 생성**\n\n```bash\ncd ../synapse-gateway\ngit checkout master\ngit pull origin master\ngit checkout -b chore/rename-master-to-main\n```\n\n- [ ] **Step 2: ci.yml에서 master → main 변경**\n\n`../synapse-gateway/.github/workflows/ci.yml` 수정:\n\n```yaml\n# 변경 전 (line 5, 7)\n    branches: [master]\n\n# 변경 후\n    branches: [main]\n```\n\n두 곳 모두 변경 (line 5 push, line 7 pull_request).\n\n- [ ] **Step 3: deploy.yml에서 master → main 변경**\n\n`../synapse-gateway/.github/workflows/deploy.yml` 수정:\n\n```yaml\n# 변경 전 (line 5)\n    branches: [master]\n\n# 변경 후\n    branches: [main]\n```\n\n- [ ] **Step 4: 변경 확인**\n\n```bash\ncd ../synapse-gateway\ngrep -rn \"master\" .github/workflows/\n```\n\nExpected: 결과 없음 (모든 master 참조 제거됨)\n\n- [ ] **Step 5: 커밋**\n\n```bash\ncd ../synapse-gateway\ngit add .github/workflows/ci.yml .github/workflows/deploy.yml\ngit commit -m \"chore: rename branch references master → main in workflows\"\n```\n\n- [ ] **Step 6: 푸시 + PR 생성**\n\n```bash\ncd ../synapse-gateway\ngit push -u origin chore/rename-master-to-main\n```\n\nPR 생성 (gh CLI 또는 GitHub 웹):\n- Title: `chore: rename branch references master → main`\n- Base: `master` (현재 기본 브랜치)\n- Body: gateway 워크플로의 master 참조를 main으로 변경. PR 머지 후 GitHub Settings에서 default branch를 main으로 변경 필요.\n\n> **중요**: 이 PR 머지 후 GitHub repo settings → Default branch에서 `master` → `main` 변경 필요. 그 후 `master` 브랜치 삭제.\n\n- [ ] **Step 7: synapse-shared HANDOFF 문서 업데이트**\n\n`docs/project-management/HANDOFF_2026-05-19.md` line 55 수정:\n\n```markdown\n# 변경 전\n5. **synapse-gateway 브랜치**: `master` 사용 중 (다른 레포는 `main`)\n\n# 변경 후\n5. **synapse-gateway 브랜치**: `main`으로 통일 완료 (PR #N 참조)\n```\n\n- [ ] **Step 8: 커밋**\n\n```bash\ncd ../synapse-shared\ngit add docs/project-management/HANDOFF_2026-05-19.md\ngit commit -m \"docs: update HANDOFF — gateway branch renamed to main\"\n```\n\n---\n\n## Task 2: GitHub Actions Node.js 20 Deprecation 수정 — synapse-gateway\n\n**Files:**\n- Modify: `../synapse-gateway/.github/workflows/deploy.yml:33`\n\n> **Note**: Task 1의 브랜치(`chore/rename-master-to-main`)가 아직 머지 안 됐으면, 같은 브랜치에서 이 변경도 함께 진행 가능. 별도 브랜치가 필요하면 `chore/upgrade-github-actions`로 생성.\n\n- [ ] **Step 1: deploy.yml에서 ecr-login 버전 업그레이드**\n\n`../synapse-gateway/.github/workflows/deploy.yml` line 33 수정:\n\n```yaml\n# 변경 전\n        uses: aws-actions/amazon-ecr-login@v2\n\n# 변경 후\n        uses: aws-actions/amazon-ecr-login@v3\n```\n\n> `amazon-ecr-login@v3`은 v2와 동일한 출력(`outputs.registry`)을 제공하므로 line 37의 `${{ steps.ecr-login.outputs.registry }}` 참조는 변경 불필요.\n\n- [ ] **Step 2: 변경 확인**\n\n```bash\ncd ../synapse-gateway\ngrep -n \"ecr-login\" .github/workflows/deploy.yml\n```\n\nExpected: `33:        uses: aws-actions/amazon-ecr-login@v3`\n\n- [ ] **Step 3: 커밋 + 푸시**\n\nTask 1 브랜치에 함께 넣는 경우:\n```bash\ncd ../synapse-gateway\ngit add .github/workflows/deploy.yml\ngit commit -m \"chore: upgrade amazon-ecr-login@v2 → v3 (Node.js 20 deprecation)\"\ngit push\n```\n\n별도 브랜치인 경우:\n```bash\ncd ../synapse-gateway\ngit checkout master\ngit checkout -b chore/upgrade-github-actions\ngit add .github/workflows/deploy.yml\ngit commit -m \"chore: upgrade amazon-ecr-login@v2 → v3 (Node.js 20 deprecation)\"\ngit push -u origin chore/upgrade-github-actions\n```\n\nPR 생성:\n- Title: `chore: upgrade amazon-ecr-login v2 → v3`\n- Body: Node.js 20 런타임 deprecation 대응. v3는 v2와 동일한 출력 인터페이스.\n\n---\n\n## Task 3: GitHub Actions Deprecation 수정 — synapse-gitops\n\n**Files:**\n- Modify: `../synapse-gitops/.github/workflows/deploy-pages.yml:32,40,56`\n- Modify: `../synapse-gitops/.github/workflows/validate-manifests.yml:18`\n\n- [ ] **Step 1: 브랜치 생성**\n\n```bash\ncd ../synapse-gitops\ngit checkout main\ngit pull origin main\ngit checkout -b chore/upgrade-github-actions\n```\n\n- [ ] **Step 2: deploy-pages.yml 수정 (3건)**\n\n`../synapse-gitops/.github/workflows/deploy-pages.yml` 수정:\n\nLine 32:\n```yaml\n# 변경 전\n        uses: dart-lang/setup-dart@v1\n\n# 변경 후\n        uses: dart-lang/setup-dart@v2\n```\n\nLine 40:\n```yaml\n# 변경 전\n        uses: subosito/flutter-action@v2\n\n# 변경 후\n        uses: subosito/flutter-action@v2\n```\n\n> `subosito/flutter-action@v2`는 현재 최신이므로 변경 없음.\n\nLine 56:\n```yaml\n# 변경 전\n        uses: actions/upload-pages-artifact@v3\n\n# 변경 후\n        uses: actions/upload-pages-artifact@v4\n```\n\n- [ ] **Step 3: validate-manifests.yml 수정 (1건)**\n\n`../synapse-gitops/.github/workflows/validate-manifests.yml` line 18 수정:\n\n```yaml\n# 변경 전\n        uses: imranismail/setup-kustomize@v2\n\n# 변경 후\n        uses: imranismail/setup-kustomize@v2\n```\n\n> `imranismail/setup-kustomize`는 v2가 최신 릴리스. npm16 경고는 이 액션의 내부 문제로, 메인테이너 업데이트를 대기하거나 대안(`yokawasa/action-setup-kube-tools`)을 고려. 현재는 변경하지 않고 주석으로 기록.\n\n```yaml\n      - name: Install kustomize\n        # NOTE: setup-kustomize@v2 triggers Node.js 16 warning — no v3 available yet.\n        # Alternative: direct curl install or yokawasa/action-setup-kube-tools\n        uses: imranismail/setup-kustomize@v2\n```\n\n- [ ] **Step 4: 변경 확인**\n\n```bash\ncd ../synapse-gitops\ngrep -rn \"@v1\\|@v3\" .github/workflows/deploy-pages.yml\ngrep -n \"setup-kustomize\" .github/workflows/validate-manifests.yml\n```\n\nExpected (deploy-pages.yml): `upload-pages-artifact@v4`만 남고 `@v1`, `@v3` 없음\nExpected (validate-manifests.yml): `setup-kustomize@v2` + 주석\n\n- [ ] **Step 5: 커밋 + 푸시 + PR**\n\n```bash\ncd ../synapse-gitops\ngit add .github/workflows/deploy-pages.yml .github/workflows/validate-manifests.yml\ngit commit -m \"chore: upgrade GitHub Actions — setup-dart@v2, upload-pages-artifact@v4\"\ngit push -u origin chore/upgrade-github-actions\n```\n\nPR 생성:\n- Title: `chore: upgrade GitHub Actions for Node.js 20 deprecation`\n- Base: `main`\n- Body: `setup-dart@v1` → `@v2`, `upload-pages-artifact@v3` → `@v4`. `setup-kustomize@v2`는 최신이므로 주석만 추가.\n\n---\n\n## Task 4: GitHub Actions Deprecation 수정 — documents\n\n**Files:**\n- Modify: `../documents/.github/workflows/deploy-workflow-guide.yml:24`\n\n- [ ] **Step 1: 브랜치 생성**\n\n```bash\ncd ../documents\ngit checkout main\ngit pull origin main\ngit checkout -b chore/upgrade-github-actions\n```\n\n- [ ] **Step 2: node-version 변경**\n\n`../documents/.github/workflows/deploy-workflow-guide.yml` line 24 수정:\n\n```yaml\n# 변경 전\n          node-version: '20'\n\n# 변경 후\n          node-version: '22'\n```\n\n- [ ] **Step 3: 커밋 + 푸시 + PR**\n\n```bash\ncd ../documents\ngit add .github/workflows/deploy-workflow-guide.yml\ngit commit -m \"chore: upgrade node-version 20 → 22 (deprecation)\"\ngit push -u origin chore/upgrade-github-actions\n```\n\nPR 생성:\n- Title: `chore: upgrade node-version 20 → 22`\n- Base: `main`\n\n---\n\n## Task 5: GitHub Actions Deprecation 수정 — schedule-repo\n\n**Files:**\n- Modify: `../schedule-repo/.github/workflows/deploy.yml:23,27`\n\n- [ ] **Step 1: 브랜치 생성**\n\n```bash\ncd ../schedule-repo\ngit checkout main\ngit pull origin main\ngit checkout -b chore/upgrade-github-actions\n```\n\n- [ ] **Step 2: deploy.yml 수정 (2건)**\n\n`../schedule-repo/.github/workflows/deploy.yml` 수정:\n\nLine 23:\n```yaml\n# 변경 전\n          node-version: 20\n\n# 변경 후\n          node-version: 22\n```\n\nLine 27:\n```yaml\n# 변경 전\n      - uses: actions/upload-pages-artifact@v3\n\n# 변경 후\n      - uses: actions/upload-pages-artifact@v4\n```\n\n- [ ] **Step 3: 커밋 + 푸시 + PR**\n\n```bash\ncd ../schedule-repo\ngit add .github/workflows/deploy.yml\ngit commit -m \"chore: upgrade node 20→22 + upload-pages-artifact@v4\"\ngit push -u origin chore/upgrade-github-actions\n```\n\nPR 생성:\n- Title: `chore: upgrade node-version + upload-pages-artifact`\n- Base: `main`\n\n---\n\n## Task 6: GitHub Actions Deprecation 수정 — moking-data-guide\n\n**Files:**\n- Modify: `../moking-data-guide/.github/workflows/deploy.yml:26`\n\n- [ ] **Step 1: 브랜치 생성**\n\n```bash\ncd ../moking-data-guide\ngit checkout main\ngit pull origin main\ngit checkout -b chore/upgrade-github-actions\n```\n\n- [ ] **Step 2: deploy.yml 수정**\n\n`../moking-data-guide/.github/workflows/deploy.yml` line 26 수정:\n\n```yaml\n# 변경 전\n      - uses: actions/upload-pages-artifact@v3\n\n# 변경 후\n      - uses: actions/upload-pages-artifact@v4\n```\n\n- [ ] **Step 3: 커밋 + 푸시 + PR**\n\n```bash\ncd ../moking-data-guide\ngit add .github/workflows/deploy.yml\ngit commit -m \"chore: upgrade upload-pages-artifact@v3 → v4\"\ngit push -u origin chore/upgrade-github-actions\n```\n\nPR 생성:\n- Title: `chore: upgrade upload-pages-artifact v3 → v4`\n- Base: `main`\n\n---\n\n## Task 7: GitHub Actions Deprecation 수정 — workflow-dashboard\n\n**Files:**\n- Modify: `../workflow-dashboard/.github/workflows/build.yml:43`\n\n- [ ] **Step 1: 브랜치 생성**\n\n```bash\ncd ../workflow-dashboard\ngit checkout main\ngit pull origin main\ngit checkout -b chore/upgrade-github-actions\n```\n\n- [ ] **Step 2: build.yml 수정**\n\n`../workflow-dashboard/.github/workflows/build.yml` line 43 수정:\n\n```yaml\n# 변경 전\n      - uses: actions/upload-pages-artifact@v3\n\n# 변경 후\n      - uses: actions/upload-pages-artifact@v4\n```\n\n> 이 레포는 이미 `node-version: 22`를 사용 중이므로 Node.js 버전 변경 불필요.\n\n- [ ] **Step 3: 커밋 + 푸시 + PR**\n\n```bash\ncd ../workflow-dashboard\ngit add .github/workflows/build.yml\ngit commit -m \"chore: upgrade upload-pages-artifact@v3 → v4\"\ngit push -u origin chore/upgrade-github-actions\n```\n\nPR 생성:\n- Title: `chore: upgrade upload-pages-artifact v3 → v4`\n- Base: `main`\n\n---\n\n## Task 8: MSK 토픽 생성 스크립트 보강\n\n**Files:**\n- Modify: `scripts/create-kafka-topics.sh`\n- Create: `docs/guides/MSK_TOPIC_SETUP.md`\n\n- [ ] **Step 1: create-kafka-topics.sh 보강**\n\n`scripts/create-kafka-topics.sh` 전체를 다음으로 교체:\n\n```bash\n#!/usr/bin/env bash\n# scripts/create-kafka-topics.sh\n# Create Kafka topics on MSK cluster (idempotent).\n# Usage:\n#   KAFKA_BROKERS=<broker-list> bash scripts/create-kafka-topics.sh\n#   KAFKA_BROKERS=<broker-list> REPLICATION_FACTOR=1 bash scripts/create-kafka-topics.sh  # local\nset -euo pipefail\n\nBROKER=\"${KAFKA_BROKERS:?Set KAFKA_BROKERS env var (e.g. b-1.msk:9094,b-2.msk:9094)}\"\nREPLICATION=\"${REPLICATION_FACTOR:-3}\"\nMIN_ISR=\"${MIN_INSYNC_REPLICAS:-2}\"\nLOG_FILE=\"kafka-topics-$(date +%Y%m%d-%H%M%S).log\"\n\nTOPICS=(\n  \"platform.auth.user-registered-v1\"\n  \"knowledge.note.note-created-v1\"\n  \"knowledge.note.note-updated-v1\"\n  \"learning.card.review-completed-v1\"\n  \"learning.ai.cards-generated-v1\"\n)\n\nlog() { echo \"[$(date +%H:%M:%S)] $*\" | tee -a \"$LOG_FILE\"; }\n\n# --- 1. Connection check ---\nlog \"Checking connection to $BROKER ...\"\nif ! kafka-broker-api-versions.sh --bootstrap-server \"$BROKER\" --timeout 10000 > /dev/null 2>&1; then\n  log \"ERROR: Cannot connect to Kafka broker at $BROKER\"\n  log \"Check: VPN/Bastion connection, security group, bootstrap server address\"\n  exit 1\nfi\nlog \"Connection OK\"\n\n# --- 2. Create topics ---\ncreated=0\nskipped=0\nfor topic in \"${TOPICS[@]}\"; do\n  existing=$(kafka-topics.sh --bootstrap-server \"$BROKER\" --list 2>/dev/null | grep -cx \"$topic\" || true)\n  if [ \"$existing\" -ge 1 ]; then\n    log \"SKIP (exists): $topic\"\n    ((skipped++))\n  else\n    log \"CREATE: $topic (partitions=3, rf=$REPLICATION, min.isr=$MIN_ISR)\"\n    kafka-topics.sh --bootstrap-server \"$BROKER\" \\\n      --create \\\n      --topic \"$topic\" \\\n      --partitions 3 \\\n      --replication-factor \"$REPLICATION\" \\\n      --config retention.ms=604800000 \\\n      --config cleanup.policy=delete \\\n      --config min.insync.replicas=\"$MIN_ISR\" \\\n      2>&1 | tee -a \"$LOG_FILE\"\n    ((created++))\n  fi\ndone\n\n# --- 3. Verify ---\nlog \"\"\nlog \"=== Result: created=$created, skipped=$skipped ===\"\nlog \"Current topics on cluster:\"\nkafka-topics.sh --bootstrap-server \"$BROKER\" --list 2>&1 | tee -a \"$LOG_FILE\"\nlog \"\"\nlog \"Log saved to $LOG_FILE\"\n```\n\n- [ ] **Step 2: 스크립트 실행 권한 확인**\n\n```bash\nchmod +x scripts/create-kafka-topics.sh\n```\n\n- [ ] **Step 3: MSK_TOPIC_SETUP.md 작성**\n\n`docs/guides/MSK_TOPIC_SETUP.md` 생성:\n\n```markdown\n# MSK 토픽 생성 가이드\n\n## 사전 조건\n\n1. **AWS 인증**: `aws sts get-caller-identity`로 확인\n2. **네트워크 접근**: VPN 또는 SSM Bastion을 통해 MSK 보안그룹 내부 접근 필요\n3. **Kafka CLI**: `kafka-topics.sh` 사용 가능 (MSK Bastion에 설치됨)\n4. **브로커 주소**: 환경별 bootstrap server 확인\n\n## 환경별 브로커 주소\n\n| 환경 | Bootstrap Servers |\n|------|------------------|\n| dev | `b-1.synapsedevkafka.fark5c.c2.kafka.ap-northeast-2.amazonaws.com:9094,b-2.synapsedevkafka.fark5c.c2.kafka.ap-northeast-2.amazonaws.com:9094` |\n| staging | TBD (인프라 프로비저닝 후 업데이트) |\n| prod | TBD (인프라 프로비저닝 후 업데이트) |\n\n## 실행 방법\n\n### Step 1: Bastion 접속\n\n```bash\naws ssm start-session --target <bastion-instance-id> --region ap-northeast-2\n```\n\n### Step 2: 스크립트 실행\n\n**Dev 환경 (replication-factor=3, min.insync.replicas=2):**\n```bash\nKAFKA_BROKERS=\"b-1.synapsedevkafka.fark5c.c2.kafka.ap-northeast-2.amazonaws.com:9094,b-2.synapsedevkafka.fark5c.c2.kafka.ap-northeast-2.amazonaws.com:9094\" \\\n  bash scripts/create-kafka-topics.sh\n```\n\n**로컬 Docker Compose (replication-factor=1):**\n```bash\nKAFKA_BROKERS=\"localhost:9092\" REPLICATION_FACTOR=1 MIN_INSYNC_REPLICAS=1 \\\n  bash scripts/create-kafka-topics.sh\n```\n\n### Step 3: 생성 확인\n\n```bash\nkafka-topics.sh --bootstrap-server \"$KAFKA_BROKERS\" --describe --topic platform.auth.user-registered-v1\n```\n\nExpected:\n- Partitions: 3\n- ReplicationFactor: 3 (dev/staging/prod) or 1 (local)\n- Configs: retention.ms=604800000, cleanup.policy=delete, min.insync.replicas=2\n\n## 생성되는 토픽 목록\n\n| 토픽 | 도메인 | 설명 |\n|------|--------|------|\n| `platform.auth.user-registered-v1` | Platform | 회원가입 이벤트 |\n| `knowledge.note.note-created-v1` | Knowledge | 노트 생성 이벤트 |\n| `knowledge.note.note-updated-v1` | Knowledge | 노트 수정 이벤트 |\n| `learning.card.review-completed-v1` | Learning | 카드 복습 완료 이벤트 |\n| `learning.ai.cards-generated-v1` | Learning | AI 카드 생성 완료 이벤트 |\n\n## 롤백 (토픽 삭제)\n\n> **주의**: 토픽 삭제는 데이터 손실을 수반합니다. dev 환경에서만 사용하세요.\n\n```bash\nkafka-topics.sh --bootstrap-server \"$KAFKA_BROKERS\" \\\n  --delete --topic platform.auth.user-registered-v1\n```\n\n전체 삭제:\n```bash\nfor topic in platform.auth.user-registered-v1 knowledge.note.note-created-v1 knowledge.note.note-updated-v1 learning.card.review-completed-v1 learning.ai.cards-generated-v1; do\n  kafka-topics.sh --bootstrap-server \"$KAFKA_BROKERS\" --delete --topic \"$topic\"\ndone\n```\n\n## 트러블슈팅\n\n| 증상 | 원인 | 해결 |\n|------|------|------|\n| Connection refused | 보안그룹 미허용 또는 VPN 미연결 | SG inbound 9094 확인, VPN/Bastion 연결 확인 |\n| TopicExistsException | 토픽 이미 존재 | 정상 — 스크립트가 자동 스킵 |\n| InvalidReplicationFactorException | RF > broker 수 | `REPLICATION_FACTOR` 값을 broker 수 이하로 설정 |\n```\n\n- [ ] **Step 4: 커밋**\n\n```bash\ngit add scripts/create-kafka-topics.sh docs/guides/MSK_TOPIC_SETUP.md\ngit commit -m \"feat(scripts): enhance MSK topic script — connection check, idempotency, logging\"\n```\n\n---\n\n## Task 9: Kafka E2E 검증 — 테스트 인프라 준비\n\n**Files:**\n- Create: `scripts/kafka-e2e-test.sh`\n- Create: `src/test/resources/e2e-samples/user-registered.json`\n- Create: `src/test/resources/e2e-samples/note-created.json`\n- Create: `src/test/resources/e2e-samples/review-completed.json`\n- Create: `src/test/resources/e2e-samples/cards-generated.json`\n- Create: `docs/guides/KAFKA_E2E_TEST.md`\n\n- [ ] **Step 1: 샘플 이벤트 데이터 작성**\n\n`src/test/resources/e2e-samples/user-registered.json`:\n\n```json\n{\n  \"specversion\": \"1.0\",\n  \"id\": \"e2e-test-001\",\n  \"source\": \"platform-svc\",\n  \"type\": \"platform.auth.user-registered\",\n  \"subject\": \"user/e2e-user-01\",\n  \"time\": \"2026-05-20T09:00:00Z\",\n  \"tenantid\": \"tenant-e2e-001\",\n  \"datacontenttype\": \"application/avro\",\n  \"traceparent\": \"00-e2etest00000000000000000000001-0000000000000001-01\",\n  \"data\": {\n    \"userId\": \"e2e-user-01\",\n    \"email\": \"e2e-user@test.synapse.dev\",\n    \"tenantId\": \"tenant-e2e-001\",\n    \"registeredAt\": \"2026-05-20T09:00:00Z\"\n  }\n}\n```\n\n`src/test/resources/e2e-samples/note-created.json`:\n\n```json\n{\n  \"specversion\": \"1.0\",\n  \"id\": \"e2e-test-002\",\n  \"source\": \"knowledge-svc\",\n  \"type\": \"knowledge.note.note-created\",\n  \"subject\": \"note/e2e-note-01\",\n  \"time\": \"2026-05-20T09:01:00Z\",\n  \"tenantid\": \"tenant-e2e-001\",\n  \"datacontenttype\": \"application/avro\",\n  \"traceparent\": \"00-e2etest00000000000000000000002-0000000000000002-01\",\n  \"data\": {\n    \"noteId\": \"e2e-note-01\",\n    \"tenantId\": \"tenant-e2e-001\",\n    \"title\": \"E2E Test Note\",\n    \"content\": \"This is a test note for Kafka E2E validation.\",\n    \"createdAt\": \"2026-05-20T09:01:00Z\"\n  }\n}\n```\n\n`src/test/resources/e2e-samples/review-completed.json`:\n\n```json\n{\n  \"specversion\": \"1.0\",\n  \"id\": \"e2e-test-003\",\n  \"source\": \"learning-card-svc\",\n  \"type\": \"learning.card.review-completed\",\n  \"subject\": \"card/e2e-card-01\",\n  \"time\": \"2026-05-20T09:02:00Z\",\n  \"tenantid\": \"tenant-e2e-001\",\n  \"datacontenttype\": \"application/avro\",\n  \"traceparent\": \"00-e2etest00000000000000000000003-0000000000000003-01\",\n  \"data\": {\n    \"cardId\": \"e2e-card-01\",\n    \"userId\": \"e2e-user-01\",\n    \"tenantId\": \"tenant-e2e-001\",\n    \"rating\": \"GOOD\",\n    \"nextReviewAt\": \"2026-05-21T09:00:00Z\",\n    \"reviewedAt\": \"2026-05-20T09:02:00Z\"\n  }\n}\n```\n\n`src/test/resources/e2e-samples/cards-generated.json`:\n\n```json\n{\n  \"specversion\": \"1.0\",\n  \"id\": \"e2e-test-004\",\n  \"source\": \"learning-ai-svc\",\n  \"type\": \"learning.ai.cards-generated\",\n  \"subject\": \"note/e2e-note-01\",\n  \"time\": \"2026-05-20T09:03:00Z\",\n  \"tenantid\": \"tenant-e2e-001\",\n  \"datacontenttype\": \"application/avro\",\n  \"traceparent\": \"00-e2etest00000000000000000000004-0000000000000004-01\",\n  \"data\": {\n    \"noteId\": \"e2e-note-01\",\n    \"userId\": \"e2e-user-01\",\n    \"tenantId\": \"tenant-e2e-001\",\n    \"cardCount\": 5,\n    \"generatedAt\": \"2026-05-20T09:03:00Z\"\n  }\n}\n```\n\n- [ ] **Step 2: E2E 테스트 스크립트 작성**\n\n`scripts/kafka-e2e-test.sh`:\n\n```bash\n#!/usr/bin/env bash\n# scripts/kafka-e2e-test.sh\n# Kafka E2E produce/consume smoke test (Docker Compose local environment).\n# Usage: bash scripts/kafka-e2e-test.sh [topic] [sample-file]\n# Example: bash scripts/kafka-e2e-test.sh platform.auth.user-registered-v1 user-registered.json\nset -euo pipefail\n\nBROKER=\"${KAFKA_BROKERS:-localhost:9092}\"\nCONTAINER=\"${KAFKA_CONTAINER:-synapse-kafka}\"\nSAMPLES_DIR=\"src/test/resources/e2e-samples\"\nTIMEOUT=\"${CONSUME_TIMEOUT:-10}\"\n\ntopic=\"${1:-}\"\nsample=\"${2:-}\"\n\nusage() {\n  echo \"Usage: bash $0 <topic> <sample-json>\"\n  echo \"\"\n  echo \"Topics:\"\n  echo \"  platform.auth.user-registered-v1\"\n  echo \"  knowledge.note.note-created-v1\"\n  echo \"  knowledge.note.note-updated-v1\"\n  echo \"  learning.card.review-completed-v1\"\n  echo \"  learning.ai.cards-generated-v1\"\n  echo \"\"\n  echo \"Example:\"\n  echo \"  bash $0 platform.auth.user-registered-v1 user-registered.json\"\n  echo \"\"\n  echo \"Run all:\"\n  echo \"  bash $0 --all\"\n}\n\nproduce_and_consume() {\n  local t=\"$1\" f=\"$2\"\n  local filepath=\"$SAMPLES_DIR/$f\"\n\n  if [ ! -f \"$filepath\" ]; then\n    echo \"ERROR: Sample file not found: $filepath\"\n    return 1\n  fi\n\n  echo \"=== Testing: $t ===\"\n  echo \"[PRODUCE] Sending message from $f ...\"\n\n  # Produce via docker exec\n  docker exec -i \"$CONTAINER\" kafka-console-producer \\\n    --bootstrap-server kafka:29092 \\\n    --topic \"$t\" \\\n    < \"$filepath\"\n\n  echo \"[PRODUCE] OK\"\n\n  echo \"[CONSUME] Reading from $t (timeout=${TIMEOUT}s) ...\"\n  docker exec \"$CONTAINER\" kafka-console-consumer \\\n    --bootstrap-server kafka:29092 \\\n    --topic \"$t\" \\\n    --from-beginning \\\n    --max-messages 1 \\\n    --timeout-ms \"$((TIMEOUT * 1000))\"\n\n  echo \"[CONSUME] OK\"\n  echo \"\"\n}\n\nif [ \"$topic\" = \"--all\" ]; then\n  produce_and_consume \"platform.auth.user-registered-v1\" \"user-registered.json\"\n  produce_and_consume \"knowledge.note.note-created-v1\" \"note-created.json\"\n  produce_and_consume \"learning.card.review-completed-v1\" \"review-completed.json\"\n  produce_and_consume \"learning.ai.cards-generated-v1\" \"cards-generated.json\"\n  echo \"=== All E2E smoke tests passed ===\"\nelif [ -n \"$topic\" ] && [ -n \"$sample\" ]; then\n  produce_and_consume \"$topic\" \"$sample\"\nelse\n  usage\n  exit 1\nfi\n```\n\n- [ ] **Step 3: 스크립트 실행 권한**\n\n```bash\nchmod +x scripts/kafka-e2e-test.sh\n```\n\n- [ ] **Step 4: KAFKA_E2E_TEST.md 작성**\n\n`docs/guides/KAFKA_E2E_TEST.md`:\n\n```markdown\n# Kafka E2E 검증 가이드\n\n## 개요\n\n4개 이벤트 흐름을 Docker Compose 로컬 환경에서 검증한다.\n\n## 사전 조건\n\n1. Docker Compose 실행 중: `docker compose up -d`\n2. 모든 서비스 healthy: `docker compose ps`\n3. Kafka 토픽 생성 완료 (kafka-init 서비스가 자동 생성)\n\n## 검증 시나리오\n\n### 시나리오 1: 회원가입 → 프로필 생성\n\n| 항목 | 값 |\n|------|---|\n| Producer | platform-svc |\n| Topic | `platform.auth.user-registered-v1` |\n| Consumer | engagement-svc |\n| 검증 | engagement-svc 로그에서 이벤트 수신 확인 + DB에 프로필 레코드 생성 |\n\n**수동 테스트 (서비스 구현 전 — 메시지 흐름만 확인):**\n```bash\nbash scripts/kafka-e2e-test.sh platform.auth.user-registered-v1 user-registered.json\n```\n\n**서비스 구현 후 E2E 테스트:**\n```bash\n# 1. platform-svc에 회원가입 API 호출\ncurl -X POST http://localhost:8081/api/v1/auth/register \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"email\":\"e2e@test.com\",\"password\":\"Test1234!\"}'\n\n# 2. engagement-svc 로그에서 이벤트 수신 확인\ndocker logs synapse-engagement-svc 2>&1 | grep \"user-registered\"\n\n# 3. engagement-svc DB에서 프로필 확인\ndocker exec synapse-postgres psql -U synapse -c \\\n  \"SELECT * FROM engagement.user_profiles WHERE email='e2e@test.com'\"\n```\n\n### 시나리오 2: 노트 생성 → AI 카드 생성\n\n| 항목 | 값 |\n|------|---|\n| Producer | knowledge-svc |\n| Topic | `knowledge.note.note-created-v1` |\n| Consumer | learning-ai-svc |\n| 검증 | learning-ai-svc 로그에서 카드 생성 트리거 확인 |\n\n**수동 테스트:**\n```bash\nbash scripts/kafka-e2e-test.sh knowledge.note.note-created-v1 note-created.json\n```\n\n### 시나리오 3: 카드 복습 → XP 적립\n\n| 항목 | 값 |\n|------|---|\n| Producer | learning-card-svc |\n| Topic | `learning.card.review-completed-v1` |\n| Consumer | engagement-svc |\n| 검증 | engagement-svc에서 XP 포인트 증가 확인 |\n\n**수동 테스트:**\n```bash\nbash scripts/kafka-e2e-test.sh learning.card.review-completed-v1 review-completed.json\n```\n\n### 시나리오 4: AI 카드 완료 → 알림\n\n| 항목 | 값 |\n|------|---|\n| Producer | learning-ai-svc |\n| Topic | `learning.ai.cards-generated-v1` |\n| Consumer | platform-svc |\n| 검증 | platform-svc 알림 로그 확인 |\n\n**수동 테스트:**\n```bash\nbash scripts/kafka-e2e-test.sh learning.ai.cards-generated-v1 cards-generated.json\n```\n\n## 전체 스모크 테스트 (한 번에 실행)\n\n```bash\nbash scripts/kafka-e2e-test.sh --all\n```\n\n## 트러블슈팅\n\n| 증상 | 원인 | 해결 |\n|------|------|------|\n| `Topic not found` | kafka-init 미완료 | `docker compose restart kafka-init` |\n| `Connection refused` | Kafka 미기동 | `docker compose up -d kafka` + health 대기 |\n| Consume timeout | 메시지 미도착 | Producer 로그 확인, 토픽 파티션 확인 |\n| Serialization error | 스키마 불일치 | Schema Registry에 등록된 스키마 버전 확인 |\n```\n\n- [ ] **Step 5: 커밋**\n\n```bash\ngit add scripts/kafka-e2e-test.sh src/test/resources/e2e-samples/ docs/guides/KAFKA_E2E_TEST.md\ngit commit -m \"feat(e2e): Kafka E2E test script + sample events + verification guide\"\n```\n\n---\n\n## Task 10: ArgoCD dev/staging 배포 검증 계획\n\n**Files:**\n- Create: `docs/guides/ARGOCD_DEPLOY_VERIFICATION.md`\n\n> **참고**: synapse-gitops의 ApplicationSet은 이미 `targetRevision: main`을 사용 중이며, 5개 서비스(platform-svc, engagement-svc, knowledge-svc, learning-card, learning-ai) × dev 환경이 정의되어 있다. gateway는 ApplicationSet에 포함되어 있지 않으므로 별도 확인 필요.\n\n- [ ] **Step 1: ARGOCD_DEPLOY_VERIFICATION.md 작성**\n\n`docs/guides/ARGOCD_DEPLOY_VERIFICATION.md`:\n\n```markdown\n# ArgoCD Dev/Staging 배포 검증 가이드\n\n## 현재 ArgoCD 구성 요약\n\n### ApplicationSet (`argocd/applicationset.yaml`)\n\n- **Generator**: Matrix (5 services × environments)\n- **Services**: platform-svc, engagement-svc, knowledge-svc, learning-card, learning-ai\n- **Environments**: dev (현재), staging/prod (추후)\n- **Sync Policy**: automated (prune: true, selfHeal: true)\n- **Source**: `synapse-gitops` repo, `apps/{service}/overlays/{env}` 경로\n- **targetRevision**: `main`\n\n### 서비스별 오버레이 구조\n\n```\napps/\n├── platform-svc/\n│   ├── base/          (deployment, service, configmap, externalsecret)\n│   └── overlays/dev/  (replicas=1, DEBUG, dev DB/Redis/Kafka endpoints)\n├── engagement-svc/\n│   ├── base/\n│   └── overlays/dev/\n├── knowledge-svc/\n│   ├── base/\n│   └── overlays/dev/\n├── learning-card/\n│   ├── base/\n│   └── overlays/dev/\n└── learning-ai/\n    ├── base/\n    └── overlays/dev/\n```\n\n### 이미지 업데이트 전략\n\n- **ArgoCD Image Updater** 사용 (semver 태그 매칭)\n- ECR: `963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/{service}`\n- Write-back: Git (kustomization)\n\n> **주의**: synapse-gateway는 ApplicationSet에 미포함. 별도 Application 또는 ApplicationSet 확장 필요.\n\n## Dev 환경 배포 검증\n\n### Step 1: ArgoCD 접속\n\n```bash\n# ArgoCD 서버 포트포워드 (EKS 클러스터에서)\nkubectl port-forward svc/argocd-server -n argocd 8443:443\n\n# 브라우저: https://localhost:8443\n# 또는 CLI:\nargocd login localhost:8443 --insecure\n```\n\n### Step 2: Application 상태 확인\n\n```bash\n# 전체 Application 목록\nargocd app list\n\n# 개별 서비스 상태\nargocd app get synapse-platform-svc-dev\nargocd app get synapse-engagement-svc-dev\nargocd app get synapse-knowledge-svc-dev\nargocd app get synapse-learning-card-dev\nargocd app get synapse-learning-ai-dev\n```\n\nExpected: 각 앱이 `Synced` + `Healthy` 상태\n\n### Step 3: Pod 상태 확인\n\n```bash\nkubectl get pods -n synapse-dev\nkubectl describe pod -n synapse-dev -l app.kubernetes.io/component=platform-svc\n```\n\nExpected: 모든 Pod `Running`, readiness/liveness probe 통과\n\n### Step 4: 서비스 간 네트워크 확인\n\n```bash\n# Gateway → 각 서비스 통신 (gateway Pod에서)\nkubectl exec -n synapse-dev deploy/gateway -- curl -s http://platform-svc:8081/actuator/health\nkubectl exec -n synapse-dev deploy/gateway -- curl -s http://engagement-svc:8082/actuator/health\nkubectl exec -n synapse-dev deploy/gateway -- curl -s http://knowledge-svc:8083/actuator/health\nkubectl exec -n synapse-dev deploy/gateway -- curl -s http://learning-card-svc:8084/actuator/health\n```\n\n### Step 5: Kafka 연결 확인\n\n```bash\n# 서비스 로그에서 Kafka 연결 확인\nkubectl logs -n synapse-dev deploy/platform-svc | grep -i \"kafka\\|bootstrap\"\n```\n\nExpected: Kafka bootstrap 연결 성공 로그\n\n## Staging 환경 배포 검증\n\n### 사전 작업: staging 오버레이 생성\n\n각 서비스의 `overlays/staging/kustomization.yaml` 생성 필요:\n- replicas: 2 (HA)\n- LOG_LEVEL: INFO\n- SPRING_PROFILES_ACTIVE: staging\n- staging DB/Redis/Kafka endpoints\n\nApplicationSet generator에 `env: staging` 추가:\n\n```yaml\n- list:\n    elements:\n      - env: dev\n      - env: staging  # 추가\n```\n\n### Manual Sync 워크플로\n\nStaging은 자동 sync 대신 수동 승인:\n\n```yaml\nsyncPolicy:\n  # automated 제거 → 수동 sync\n  syncOptions:\n    - CreateNamespace=true\n```\n\n```bash\n# 수동 sync 실행\nargocd app sync synapse-platform-svc-staging\n```\n\n### Dev → Staging 프로모션 절차\n\n1. Dev에서 검증 완료된 이미지 태그 확인\n2. Staging kustomization에 동일 태그 설정\n3. PR → main 머지 → ArgoCD manual sync\n\n```bash\n# Dev 이미지 태그 확인\nkubectl get deploy -n synapse-dev platform-svc -o jsonpath='{.spec.template.spec.containers[0].image}'\n\n# Staging kustomization 업데이트\ncd apps/platform-svc/overlays/staging\nkustomize edit set image 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/platform-svc:TAG\n```\n\n## Rollback 절차\n\n### ArgoCD Rollback (빠른 복구)\n\n```bash\n# 이전 배포 이력 확인\nargocd app history synapse-platform-svc-dev\n\n# 특정 리비전으로 롤백\nargocd app rollback synapse-platform-svc-dev <REVISION>\n```\n\n### Git Revert (영구 롤백)\n\n```bash\n# 문제 커밋 식별\ngit log --oneline -5\n\n# Revert 커밋\ngit revert <COMMIT_SHA>\ngit push\n\n# ArgoCD가 자동 sync (dev) 또는 수동 sync (staging)\n```\n\n### 긴급 롤백 체크리스트\n\n- [ ] 문제 서비스 식별\n- [ ] ArgoCD에서 이전 리비전으로 롤백\n- [ ] Pod 상태 확인 (Running, Healthy)\n- [ ] 헬스체크 통과 확인\n- [ ] 로그에서 에러 없음 확인\n- [ ] 원인 분석 후 Git revert PR 생성\n```\n\n- [ ] **Step 2: 커밋**\n\n```bash\ngit add docs/guides/ARGOCD_DEPLOY_VERIFICATION.md\ngit commit -m \"docs: ArgoCD dev/staging deploy verification guide\"\n```\n\n---\n\n## Task 11: 팀원 체크리스트 + 테스트 데이터 시드\n\n**Files:**\n- Create: `docs/guides/TEAM_CHECKLIST_W3.md`\n- Create: `scripts/seed-test-data.sh`\n- Create: `src/test/resources/seed/V001__test_users.sql`\n- Create: `src/test/resources/seed/V002__test_notes.sql`\n- Create: `src/test/resources/seed/V003__test_cards.sql`\n\n- [ ] **Step 1: TEAM_CHECKLIST_W3.md 작성**\n\n`docs/guides/TEAM_CHECKLIST_W3.md`:\n\n```markdown\n# W3 팀원 Kafka 구현 체크리스트\n\n> **목적**: W3~W4 Kafka E2E 검증 전에 각 서비스가 준비해야 할 항목\n\n## 공통 요구사항\n\n모든 Producer/Consumer는 다음을 충족해야 합니다:\n\n- [ ] **Avro 직렬화/역직렬화**: Schema Registry 연동 (`KafkaAvroSerializer`/`KafkaAvroDeserializer`)\n- [ ] **CloudEvent 래핑**: `CloudEventEnvelope.avsc` 기반 (specversion, id, source, type, subject, time, tenantid, traceparent)\n- [ ] **Consumer Group**: 서비스명 기반 (`{service-name}-group`)\n- [ ] **에러 핸들링**: 역직렬화 실패 시 로그 + 스킵 (DLT 전송은 Phase 2)\n- [ ] **멱등성**: 동일 이벤트 재처리 시 부작용 없음 (eventId 기반 중복 체크)\n- [ ] **application.yml 설정**: Kafka bootstrap, Schema Registry URL, consumer group\n\n### 공통 Kafka 설정 예시 (application.yml)\n\n```yaml\nspring:\n  kafka:\n    bootstrap-servers: ${KAFKA_BROKERS:kafka:29092}\n    properties:\n      schema.registry.url: ${SCHEMA_REGISTRY_URL:http://schema-registry:8081}\n    producer:\n      key-serializer: org.apache.kafka.common.serialization.StringSerializer\n      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer\n    consumer:\n      group-id: ${spring.application.name}-group\n      auto-offset-reset: earliest\n      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer\n      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer\n      properties:\n        specific.avro.reader: true\n```\n\n## 서비스별 체크리스트\n\n### platform-svc (@팀원A)\n\n**Producer:**\n- [ ] `UserRegistered` 이벤트 발행 → `platform.auth.user-registered-v1`\n- [ ] 회원가입 API 성공 후 이벤트 발행\n- [ ] 단위 테스트: Producer mock으로 이벤트 발행 검증\n\n**Consumer:**\n- [ ] `CardsGenerated` 이벤트 수신 ← `learning.ai.cards-generated-v1`\n- [ ] 알림 트리거 로직 구현\n- [ ] 단위 테스트: Consumer mock으로 이벤트 처리 검증\n\n### knowledge-svc (@팀원B)\n\n**Producer:**\n- [ ] `NoteCreated` 이벤트 발행 → `knowledge.note.note-created-v1`\n- [ ] `NoteUpdated` 이벤트 발행 → `knowledge.note.note-updated-v1`\n- [ ] 노트 생성/수정 API 성공 후 이벤트 발행\n- [ ] 단위 테스트\n\n**Consumer:** 없음\n\n### learning-card-svc (@팀원C)\n\n**Producer:**\n- [ ] `ReviewCompleted` 이벤트 발행 → `learning.card.review-completed-v1`\n- [ ] 카드 복습 API 성공 후 이벤트 발행\n- [ ] 단위 테스트\n\n**Consumer:** 없음\n\n### learning-ai-svc (@팀원D)\n\n**Producer:**\n- [ ] `CardsGenerated` 이벤트 발행 → `learning.ai.cards-generated-v1`\n- [ ] AI 카드 생성 완료 후 이벤트 발행\n- [ ] Python Avro 직렬화 (`confluent-kafka[avro]` 패키지)\n\n**Consumer:**\n- [ ] `NoteCreated` 이벤트 수신 ← `knowledge.note.note-created-v1`\n- [ ] 노트 수신 → AI 카드 생성 파이프라인 트리거\n- [ ] Consumer group: `learning-ai-svc-group`\n\n### engagement-svc (@팀원E)\n\n**Consumer:**\n- [ ] `UserRegistered` 이벤트 수신 ← `platform.auth.user-registered-v1`\n- [ ] 프로필 레코드 자동 생성\n- [ ] `ReviewCompleted` 이벤트 수신 ← `learning.card.review-completed-v1`\n- [ ] XP 포인트 적립 로직\n- [ ] 멱등성 처리 (동일 reviewId 중복 적립 방지)\n\n**Producer:** 없음\n\n## 완료 기준\n\n각 서비스가 아래를 모두 충족하면 E2E 검증 시작:\n\n1. Docker Compose로 기동 시 Kafka 연결 성공 (로그 확인)\n2. Producer: API 호출 → 토픽에 메시지 발행 확인 (`kafka-console-consumer`로 확인)\n3. Consumer: 토픽 메시지 수신 → 비즈니스 로직 실행 확인 (로그 + DB 확인)\n4. 단위 테스트 통과\n\n## E2E 검증 가이드\n\n구현 완료 후 `docs/guides/KAFKA_E2E_TEST.md`의 시나리오를 순서대로 실행하세요.\n```\n\n- [ ] **Step 2: SQL 시드 파일 작성**\n\n`src/test/resources/seed/V001__test_users.sql`:\n\n```sql\n-- V001__test_users.sql\n-- E2E 테스트용 유저 시드 데이터\n-- Docker Compose 로컬 환경 (synapse DB) 기준\n\n-- Tenant 1: 기본 테스트 테넌트\nINSERT INTO platform.users (id, email, tenant_id, created_at)\nVALUES\n  ('e2e-user-01', 'alice@test.synapse.dev', 'tenant-e2e-001', '2026-05-20 09:00:00'),\n  ('e2e-user-02', 'bob@test.synapse.dev',   'tenant-e2e-001', '2026-05-20 09:00:00')\nON CONFLICT (id) DO NOTHING;\n\n-- Tenant 2: 멀티테넌시 테스트\nINSERT INTO platform.users (id, email, tenant_id, created_at)\nVALUES\n  ('e2e-user-03', 'carol@test.synapse.dev', 'tenant-e2e-002', '2026-05-20 09:00:00')\nON CONFLICT (id) DO NOTHING;\n```\n\n`src/test/resources/seed/V002__test_notes.sql`:\n\n```sql\n-- V002__test_notes.sql\n-- E2E 테스트용 노트 시드 데이터\n\nINSERT INTO knowledge.notes (id, user_id, tenant_id, title, content, created_at)\nVALUES\n  ('e2e-note-01', 'e2e-user-01', 'tenant-e2e-001',\n   'Kafka Basics', 'Introduction to Apache Kafka event streaming.',\n   '2026-05-20 09:01:00'),\n  ('e2e-note-02', 'e2e-user-01', 'tenant-e2e-001',\n   'Distributed Systems', 'CAP theorem and consistency models.',\n   '2026-05-20 09:01:00')\nON CONFLICT (id) DO NOTHING;\n```\n\n`src/test/resources/seed/V003__test_cards.sql`:\n\n```sql\n-- V003__test_cards.sql\n-- E2E 테스트용 플래시카드 시드 데이터\n\nINSERT INTO learning.cards (id, note_id, user_id, tenant_id, front, back, next_review_at, created_at)\nVALUES\n  ('e2e-card-01', 'e2e-note-01', 'e2e-user-01', 'tenant-e2e-001',\n   'What is Kafka?', 'A distributed event streaming platform.',\n   '2026-05-21 09:00:00', '2026-05-20 09:01:00'),\n  ('e2e-card-02', 'e2e-note-01', 'e2e-user-01', 'tenant-e2e-001',\n   'What is a Kafka topic?', 'A category/feed name to which records are published.',\n   '2026-05-21 09:00:00', '2026-05-20 09:01:00'),\n  ('e2e-card-03', 'e2e-note-02', 'e2e-user-01', 'tenant-e2e-001',\n   'What is CAP theorem?', 'A distributed system can only guarantee 2 of 3: Consistency, Availability, Partition tolerance.',\n   '2026-05-21 09:00:00', '2026-05-20 09:01:00')\nON CONFLICT (id) DO NOTHING;\n```\n\n- [ ] **Step 3: seed-test-data.sh 작성**\n\n`scripts/seed-test-data.sh`:\n\n```bash\n#!/usr/bin/env bash\n# scripts/seed-test-data.sh\n# Seed test data into PostgreSQL (Docker Compose local environment).\n# Usage: bash scripts/seed-test-data.sh\nset -euo pipefail\n\nCONTAINER=\"${POSTGRES_CONTAINER:-synapse-postgres}\"\nDB=\"${POSTGRES_DB:-synapse}\"\nUSER=\"${POSTGRES_USER:-synapse}\"\nSEED_DIR=\"src/test/resources/seed\"\n\necho \"=== Seeding test data into $DB ===\"\n\nfor sql in \"$SEED_DIR\"/V*.sql; do\n  filename=$(basename \"$sql\")\n  echo \"[SEED] Applying $filename ...\"\n  docker exec -i \"$CONTAINER\" psql -U \"$USER\" -d \"$DB\" < \"$sql\"\ndone\n\necho \"\"\necho \"=== Seed complete. Verifying... ===\"\necho \"\"\n\necho \"[CHECK] platform.users:\"\ndocker exec \"$CONTAINER\" psql -U \"$USER\" -d \"$DB\" -c \\\n  \"SELECT id, email, tenant_id FROM platform.users WHERE id LIKE 'e2e-%';\"\n\necho \"[CHECK] knowledge.notes:\"\ndocker exec \"$CONTAINER\" psql -U \"$USER\" -d \"$DB\" -c \\\n  \"SELECT id, title, tenant_id FROM knowledge.notes WHERE id LIKE 'e2e-%';\"\n\necho \"[CHECK] learning.cards:\"\ndocker exec \"$CONTAINER\" psql -U \"$USER\" -d \"$DB\" -c \\\n  \"SELECT id, front, tenant_id FROM learning.cards WHERE id LIKE 'e2e-%';\"\n\necho \"\"\necho \"=== Done ===\"\n```\n\n- [ ] **Step 4: 스크립트 실행 권한**\n\n```bash\nchmod +x scripts/seed-test-data.sh\n```\n\n- [ ] **Step 5: 커밋**\n\n```bash\ngit add docs/guides/TEAM_CHECKLIST_W3.md \\\n        scripts/seed-test-data.sh \\\n        src/test/resources/seed/\ngit commit -m \"feat: W3 team checklist + test data seed scripts\"\n```\n\n---\n\n## Task 12: synapse-shared 전체 변경사항 브랜치 + PR\n\n> Tasks 8~11에서 만든 synapse-shared 변경사항을 별도 브랜치로 분리하여 PR 생성.\n\n**주의**: Tasks 8~11의 커밋이 main에 직접 들어갔다면, 아래 절차로 브랜치를 만들어야 한다. 처음부터 브랜치에서 작업했다면 이 Task는 푸시 + PR 생성만 수행.\n\n- [ ] **Step 1: 브랜치 전략 결정**\n\n현재 main에 커밋이 쌓여 있는 경우:\n\n```bash\ncd ../synapse-shared\n\n# main에서 새 브랜치 생성 (이미 커밋한 상태이므로 현재 HEAD 사용)\ngit checkout -b chore/w2w3-ops-prep\n\n# 또는, 처음부터 브랜치에서 작업 시작:\n# git checkout main && git pull && git checkout -b chore/w2w3-ops-prep\n# 그 후 Tasks 8~11 수행\n```\n\n- [ ] **Step 2: 푸시 + PR 생성**\n\n```bash\ngit push -u origin chore/w2w3-ops-prep\n```\n\nPR 생성:\n- Title: `chore: W2/W3 운영 정비 — MSK 스크립트 + E2E 준비 + 가이드 문서`\n- Base: `main` (또는 `dev` if exists)\n- Body:\n\n```markdown\n## Summary\n- MSK 토픽 생성 스크립트 보강 (연결 확인, 멱등성, 로깅, min.insync.replicas)\n- Kafka E2E 테스트 스크립트 + 샘플 이벤트 데이터\n- PostgreSQL 테스트 데이터 시드 스크립트\n- 가이드 문서 4건 (MSK 토픽, E2E 검증, ArgoCD 배포, 팀원 체크리스트)\n\n## 관련 설계\n- `docs/superpowers/specs/2026-05-20-w2w3-ops-and-prep-design.md`\n\n## Test plan\n- [ ] `scripts/create-kafka-topics.sh` — Docker Compose 환경에서 REPLICATION_FACTOR=1로 실행 확인\n- [ ] `scripts/kafka-e2e-test.sh --all` — 로컬 Kafka에서 produce/consume 동작 확인\n- [ ] `scripts/seed-test-data.sh` — PostgreSQL 시드 실행 확인 (스키마 존재 시)\n- [ ] 가이드 문서 마크다운 렌더링 확인\n```\n\n---\n\n## Summary: PR 전체 목록\n\n| # | 레포 | 브랜치 | PR 대상 | 내용 |\n|---|------|--------|---------|------|\n| 1 | synapse-gateway | `chore/rename-master-to-main` | master | 워크플로 master→main + ecr-login@v3 |\n| 2 | synapse-gitops | `chore/upgrade-github-actions` | main | setup-dart@v2, upload-pages-artifact@v4 |\n| 3 | documents | `chore/upgrade-github-actions` | main | node-version 20→22 |\n| 4 | schedule-repo | `chore/upgrade-github-actions` | main | node 20→22, upload-pages-artifact@v4 |\n| 5 | moking-data-guide | `chore/upgrade-github-actions` | main | upload-pages-artifact@v4 |\n| 6 | workflow-dashboard | `chore/upgrade-github-actions` | main | upload-pages-artifact@v4 |\n| 7 | synapse-shared | `chore/w2w3-ops-prep` | main | 스크립트 + 문서 + 시드 |\n"
+}

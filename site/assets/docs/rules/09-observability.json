@@ -1,0 +1,58 @@
+{
+  "slug": "09-observability",
+  "title": "9. 관측성 RULE — Observability\r",
+  "category": "rules",
+  "source": "synapse-shared",
+  "tags": [
+    "kafka"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-14",
+    "status": "active",
+    "completionRate": null
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "9.1 로깅 \\[SHOULD\\]",
+      "anchor": "91-로깅-should"
+    },
+    {
+      "level": 3,
+      "text": "logback-spring.xml JSON 포맷 예시",
+      "anchor": "logback-springxml-json-포맷-예시"
+    },
+    {
+      "level": 2,
+      "text": "9.2 메트릭 \\[SHOULD\\]",
+      "anchor": "92-메트릭-should"
+    },
+    {
+      "level": 3,
+      "text": "핵심 비즈니스 메트릭",
+      "anchor": "핵심-비즈니스-메트릭"
+    },
+    {
+      "level": 3,
+      "text": "Counter 등록 예시",
+      "anchor": "counter-등록-예시"
+    },
+    {
+      "level": 2,
+      "text": "9.3 트레이싱 \\[SHOULD\\]",
+      "anchor": "93-트레이싱-should"
+    },
+    {
+      "level": 3,
+      "text": "설정 예시",
+      "anchor": "설정-예시"
+    },
+    {
+      "level": 3,
+      "text": "Kafka Consumer 체인 전파",
+      "anchor": "kafka-consumer-체인-전파"
+    }
+  ],
+  "body": "# 9. 관측성 RULE — Observability\r\n\r\n> **참조**: [전체 Rule 목록](../rules/) | [준수 체크리스트](appendix-c-checklist.md)\r\n\r\n---\r\n\r\n## 9.1 로깅 \\[SHOULD\\]\r\n\r\n로그는 **구조화 JSON** 포맷으로 출력해. `traceId`와 `spanId`는 MDC에서 자동 주입되게 설정해야 해.\r\n사람이 읽기 좋은 텍스트 로그는 로컬 개발에서만 써.\r\n\r\n### logback-spring.xml JSON 포맷 예시\r\n\r\n```xml\r\n<!-- ✅ Good — 구조화 JSON 로깅 -->\r\n<configuration>\r\n  <springProfile name=\"!local\">\r\n    <appender name=\"JSON\" class=\"ch.qos.logback.core.ConsoleAppender\">\r\n      <encoder class=\"net.logstash.logback.encoder.LogstashEncoder\">\r\n        <includeMdcKeyName>traceId</includeMdcKeyName>\r\n        <includeMdcKeyName>spanId</includeMdcKeyName>\r\n      </encoder>\r\n    </appender>\r\n    <root level=\"INFO\">\r\n      <appender-ref ref=\"JSON\" />\r\n    </root>\r\n  </springProfile>\r\n</configuration>\r\n```\r\n\r\n```java\r\n// ❌ Bad — 비구조화 텍스트 로깅 + 수동 컨텍스트\r\nlog.info(\"User \" + userId + \" created card \" + cardId + \" at \" + timestamp);\r\n```\r\n\r\n```java\r\n// ✅ Good — 구조화 로깅 + 자동 traceId 주입\r\nlog.info(\"카드 생성 완료\", kv(\"userId\", userId), kv(\"cardId\", cardId));\r\n```\r\n\r\n> **이유**: JSON 구조화 로그여야 Loki/ELK에서 필드 기반 검색이 가능해. traceId가 없으면 분산 환경에서 요청 추적이 불가능해.\r\n\r\n---\r\n\r\n## 9.2 메트릭 \\[SHOULD\\]\r\n\r\nSpring Boot는 **Actuator + Micrometer**로 메트릭을 노출해. 인프라 메트릭(CPU, 메모리)은 자동 수집되니까,\r\n팀이 직접 정의해야 하는 건 **비즈니스 메트릭**이야.\r\n\r\n### 핵심 비즈니스 메트릭\r\n\r\n| 메트릭 이름 | 타입 | 설명 |\r\n|---|---|---|\r\n| `card_review_total` | Counter | 카드 리뷰 완료 횟수 |\r\n| `note_created_total` | Counter | 노트 생성 횟수 |\r\n| `study_session_duration_seconds` | Timer | 학습 세션 지속 시간 |\r\n\r\n### Counter 등록 예시\r\n\r\n```java\r\n// ✅ Good — Micrometer Counter 등록\r\n@Component\r\n@RequiredArgsConstructor\r\npublic class CardMetrics {\r\n    private final MeterRegistry registry;\r\n\r\n    public void recordReview(String result) {\r\n        registry.counter(\"card_review_total\",\r\n            \"result\", result   // \"correct\" or \"incorrect\"\r\n        ).increment();\r\n    }\r\n}\r\n```\r\n\r\n```java\r\n// ❌ Bad — 메트릭 없이 로그로만 추적\r\nlog.info(\"Card reviewed: result={}\", result);\r\n```\r\n\r\n> **이유**: 로그는 개별 이벤트 추적용이고, 메트릭은 추세와 알림용이야. \"지난 5분간 리뷰 실패율 30% 초과\" 같은 조건은 메트릭이 있어야 알림을 걸 수 있어.\r\n\r\n---\r\n\r\n## 9.3 트레이싱 \\[SHOULD\\]\r\n\r\n분산 트레이싱은 **OpenTelemetry** 표준을 따라. Spring Boot 3.x는 Micrometer Tracing + OTLP exporter 조합을 써.\r\n\r\n### 설정 예시\r\n\r\n```yaml\r\n# ✅ Good — application.yml OTLP 트레이싱 설정\r\nmanagement:\r\n  tracing:\r\n    sampling:\r\n      probability: 1.0   # dev: 100%, prod: 0.1 권장\r\n  otlp:\r\n    tracing:\r\n      endpoint: http://otel-collector:4318/v1/traces\r\n```\r\n\r\n### Kafka Consumer 체인 전파\r\n\r\nKafka를 통한 비동기 처리에서도 traceId가 끊기지 않게 **헤더로 전파**해야 해.\r\n\r\n```java\r\n// ✅ Good — spring-kafka + micrometer-tracing 조합 시 traceId 자동 전파\r\n@KafkaListener(topics = \"card-events\")\r\npublic void handle(@Payload CardEvent event,\r\n                   @Header(KafkaHeaders.RECEIVED_KEY) String key) {\r\n    // traceId는 Kafka 헤더에서 자동 추출됨\r\n    log.info(\"카드 이벤트 처리\", kv(\"cardId\", event.cardId()));\r\n}\r\n```\r\n\r\n```java\r\n// ❌ Bad — Kafka consumer에서 새 trace 시작 (체인 끊김)\r\n@KafkaListener(topics = \"card-events\")\r\npublic void handle(CardEvent event) {\r\n    Span span = tracer.nextSpan().name(\"process-card\").start(); // 새 trace!\r\n    // 이전 요청과 연결 안 됨\r\n}\r\n```\r\n\r\n> **이유**: Kafka 같은 비동기 경계에서 traceId가 끊기면 \"이 이벤트가 어떤 API 요청에서 시작된 건지\" 추적이 불가능해져.\r\n"
+}

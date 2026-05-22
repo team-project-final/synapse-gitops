@@ -1,0 +1,65 @@
+{
+  "slug": "platform-svc_fix_request",
+  "title": "수정 요청: platform-svc CrashLoopBackOff",
+  "category": "fix-requests",
+  "source": "synapse-shared",
+  "tags": [
+    "rds",
+    "dev",
+    "flyway"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-21",
+    "status": "active",
+    "completionRate": null
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "증상",
+      "anchor": "증상"
+    },
+    {
+      "level": 2,
+      "text": "근본 원인",
+      "anchor": "근본-원인"
+    },
+    {
+      "level": 2,
+      "text": "인프라 측 이미 해결한 사항",
+      "anchor": "인프라-측-이미-해결한-사항"
+    },
+    {
+      "level": 2,
+      "text": "요청 수정 사항",
+      "anchor": "요청-수정-사항"
+    },
+    {
+      "level": 3,
+      "text": "방법 A: Flyway Migration 추가 (권장)",
+      "anchor": "방법-a-flyway-migration-추가-권장"
+    },
+    {
+      "level": 3,
+      "text": "방법 B: ddl-auto 설정 변경",
+      "anchor": "방법-b-ddl-auto-설정-변경"
+    },
+    {
+      "level": 3,
+      "text": "방법 C: MFA 기능 비활성화 (임시)",
+      "anchor": "방법-c-mfa-기능-비활성화-임시"
+    },
+    {
+      "level": 2,
+      "text": "검증 방법",
+      "anchor": "검증-방법"
+    },
+    {
+      "level": 2,
+      "text": "기한",
+      "anchor": "기한"
+    }
+  ],
+  "body": "# 수정 요청: platform-svc CrashLoopBackOff\n\n> **작성일**: 2026-05-21\n> **작성자**: @team-lead (인프라/GitOps)\n> **대상**: platform-svc 담당자\n> **우선순위**: High — dev 환경 배포 차단 중\n> **관련 PR**: synapse-gitops#35 (probe delay 수정)\n\n---\n\n## 증상\n\nEKS `synapse-dev` namespace에서 `platform-svc` Pod가 **CrashLoopBackOff** 상태.\n\n```\n상태: Progressing (ArgoCD)\nPod:  CrashLoopBackOff → restart 반복\n```\n\n## 근본 원인\n\nDB(RDS PostgreSQL) 연결은 성공하나, 애플리케이션 기동 시 **`mfa_credentials` 테이블이 존재하지 않아** 크래시 발생.\n\n- Spring Boot의 JPA/Hibernate가 기동 시 `mfa_credentials` 테이블을 참조하는데 해당 테이블이 DB에 없음\n- 인프라 레벨(SG, RDS 접근, ExternalSecret)은 모두 정상 — **앱 코드 레벨 문제**\n\n## 인프라 측 이미 해결한 사항\n\n| 항목 | 상태 |\n|------|:----:|\n| EKS Security Group → RDS/MSK/Redis/OpenSearch 접근 | ✅ |\n| ExternalSecret → SecretSynced (DB 접속 정보 주입) | ✅ |\n| liveness probe initialDelaySeconds 30s → 90s | ✅ (gitops PR #35) |\n| Pod가 DB에 TCP 연결 성공 | ✅ |\n\n## 요청 수정 사항\n\n아래 중 하나를 선택하여 수정해주세요:\n\n### 방법 A: Flyway Migration 추가 (권장)\n\n`mfa_credentials` 테이블을 생성하는 Flyway migration 스크립트를 추가합니다.\n\n```\nsrc/main/resources/db/migration/V{N}__create_mfa_credentials.sql\n```\n\n```sql\nCREATE TABLE IF NOT EXISTS mfa_credentials (\n    id              BIGSERIAL PRIMARY KEY,\n    user_id         BIGINT NOT NULL REFERENCES users(id),\n    secret_key      VARCHAR(255) NOT NULL,\n    enabled         BOOLEAN DEFAULT FALSE,\n    created_at      TIMESTAMP DEFAULT NOW(),\n    updated_at      TIMESTAMP DEFAULT NOW()\n);\n\nCREATE INDEX idx_mfa_credentials_user_id ON mfa_credentials(user_id);\n```\n\n> 테이블 스키마는 실제 엔티티 클래스에 맞게 조정 필요합니다.\n\n### 방법 B: ddl-auto 설정 변경\n\n`application.yml` (또는 dev 프로필)에서:\n\n```yaml\nspring:\n  jpa:\n    hibernate:\n      ddl-auto: update  # 또는 create (dev 환경 한정)\n```\n\n> ⚠️ `ddl-auto: update`는 dev 환경에서만 사용하세요. staging/prod에서는 Flyway가 안전합니다.\n\n### 방법 C: MFA 기능 비활성화 (임시)\n\nMFA가 MVP 범위 밖이라면 dev 프로필에서 해당 기능을 비활성화:\n\n```yaml\n# application-dev.yml\napp:\n  mfa:\n    enabled: false\n```\n\n## 검증 방법\n\n수정 후 아래 순서로 확인:\n\n1. 로컬에서 `docker compose up platform-svc` → 정상 기동 확인\n2. PR 생성 → CI 통과\n3. main 머지 → ArgoCD 자동 배포\n4. `kubectl get pods -n synapse-dev -l app.kubernetes.io/name=platform-svc` → Running, restarts 0\n5. `curl http://<platform-svc>:8081/actuator/health` → `{\"status\":\"UP\"}`\n\n## 기한\n\n**W3 시작 전(05-25)까지** 수정 완료 요청합니다.\n3/5 서비스는 이미 Healthy이며, 5/5 달성 후 staging 배포 + E2E 검증 진행 예정입니다.\n\n---\n\n*문의: @team-lead / synapse-shared 레포 이슈*\n"
+}

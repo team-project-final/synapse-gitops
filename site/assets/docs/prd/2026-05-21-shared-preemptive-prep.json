@@ -1,0 +1,222 @@
+{
+  "slug": "2026-05-21-shared-preemptive-prep",
+  "title": "synapse-shared 선제 준비 구현 계획\r",
+  "category": "prd",
+  "source": "synapse-shared",
+  "tags": [
+    "kafka",
+    "argocd",
+    "eks",
+    "docker",
+    "staging"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-21",
+    "status": "active",
+    "completionRate": 0
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "Phase 1: E2E 테스트 인프라 완성",
+      "anchor": "phase-1-e2e-테스트-인프라-완성"
+    },
+    {
+      "level": 3,
+      "text": "Task 1: E2E 샘플 이벤트 데이터 — note-updated 추가",
+      "anchor": "task-1-e2e-샘플-이벤트-데이터-note-updated-추가"
+    },
+    {
+      "level": 3,
+      "text": "Task 2: E2E 샘플 이벤트 데이터 — 에러 케이스 추가",
+      "anchor": "task-2-e2e-샘플-이벤트-데이터-에러-케이스-추가"
+    },
+    {
+      "level": 3,
+      "text": "Task 3: E2E 샘플 이벤트 데이터 — 멀티테넌트 케이스 추가",
+      "anchor": "task-3-e2e-샘플-이벤트-데이터-멀티테넌트-케이스-추가"
+    },
+    {
+      "level": 3,
+      "text": "Task 4: DB 시드 데이터 — engagement 프로필 + learning-ai 이력",
+      "anchor": "task-4-db-시드-데이터-engagement-프로필-learning-ai-이력"
+    },
+    {
+      "level": 3,
+      "text": "Task 5: E2E 테스트 스크립트 보강 (`kafka-e2e-test.sh`)",
+      "anchor": "task-5-e2e-테스트-스크립트-보강-kafka-e2e-testsh"
+    },
+    {
+      "level": 2,
+      "text": "Phase 2: 배포 검증 사전 준비",
+      "anchor": "phase-2-배포-검증-사전-준비"
+    },
+    {
+      "level": 3,
+      "text": "Task 6: ArgoCD 배포 검증 자동화 스크립트",
+      "anchor": "task-6-argocd-배포-검증-자동화-스크립트"
+    },
+    {
+      "level": 3,
+      "text": "Task 7: 서비스 헬스체크 통합 검증 스크립트",
+      "anchor": "task-7-서비스-헬스체크-통합-검증-스크립트"
+    },
+    {
+      "level": 3,
+      "text": "Task 8: staging 환경 검증 시나리오 문서",
+      "anchor": "task-8-staging-환경-검증-시나리오-문서"
+    },
+    {
+      "level": 2,
+      "text": "개요",
+      "anchor": "개요"
+    },
+    {
+      "level": 2,
+      "text": "사전 조건",
+      "anchor": "사전-조건"
+    },
+    {
+      "level": 2,
+      "text": "1. 리소스 분리 확인",
+      "anchor": "1-리소스-분리-확인"
+    },
+    {
+      "level": 3,
+      "text": "1-1. Namespace 분리",
+      "anchor": "1-1-namespace-분리"
+    },
+    {
+      "level": 3,
+      "text": "1-2. Pod 리소스 비교",
+      "anchor": "1-2-pod-리소스-비교"
+    },
+    {
+      "level": 3,
+      "text": "1-3. ConfigMap 환경변수 분리",
+      "anchor": "1-3-configmap-환경변수-분리"
+    },
+    {
+      "level": 2,
+      "text": "2. 서비스 상태 확인",
+      "anchor": "2-서비스-상태-확인"
+    },
+    {
+      "level": 3,
+      "text": "2-1. ArgoCD 검증 스크립트 실행",
+      "anchor": "2-1-argocd-검증-스크립트-실행"
+    },
+    {
+      "level": 3,
+      "text": "2-2. 헬스체크 스크립트 실행",
+      "anchor": "2-2-헬스체크-스크립트-실행"
+    },
+    {
+      "level": 2,
+      "text": "3. staging E2E 시나리오",
+      "anchor": "3-staging-e2e-시나리오"
+    },
+    {
+      "level": 3,
+      "text": "3-1. Kafka 메시지 흐름 검증",
+      "anchor": "3-1-kafka-메시지-흐름-검증"
+    },
+    {
+      "level": 3,
+      "text": "3-2. API 레벨 검증",
+      "anchor": "3-2-api-레벨-검증"
+    },
+    {
+      "level": 2,
+      "text": "4. 롤백 시나리오",
+      "anchor": "4-롤백-시나리오"
+    },
+    {
+      "level": 3,
+      "text": "4-1. ArgoCD 빠른 롤백",
+      "anchor": "4-1-argocd-빠른-롤백"
+    },
+    {
+      "level": 3,
+      "text": "4-2. Git Revert (영구 롤백)",
+      "anchor": "4-2-git-revert-영구-롤백"
+    },
+    {
+      "level": 2,
+      "text": "5. 검증 완료 체크리스트",
+      "anchor": "5-검증-완료-체크리스트"
+    },
+    {
+      "level": 2,
+      "text": "Phase 3: 코드 품질 + 문서 정비",
+      "anchor": "phase-3-코드-품질-문서-정비"
+    },
+    {
+      "level": 3,
+      "text": "Task 9: HANDOFF 문서 갱신 + 합류 체크리스트",
+      "anchor": "task-9-handoff-문서-갱신-합류-체크리스트"
+    },
+    {
+      "level": 2,
+      "text": "05-21 세션 작업 내역",
+      "anchor": "05-21-세션-작업-내역"
+    },
+    {
+      "level": 3,
+      "text": "상황",
+      "anchor": "상황"
+    },
+    {
+      "level": 3,
+      "text": "완료: E2E 테스트 인프라 보강",
+      "anchor": "완료-e2e-테스트-인프라-보강"
+    },
+    {
+      "level": 3,
+      "text": "완료: 배포 검증 사전 준비",
+      "anchor": "완료-배포-검증-사전-준비"
+    },
+    {
+      "level": 3,
+      "text": "완료: W3 사전 준비 산출물 (추가)",
+      "anchor": "완료-w3-사전-준비-산출물-추가"
+    },
+    {
+      "level": 2,
+      "text": "미해결 항목",
+      "anchor": "미해결-항목"
+    },
+    {
+      "level": 2,
+      "text": "다음 작업",
+      "anchor": "다음-작업"
+    },
+    {
+      "level": 3,
+      "text": "gitops 세션 합류 조건",
+      "anchor": "gitops-세션-합류-조건"
+    },
+    {
+      "level": 3,
+      "text": "합류 후 작업 순서",
+      "anchor": "합류-후-작업-순서"
+    },
+    {
+      "level": 3,
+      "text": "Step 7: Kafka E2E 검증 + 코드 리뷰 조율 (팀원 구현 완료 후)",
+      "anchor": "step-7-kafka-e2e-검증-코드-리뷰-조율-팀원-구현-완료-후"
+    },
+    {
+      "level": 3,
+      "text": "Step 8: ArgoCD dev/staging 배포 검증 (gitops 합류 후)",
+      "anchor": "step-8-argocd-devstaging-배포-검증-gitops-합류-후"
+    },
+    {
+      "level": 2,
+      "text": "작업 순서 요약",
+      "anchor": "작업-순서-요약"
+    }
+  ],
+  "body": "# synapse-shared 선제 준비 구현 계획\r\n\r\n> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.\r\n\r\n**Goal:** gitops 세션(서비스 안정화 + staging)과 병렬로, E2E 테스트 인프라 완성 + 배포 검증 자동화 + 문서 정비를 수행한다.\r\n\r\n**Architecture:** 3 Phase 순차 진행. Phase 1은 Kafka E2E 테스트 스크립트/데이터 보강, Phase 2는 ArgoCD/서비스 검증 자동화 스크립트, Phase 3는 HANDOFF 갱신 + 합류 체크리스트.\r\n\r\n**Tech Stack:** Bash, Docker, kubectl, argocd CLI, curl, jq, PostgreSQL\r\n\r\n---\r\n\r\n## Phase 1: E2E 테스트 인프라 완성\r\n\r\n### Task 1: E2E 샘플 이벤트 데이터 — note-updated 추가\r\n\r\n**Files:**\r\n- Create: `src/test/resources/e2e-samples/note-updated.json`\r\n\r\n- [ ] **Step 1: note-updated.json 생성**\r\n\r\n기존 note-created.json과 동일한 CloudEvent 구조, type만 `knowledge.note.note-updated`로 변경:\r\n\r\n```json\r\n{\r\n  \"specversion\": \"1.0\",\r\n  \"id\": \"e2e-test-005\",\r\n  \"source\": \"knowledge-svc\",\r\n  \"type\": \"knowledge.note.note-updated\",\r\n  \"subject\": \"note/e2e-note-01\",\r\n  \"time\": \"2026-05-20T09:04:00Z\",\r\n  \"tenantid\": \"tenant-e2e-001\",\r\n  \"datacontenttype\": \"application/avro\",\r\n  \"traceparent\": \"00-e2etest00000000000000000000005-0000000000000005-01\",\r\n  \"data\": {\r\n    \"noteId\": \"e2e-note-01\",\r\n    \"tenantId\": \"tenant-e2e-001\",\r\n    \"title\": \"E2E Test Note (Updated)\",\r\n    \"content\": \"This note has been updated for Kafka E2E validation.\",\r\n    \"updatedAt\": \"2026-05-20T09:04:00Z\"\r\n  }\r\n}\r\n```\r\n\r\n- [ ] **Step 2: Commit**\r\n\r\n```bash\r\ngit add src/test/resources/e2e-samples/note-updated.json\r\ngit commit -m \"test: add note-updated E2E sample event\"\r\n```\r\n\r\n---\r\n\r\n### Task 2: E2E 샘플 이벤트 데이터 — 에러 케이스 추가\r\n\r\n**Files:**\r\n- Create: `src/test/resources/e2e-samples/error/missing-required-field.json`\r\n- Create: `src/test/resources/e2e-samples/error/invalid-tenant.json`\r\n- Create: `src/test/resources/e2e-samples/error/empty-data.json`\r\n\r\n- [ ] **Step 1: error 디렉토리 생성 + missing-required-field.json**\r\n\r\n필수 필드 `userId` 누락:\r\n\r\n```json\r\n{\r\n  \"specversion\": \"1.0\",\r\n  \"id\": \"e2e-err-001\",\r\n  \"source\": \"platform-svc\",\r\n  \"type\": \"platform.auth.user-registered\",\r\n  \"subject\": \"user/e2e-err-user\",\r\n  \"time\": \"2026-05-20T10:00:00Z\",\r\n  \"tenantid\": \"tenant-e2e-001\",\r\n  \"datacontenttype\": \"application/avro\",\r\n  \"traceparent\": \"00-e2etest0000000000000000000err1-000000000000err1-01\",\r\n  \"data\": {\r\n    \"email\": \"error-user@test.synapse.dev\",\r\n    \"tenantId\": \"tenant-e2e-001\",\r\n    \"registeredAt\": \"2026-05-20T10:00:00Z\"\r\n  }\r\n}\r\n```\r\n\r\n- [ ] **Step 2: invalid-tenant.json**\r\n\r\n존재하지 않는 tenant:\r\n\r\n```json\r\n{\r\n  \"specversion\": \"1.0\",\r\n  \"id\": \"e2e-err-002\",\r\n  \"source\": \"platform-svc\",\r\n  \"type\": \"platform.auth.user-registered\",\r\n  \"subject\": \"user/e2e-err-tenant\",\r\n  \"time\": \"2026-05-20T10:01:00Z\",\r\n  \"tenantid\": \"tenant-nonexistent-999\",\r\n  \"datacontenttype\": \"application/avro\",\r\n  \"traceparent\": \"00-e2etest0000000000000000000err2-000000000000err2-01\",\r\n  \"data\": {\r\n    \"userId\": \"e2e-err-tenant-user\",\r\n    \"email\": \"bad-tenant@test.synapse.dev\",\r\n    \"tenantId\": \"tenant-nonexistent-999\",\r\n    \"registeredAt\": \"2026-05-20T10:01:00Z\"\r\n  }\r\n}\r\n```\r\n\r\n- [ ] **Step 3: empty-data.json**\r\n\r\ndata 필드가 빈 객체:\r\n\r\n```json\r\n{\r\n  \"specversion\": \"1.0\",\r\n  \"id\": \"e2e-err-003\",\r\n  \"source\": \"platform-svc\",\r\n  \"type\": \"platform.auth.user-registered\",\r\n  \"subject\": \"user/e2e-err-empty\",\r\n  \"time\": \"2026-05-20T10:02:00Z\",\r\n  \"tenantid\": \"tenant-e2e-001\",\r\n  \"datacontenttype\": \"application/avro\",\r\n  \"traceparent\": \"00-e2etest0000000000000000000err3-000000000000err3-01\",\r\n  \"data\": {}\r\n}\r\n```\r\n\r\n- [ ] **Step 4: Commit**\r\n\r\n```bash\r\ngit add src/test/resources/e2e-samples/error/\r\ngit commit -m \"test: add error case E2E samples (missing field, invalid tenant, empty data)\"\r\n```\r\n\r\n---\r\n\r\n### Task 3: E2E 샘플 이벤트 데이터 — 멀티테넌트 케이스 추가\r\n\r\n**Files:**\r\n- Create: `src/test/resources/e2e-samples/multi-tenant/user-registered-tenant2.json`\r\n\r\n- [ ] **Step 1: multi-tenant 디렉토리 생성 + user-registered-tenant2.json**\r\n\r\ntenant-e2e-002를 사용하는 정상 이벤트 (V001 시드의 e2e-user-03과 대응):\r\n\r\n```json\r\n{\r\n  \"specversion\": \"1.0\",\r\n  \"id\": \"e2e-test-mt-001\",\r\n  \"source\": \"platform-svc\",\r\n  \"type\": \"platform.auth.user-registered\",\r\n  \"subject\": \"user/e2e-user-03\",\r\n  \"time\": \"2026-05-20T09:05:00Z\",\r\n  \"tenantid\": \"tenant-e2e-002\",\r\n  \"datacontenttype\": \"application/avro\",\r\n  \"traceparent\": \"00-e2etest000000000000000000mt001-00000000000mt001-01\",\r\n  \"data\": {\r\n    \"userId\": \"e2e-user-03\",\r\n    \"email\": \"carol@test.synapse.dev\",\r\n    \"tenantId\": \"tenant-e2e-002\",\r\n    \"registeredAt\": \"2026-05-20T09:05:00Z\"\r\n  }\r\n}\r\n```\r\n\r\n- [ ] **Step 2: Commit**\r\n\r\n```bash\r\ngit add src/test/resources/e2e-samples/multi-tenant/\r\ngit commit -m \"test: add multi-tenant E2E sample (tenant-e2e-002)\"\r\n```\r\n\r\n---\r\n\r\n### Task 4: DB 시드 데이터 — engagement 프로필 + learning-ai 이력\r\n\r\n**Files:**\r\n- Create: `src/test/resources/seed/V004__test_engagement_profiles.sql`\r\n- Create: `src/test/resources/seed/V005__test_learning_ai.sql`\r\n- Modify: `scripts/seed-test-data.sh` (검증 쿼리 추가)\r\n\r\n- [ ] **Step 1: V004__test_engagement_profiles.sql**\r\n\r\nengagement 서비스의 프로필 + XP 초기 데이터:\r\n\r\n```sql\r\n-- V004__test_engagement_profiles.sql\r\n-- E2E 테스트용 engagement 프로필 + XP 시드 데이터\r\n\r\nINSERT INTO engagement.user_profiles (user_id, tenant_id, display_name, xp_total, level, created_at)\r\nVALUES\r\n  ('e2e-user-01', 'tenant-e2e-001', 'Alice', 0, 1, '2026-05-20 09:00:00'),\r\n  ('e2e-user-02', 'tenant-e2e-001', 'Bob',   150, 2, '2026-05-20 09:00:00'),\r\n  ('e2e-user-03', 'tenant-e2e-002', 'Carol', 0, 1, '2026-05-20 09:00:00')\r\nON CONFLICT (user_id) DO NOTHING;\r\n\r\n-- XP 이력 (review-completed 이벤트 검증용 — Bob에게 기존 XP 있음)\r\nINSERT INTO engagement.xp_history (id, user_id, tenant_id, event_type, xp_amount, created_at)\r\nVALUES\r\n  ('e2e-xp-01', 'e2e-user-02', 'tenant-e2e-001', 'review-completed', 50, '2026-05-20 09:02:00'),\r\n  ('e2e-xp-02', 'e2e-user-02', 'tenant-e2e-001', 'review-completed', 50, '2026-05-20 09:03:00'),\r\n  ('e2e-xp-03', 'e2e-user-02', 'tenant-e2e-001', 'review-completed', 50, '2026-05-20 09:04:00')\r\nON CONFLICT (id) DO NOTHING;\r\n```\r\n\r\n- [ ] **Step 2: V005__test_learning_ai.sql**\r\n\r\nlearning-ai 서비스의 AI 카드 생성 이력:\r\n\r\n```sql\r\n-- V005__test_learning_ai.sql\r\n-- E2E 테스트용 AI 카드 생성 이력 시드 데이터\r\n\r\nINSERT INTO learning.ai_generation_history (id, note_id, user_id, tenant_id, card_count, status, created_at)\r\nVALUES\r\n  ('e2e-aigen-01', 'e2e-note-01', 'e2e-user-01', 'tenant-e2e-001',\r\n   5, 'COMPLETED', '2026-05-20 09:03:00'),\r\n  ('e2e-aigen-02', 'e2e-note-02', 'e2e-user-01', 'tenant-e2e-001',\r\n   3, 'COMPLETED', '2026-05-20 09:03:30')\r\nON CONFLICT (id) DO NOTHING;\r\n```\r\n\r\n- [ ] **Step 3: seed-test-data.sh에 검증 쿼리 추가**\r\n\r\n`scripts/seed-test-data.sh`의 검증 섹션 끝에 추가:\r\n\r\n```bash\r\necho \"[CHECK] engagement.user_profiles:\"\r\ndocker exec \"$CONTAINER\" psql -U \"$USER\" -d \"$DB\" -c \\\r\n  \"SELECT user_id, display_name, xp_total, level FROM engagement.user_profiles WHERE user_id LIKE 'e2e-%';\"\r\n\r\necho \"[CHECK] learning.ai_generation_history:\"\r\ndocker exec \"$CONTAINER\" psql -U \"$USER\" -d \"$DB\" -c \\\r\n  \"SELECT id, note_id, card_count, status FROM learning.ai_generation_history WHERE id LIKE 'e2e-%';\"\r\n```\r\n\r\n- [ ] **Step 4: Commit**\r\n\r\n```bash\r\ngit add src/test/resources/seed/V004__test_engagement_profiles.sql\r\ngit add src/test/resources/seed/V005__test_learning_ai.sql\r\ngit add scripts/seed-test-data.sh\r\ngit commit -m \"test: add engagement profile + learning-ai seed data\"\r\n```\r\n\r\n---\r\n\r\n### Task 5: E2E 테스트 스크립트 보강 (`kafka-e2e-test.sh`)\r\n\r\n**Files:**\r\n- Modify: `scripts/kafka-e2e-test.sh`\r\n\r\n- [ ] **Step 1: 전체 스크립트 교체**\r\n\r\n기존 스크립트를 아래로 교체. 변경 사항:\r\n- `note-updated-v1` 토픽 추가 (`--all`에 포함)\r\n- consume 결과 자동 판정 (JSON 출력에서 key 필드 존재 여부 체크)\r\n- 종합 리포트 (pass/fail 카운트, 소요 시간)\r\n- `--error-cases` 플래그 (에러 시나리오 테스트)\r\n- 종료 코드 반환\r\n\r\n```bash\r\n#!/usr/bin/env bash\r\n# scripts/kafka-e2e-test.sh\r\n# Kafka E2E produce/consume smoke test (Docker Compose local environment).\r\n# Usage:\r\n#   bash scripts/kafka-e2e-test.sh <topic> <sample-file>\r\n#   bash scripts/kafka-e2e-test.sh --all\r\n#   bash scripts/kafka-e2e-test.sh --error-cases\r\nset -euo pipefail\r\n\r\nBROKER=\"${KAFKA_BROKERS:-localhost:9092}\"\r\nCONTAINER=\"${KAFKA_CONTAINER:-synapse-kafka}\"\r\nSAMPLES_DIR=\"src/test/resources/e2e-samples\"\r\nTIMEOUT=\"${CONSUME_TIMEOUT:-10}\"\r\n\r\ntopic=\"${1:-}\"\r\nsample=\"${2:-}\"\r\n\r\nPASS_COUNT=0\r\nFAIL_COUNT=0\r\nSTART_TIME=$(date +%s)\r\n\r\nusage() {\r\n  cat <<'USAGE'\r\nUsage: bash scripts/kafka-e2e-test.sh <topic> <sample-json>\r\n\r\nTopics:\r\n  platform.auth.user-registered-v1\r\n  knowledge.note.note-created-v1\r\n  knowledge.note.note-updated-v1\r\n  learning.card.review-completed-v1\r\n  learning.ai.cards-generated-v1\r\n\r\nExamples:\r\n  bash scripts/kafka-e2e-test.sh platform.auth.user-registered-v1 user-registered.json\r\n  bash scripts/kafka-e2e-test.sh --all\r\n  bash scripts/kafka-e2e-test.sh --error-cases\r\nUSAGE\r\n}\r\n\r\nproduce_and_consume() {\r\n  local t=\"$1\" f=\"$2\" expect_fail=\"${3:-false}\"\r\n  local filepath=\"$SAMPLES_DIR/$f\"\r\n\r\n  if [ ! -f \"$filepath\" ]; then\r\n    echo \"ERROR: Sample file not found: $filepath\"\r\n    FAIL_COUNT=$((FAIL_COUNT + 1))\r\n    return 1\r\n  fi\r\n\r\n  echo \"=== Testing: $t ($f) ===\"\r\n  echo \"[PRODUCE] Sending message from $f ...\"\r\n\r\n  # Produce via docker exec\r\n  if ! docker exec -i \"$CONTAINER\" kafka-console-producer \\\r\n    --bootstrap-server kafka:29092 \\\r\n    --topic \"$t\" \\\r\n    < \"$filepath\" 2>/dev/null; then\r\n    if [ \"$expect_fail\" = \"true\" ]; then\r\n      echo \"[PRODUCE] Expected failure — OK\"\r\n      PASS_COUNT=$((PASS_COUNT + 1))\r\n      return 0\r\n    fi\r\n    echo \"[PRODUCE] FAIL\"\r\n    FAIL_COUNT=$((FAIL_COUNT + 1))\r\n    return 1\r\n  fi\r\n\r\n  echo \"[PRODUCE] OK\"\r\n\r\n  echo \"[CONSUME] Reading from $t (timeout=${TIMEOUT}s) ...\"\r\n  local consumed\r\n  consumed=$(docker exec \"$CONTAINER\" kafka-console-consumer \\\r\n    --bootstrap-server kafka:29092 \\\r\n    --topic \"$t\" \\\r\n    --from-beginning \\\r\n    --max-messages 1 \\\r\n    --timeout-ms \"$((TIMEOUT * 1000))\" 2>/dev/null) || true\r\n\r\n  if [ -z \"$consumed\" ]; then\r\n    if [ \"$expect_fail\" = \"true\" ]; then\r\n      echo \"[CONSUME] No message (expected) — OK\"\r\n      PASS_COUNT=$((PASS_COUNT + 1))\r\n    else\r\n      echo \"[CONSUME] FAIL — no message received\"\r\n      FAIL_COUNT=$((FAIL_COUNT + 1))\r\n    fi\r\n  else\r\n    # Validate consumed message has expected structure\r\n    if echo \"$consumed\" | grep -q '\"specversion\"'; then\r\n      echo \"[CONSUME] OK — message received and validated\"\r\n      PASS_COUNT=$((PASS_COUNT + 1))\r\n    else\r\n      echo \"[CONSUME] WARN — message received but unexpected format\"\r\n      PASS_COUNT=$((PASS_COUNT + 1))\r\n    fi\r\n  fi\r\n  echo \"\"\r\n}\r\n\r\nrun_all() {\r\n  produce_and_consume \"platform.auth.user-registered-v1\" \"user-registered.json\"\r\n  produce_and_consume \"knowledge.note.note-created-v1\" \"note-created.json\"\r\n  produce_and_consume \"knowledge.note.note-updated-v1\" \"note-updated.json\"\r\n  produce_and_consume \"learning.card.review-completed-v1\" \"review-completed.json\"\r\n  produce_and_consume \"learning.ai.cards-generated-v1\" \"cards-generated.json\"\r\n}\r\n\r\nrun_error_cases() {\r\n  echo \"\"\r\n  echo \"=========================================\"\r\n  echo \"  Error Case Tests\"\r\n  echo \"=========================================\"\r\n  echo \"\"\r\n\r\n  # Test 1: produce to non-existent topic (auto-create off → should fail or create)\r\n  echo \"=== Error Test 1: Non-existent topic ===\"\r\n  echo '{\"test\":\"nonexistent\"}' | docker exec -i \"$CONTAINER\" kafka-console-producer \\\r\n    --bootstrap-server kafka:29092 \\\r\n    --topic \"nonexistent.topic.test\" 2>&1 || true\r\n  echo \"[INFO] Non-existent topic test completed\"\r\n  PASS_COUNT=$((PASS_COUNT + 1))\r\n  echo \"\"\r\n\r\n  # Test 2: produce error samples (missing field, invalid tenant, empty data)\r\n  produce_and_consume \"platform.auth.user-registered-v1\" \"error/missing-required-field.json\"\r\n  produce_and_consume \"platform.auth.user-registered-v1\" \"error/invalid-tenant.json\"\r\n  produce_and_consume \"platform.auth.user-registered-v1\" \"error/empty-data.json\"\r\n\r\n  # Test 3: multi-tenant sample\r\n  produce_and_consume \"platform.auth.user-registered-v1\" \"multi-tenant/user-registered-tenant2.json\"\r\n}\r\n\r\nprint_report() {\r\n  local end_time\r\n  end_time=$(date +%s)\r\n  local elapsed=$((end_time - START_TIME))\r\n\r\n  echo \"\"\r\n  echo \"=========================================\"\r\n  echo \"  E2E Test Report\"\r\n  echo \"=========================================\"\r\n  echo \"  PASS: $PASS_COUNT\"\r\n  echo \"  FAIL: $FAIL_COUNT\"\r\n  echo \"  TOTAL: $((PASS_COUNT + FAIL_COUNT))\"\r\n  echo \"  TIME: ${elapsed}s\"\r\n  echo \"=========================================\"\r\n\r\n  if [ \"$FAIL_COUNT\" -gt 0 ]; then\r\n    echo \"  RESULT: FAILED\"\r\n    return 1\r\n  else\r\n    echo \"  RESULT: PASSED\"\r\n    return 0\r\n  fi\r\n}\r\n\r\ncase \"${topic}\" in\r\n  --all)\r\n    run_all\r\n    print_report\r\n    ;;\r\n  --error-cases)\r\n    run_error_cases\r\n    print_report\r\n    ;;\r\n  --full)\r\n    run_all\r\n    run_error_cases\r\n    print_report\r\n    ;;\r\n  \"\")\r\n    usage\r\n    exit 1\r\n    ;;\r\n  *)\r\n    if [ -z \"$sample\" ]; then\r\n      usage\r\n      exit 1\r\n    fi\r\n    produce_and_consume \"$topic\" \"$sample\"\r\n    print_report\r\n    ;;\r\nesac\r\n```\r\n\r\n- [ ] **Step 2: 스크립트 구문 검증**\r\n\r\nRun: `bash -n scripts/kafka-e2e-test.sh`\r\nExpected: 출력 없음 (구문 에러 0)\r\n\r\n- [ ] **Step 3: Commit**\r\n\r\n```bash\r\ngit add scripts/kafka-e2e-test.sh\r\ngit commit -m \"feat: enhance kafka-e2e-test.sh — add note-updated, auto-validation, error cases, report\"\r\n```\r\n\r\n---\r\n\r\n## Phase 2: 배포 검증 사전 준비\r\n\r\n### Task 6: ArgoCD 배포 검증 자동화 스크립트\r\n\r\n**Files:**\r\n- Create: `scripts/verify-argocd-deploy.sh`\r\n\r\n- [ ] **Step 1: verify-argocd-deploy.sh 작성**\r\n\r\nbastion SSM 접속 상태에서 실행. kubectl + argocd CLI 사용:\r\n\r\n```bash\r\n#!/usr/bin/env bash\r\n# scripts/verify-argocd-deploy.sh\r\n# ArgoCD 배포 상태 자동 검증 스크립트\r\n# 사전 조건: kubectl context 설정 완료, argocd CLI 로그인 완료\r\n# Usage: bash scripts/verify-argocd-deploy.sh [namespace]\r\nset -euo pipefail\r\n\r\nNAMESPACE=\"${1:-synapse-dev}\"\r\nAPPS=(\"platform-svc\" \"engagement-svc\" \"knowledge-svc\" \"learning-card\" \"learning-ai\")\r\nENV=\"${NAMESPACE##*-}\"  # synapse-dev → dev, synapse-staging → staging\r\n\r\nPASS_COUNT=0\r\nFAIL_COUNT=0\r\nWARN_COUNT=0\r\n\r\ncheck_result() {\r\n  local label=\"$1\" status=\"$2\"\r\n  if [ \"$status\" = \"PASS\" ]; then\r\n    echo \"  [PASS] $label\"\r\n    PASS_COUNT=$((PASS_COUNT + 1))\r\n  elif [ \"$status\" = \"WARN\" ]; then\r\n    echo \"  [WARN] $label\"\r\n    WARN_COUNT=$((WARN_COUNT + 1))\r\n  else\r\n    echo \"  [FAIL] $label\"\r\n    FAIL_COUNT=$((FAIL_COUNT + 1))\r\n  fi\r\n}\r\n\r\necho \"=========================================\"\r\necho \"  ArgoCD Deploy Verification\"\r\necho \"  Namespace: $NAMESPACE\"\r\necho \"=========================================\"\r\necho \"\"\r\n\r\n# --- Section 1: ArgoCD Application Status ---\r\necho \"--- 1. ArgoCD Application Status ---\"\r\nfor app in \"${APPS[@]}\"; do\r\n  app_name=\"synapse-${app}-${ENV}\"\r\n  sync_status=$(argocd app get \"$app_name\" -o json 2>/dev/null | jq -r '.status.sync.status // \"UNKNOWN\"') || sync_status=\"UNKNOWN\"\r\n  health_status=$(argocd app get \"$app_name\" -o json 2>/dev/null | jq -r '.status.health.status // \"UNKNOWN\"') || health_status=\"UNKNOWN\"\r\n\r\n  if [ \"$sync_status\" = \"Synced\" ] && [ \"$health_status\" = \"Healthy\" ]; then\r\n    check_result \"$app_name: Sync=$sync_status Health=$health_status\" \"PASS\"\r\n  elif [ \"$sync_status\" = \"Synced\" ]; then\r\n    check_result \"$app_name: Sync=$sync_status Health=$health_status\" \"WARN\"\r\n  else\r\n    check_result \"$app_name: Sync=$sync_status Health=$health_status\" \"FAIL\"\r\n  fi\r\ndone\r\necho \"\"\r\n\r\n# --- Section 2: Pod Status ---\r\necho \"--- 2. Pod Status ---\"\r\nfor app in \"${APPS[@]}\"; do\r\n  pod_info=$(kubectl get pods -n \"$NAMESPACE\" -l \"app.kubernetes.io/name=$app\" \\\r\n    -o jsonpath='{range .items[*]}{.metadata.name} {.status.phase} {.status.containerStatuses[0].restartCount}{\"\\n\"}{end}' 2>/dev/null) || pod_info=\"\"\r\n\r\n  if [ -z \"$pod_info\" ]; then\r\n    check_result \"$app: no pods found\" \"FAIL\"\r\n    continue\r\n  fi\r\n\r\n  while IFS=' ' read -r pod_name phase restarts; do\r\n    if [ \"$phase\" = \"Running\" ] && [ \"${restarts:-0}\" -le 3 ]; then\r\n      check_result \"$pod_name: $phase (restarts: $restarts)\" \"PASS\"\r\n    elif [ \"$phase\" = \"Running\" ]; then\r\n      check_result \"$pod_name: $phase (restarts: $restarts — high)\" \"WARN\"\r\n    else\r\n      check_result \"$pod_name: $phase (restarts: $restarts)\" \"FAIL\"\r\n    fi\r\n  done <<< \"$pod_info\"\r\ndone\r\necho \"\"\r\n\r\n# --- Section 3: ExternalSecret Status ---\r\necho \"--- 3. ExternalSecret Sync ---\"\r\nes_output=$(kubectl get externalsecrets -n \"$NAMESPACE\" \\\r\n  -o jsonpath='{range .items[*]}{.metadata.name} {.status.conditions[0].reason}{\"\\n\"}{end}' 2>/dev/null) || es_output=\"\"\r\n\r\nif [ -z \"$es_output\" ]; then\r\n  check_result \"No ExternalSecrets found\" \"WARN\"\r\nelse\r\n  while IFS=' ' read -r es_name es_reason; do\r\n    if [ \"$es_reason\" = \"SecretSynced\" ]; then\r\n      check_result \"$es_name: $es_reason\" \"PASS\"\r\n    else\r\n      check_result \"$es_name: ${es_reason:-UNKNOWN}\" \"FAIL\"\r\n    fi\r\n  done <<< \"$es_output\"\r\nfi\r\necho \"\"\r\n\r\n# --- Report ---\r\necho \"=========================================\"\r\necho \"  Verification Report\"\r\necho \"=========================================\"\r\necho \"  PASS: $PASS_COUNT\"\r\necho \"  WARN: $WARN_COUNT\"\r\necho \"  FAIL: $FAIL_COUNT\"\r\necho \"=========================================\"\r\n\r\nif [ \"$FAIL_COUNT\" -gt 0 ]; then\r\n  echo \"  RESULT: FAILED — review items above\"\r\n  exit 1\r\nelif [ \"$WARN_COUNT\" -gt 0 ]; then\r\n  echo \"  RESULT: PASSED with warnings\"\r\n  exit 0\r\nelse\r\n  echo \"  RESULT: ALL PASSED\"\r\n  exit 0\r\nfi\r\n```\r\n\r\n- [ ] **Step 2: 구문 검증**\r\n\r\nRun: `bash -n scripts/verify-argocd-deploy.sh`\r\nExpected: 출력 없음\r\n\r\n- [ ] **Step 3: Commit**\r\n\r\n```bash\r\ngit add scripts/verify-argocd-deploy.sh\r\ngit commit -m \"feat: add ArgoCD deploy verification script\"\r\n```\r\n\r\n---\r\n\r\n### Task 7: 서비스 헬스체크 통합 검증 스크립트\r\n\r\n**Files:**\r\n- Create: `scripts/verify-service-health.sh`\r\n\r\n- [ ] **Step 1: verify-service-health.sh 작성**\r\n\r\n로컬(Docker Compose)과 EKS(port-forward) 양쪽에서 사용 가능:\r\n\r\n```bash\r\n#!/usr/bin/env bash\r\n# scripts/verify-service-health.sh\r\n# 서비스 헬스체크 통합 검증 스크립트\r\n# Usage:\r\n#   bash scripts/verify-service-health.sh                     # 로컬 Docker Compose (기본)\r\n#   bash scripts/verify-service-health.sh --env eks            # EKS port-forward\r\n#   PLATFORM_HOST=localhost:8081 bash scripts/verify-service-health.sh --env custom\r\nset -euo pipefail\r\n\r\nENV=\"${2:-local}\"  # local | eks | custom\r\nKAFKA_CONTAINER=\"${KAFKA_CONTAINER:-synapse-kafka}\"\r\n\r\n# --- Service endpoints ---\r\nif [ \"$ENV\" = \"local\" ]; then\r\n  PLATFORM_HOST=\"${PLATFORM_HOST:-localhost:8081}\"\r\n  ENGAGEMENT_HOST=\"${ENGAGEMENT_HOST:-localhost:8082}\"\r\n  KNOWLEDGE_HOST=\"${KNOWLEDGE_HOST:-localhost:8083}\"\r\n  LEARNING_CARD_HOST=\"${LEARNING_CARD_HOST:-localhost:8084}\"\r\n  LEARNING_AI_HOST=\"${LEARNING_AI_HOST:-localhost:8085}\"\r\nelif [ \"$ENV\" = \"eks\" ]; then\r\n  # EKS에서는 port-forward 후 사용\r\n  PLATFORM_HOST=\"${PLATFORM_HOST:-localhost:18081}\"\r\n  ENGAGEMENT_HOST=\"${ENGAGEMENT_HOST:-localhost:18082}\"\r\n  KNOWLEDGE_HOST=\"${KNOWLEDGE_HOST:-localhost:18083}\"\r\n  LEARNING_CARD_HOST=\"${LEARNING_CARD_HOST:-localhost:18084}\"\r\n  LEARNING_AI_HOST=\"${LEARNING_AI_HOST:-localhost:18085}\"\r\nelse\r\n  # custom — 환경변수에서 읽음\r\n  : \"${PLATFORM_HOST:?}\" \"${ENGAGEMENT_HOST:?}\" \"${KNOWLEDGE_HOST:?}\" \"${LEARNING_CARD_HOST:?}\" \"${LEARNING_AI_HOST:?}\"\r\nfi\r\n\r\nPASS_COUNT=0\r\nFAIL_COUNT=0\r\n\r\ncheck_health() {\r\n  local name=\"$1\" url=\"$2\" expected_field=\"${3:-status}\"\r\n\r\n  echo \"--- $name ---\"\r\n  local response\r\n  response=$(curl -sf --max-time 5 \"$url\" 2>/dev/null) || response=\"\"\r\n\r\n  if [ -z \"$response\" ]; then\r\n    echo \"  [FAIL] No response from $url\"\r\n    FAIL_COUNT=$((FAIL_COUNT + 1))\r\n    return\r\n  fi\r\n\r\n  local status\r\n  status=$(echo \"$response\" | jq -r \".$expected_field // \\\"UNKNOWN\\\"\" 2>/dev/null) || status=\"UNKNOWN\"\r\n\r\n  if [ \"$status\" = \"UP\" ] || [ \"$status\" = \"ok\" ] || [ \"$status\" = \"healthy\" ]; then\r\n    echo \"  [PASS] $name: $status\"\r\n    PASS_COUNT=$((PASS_COUNT + 1))\r\n  else\r\n    echo \"  [FAIL] $name: $status\"\r\n    echo \"  Response: $response\"\r\n    FAIL_COUNT=$((FAIL_COUNT + 1))\r\n  fi\r\n}\r\n\r\necho \"=========================================\"\r\necho \"  Service Health Check ($ENV)\"\r\necho \"=========================================\"\r\necho \"\"\r\n\r\n# --- Spring Boot services (actuator) ---\r\necho \"=== Spring Boot Services ===\"\r\ncheck_health \"platform-svc\"     \"http://$PLATFORM_HOST/actuator/health\"\r\ncheck_health \"engagement-svc\"   \"http://$ENGAGEMENT_HOST/actuator/health\"\r\ncheck_health \"knowledge-svc\"    \"http://$KNOWLEDGE_HOST/actuator/health\"\r\ncheck_health \"learning-card\"    \"http://$LEARNING_CARD_HOST/actuator/health\"\r\necho \"\"\r\n\r\n# --- FastAPI service ---\r\necho \"=== FastAPI Services ===\"\r\ncheck_health \"learning-ai\"      \"http://$LEARNING_AI_HOST/health\"\r\necho \"\"\r\n\r\n# --- Kafka consumer groups (local only) ---\r\nif [ \"$ENV\" = \"local\" ]; then\r\n  echo \"=== Kafka Consumer Groups ===\"\r\n  groups=$(docker exec \"$KAFKA_CONTAINER\" kafka-consumer-groups \\\r\n    --bootstrap-server kafka:29092 --list 2>/dev/null) || groups=\"\"\r\n\r\n  if [ -z \"$groups\" ]; then\r\n    echo \"  [WARN] No consumer groups found (services may not have consumed yet)\"\r\n  else\r\n    echo \"  Registered groups:\"\r\n    echo \"$groups\" | while read -r g; do\r\n      echo \"    - $g\"\r\n    done\r\n    PASS_COUNT=$((PASS_COUNT + 1))\r\n  fi\r\n  echo \"\"\r\nfi\r\n\r\n# --- Report ---\r\necho \"=========================================\"\r\necho \"  Health Check Report\"\r\necho \"=========================================\"\r\necho \"  PASS: $PASS_COUNT\"\r\necho \"  FAIL: $FAIL_COUNT\"\r\necho \"=========================================\"\r\n\r\nif [ \"$FAIL_COUNT\" -gt 0 ]; then\r\n  echo \"  RESULT: FAILED\"\r\n  exit 1\r\nelse\r\n  echo \"  RESULT: ALL HEALTHY\"\r\n  exit 0\r\nfi\r\n```\r\n\r\n- [ ] **Step 2: 구문 검증**\r\n\r\nRun: `bash -n scripts/verify-service-health.sh`\r\nExpected: 출력 없음\r\n\r\n- [ ] **Step 3: Commit**\r\n\r\n```bash\r\ngit add scripts/verify-service-health.sh\r\ngit commit -m \"feat: add service health check verification script\"\r\n```\r\n\r\n---\r\n\r\n### Task 8: staging 환경 검증 시나리오 문서\r\n\r\n**Files:**\r\n- Create: `docs/guides/STAGING_VERIFICATION.md`\r\n\r\n- [ ] **Step 1: STAGING_VERIFICATION.md 작성**\r\n\r\n```markdown\r\n# Staging 환경 검증 가이드\r\n\r\n## 개요\r\n\r\ndev 환경에서 검증 완료된 서비스를 staging으로 승격한 후 확인할 항목을 정의한다.\r\ngitops 세션에서 staging overlay 생성 완료 후 이 가이드를 기반으로 검증한다.\r\n\r\n## 사전 조건\r\n\r\n- [ ] staging overlay 5개 앱 생성 완료 (`apps/{app}/overlays/staging/`)\r\n- [ ] ApplicationSet에 `env: staging` 추가\r\n- [ ] `synapse-staging` namespace 생성\r\n- [ ] staging용 ExternalSecret / ConfigMap 적용\r\n- [ ] bastion SSM 접속 + kubectl context 설정\r\n\r\n## 1. 리소스 분리 확인\r\n\r\ndev와 staging이 독립적으로 운영되는지 확인한다.\r\n\r\n### 1-1. Namespace 분리\r\n\r\n```bash\r\nkubectl get ns | grep synapse\r\n```\r\n\r\nExpected:\r\n```\r\nsynapse-dev       Active\r\nsynapse-staging   Active\r\n```\r\n\r\n### 1-2. Pod 리소스 비교\r\n\r\n```bash\r\necho \"=== dev ===\"\r\nkubectl get deploy -n synapse-dev -o custom-columns='NAME:.metadata.name,REPLICAS:.spec.replicas,CPU_REQ:.spec.template.spec.containers[0].resources.requests.cpu,MEM_REQ:.spec.template.spec.containers[0].resources.requests.memory'\r\n\r\necho \"=== staging ===\"\r\nkubectl get deploy -n synapse-staging -o custom-columns='NAME:.metadata.name,REPLICAS:.spec.replicas,CPU_REQ:.spec.template.spec.containers[0].resources.requests.cpu,MEM_REQ:.spec.template.spec.containers[0].resources.requests.memory'\r\n```\r\n\r\nExpected: staging replicas >= 2, resource limits가 dev보다 크거나 같음\r\n\r\n### 1-3. ConfigMap 환경변수 분리\r\n\r\n```bash\r\nkubectl get configmap -n synapse-staging -o yaml | grep -E \"SPRING_PROFILES_ACTIVE|LOG_LEVEL\"\r\n```\r\n\r\nExpected: `SPRING_PROFILES_ACTIVE: staging`, `LOG_LEVEL: INFO`\r\n\r\n## 2. 서비스 상태 확인\r\n\r\n### 2-1. ArgoCD 검증 스크립트 실행\r\n\r\n```bash\r\nbash scripts/verify-argocd-deploy.sh synapse-staging\r\n```\r\n\r\nExpected: ALL PASSED (5개 앱 Synced + Healthy)\r\n\r\n### 2-2. 헬스체크 스크립트 실행\r\n\r\nstaging port-forward 설정 후:\r\n\r\n```bash\r\n# 각 서비스 port-forward (별도 터미널)\r\nkubectl port-forward -n synapse-staging svc/platform-svc 18081:8081 &\r\nkubectl port-forward -n synapse-staging svc/engagement-svc 18082:8082 &\r\nkubectl port-forward -n synapse-staging svc/knowledge-svc 18083:8083 &\r\nkubectl port-forward -n synapse-staging svc/learning-card-svc 18084:8084 &\r\nkubectl port-forward -n synapse-staging svc/learning-ai-svc 18085:8085 &\r\n\r\nbash scripts/verify-service-health.sh --env eks\r\n```\r\n\r\nExpected: ALL HEALTHY\r\n\r\n## 3. staging E2E 시나리오\r\n\r\ndev와 동일한 4개 시나리오를 staging endpoint로 실행한다.\r\n\r\n### 3-1. Kafka 메시지 흐름 검증\r\n\r\nstaging의 Kafka는 동일한 MSK 클러스터를 공유하되 consumer group이 다르다.\r\n서비스 구현 완료 후 아래 시나리오를 순서대로 실행:\r\n\r\n| # | Producer → Topic → Consumer | 검증 |\r\n|---|---|---|\r\n| 1 | platform-svc → user-registered-v1 → engagement-svc | 프로필 생성 |\r\n| 2 | knowledge-svc → note-created-v1 → learning-ai-svc | 카드 생성 트리거 |\r\n| 3 | learning-card → review-completed-v1 → engagement-svc | XP 적립 |\r\n| 4 | learning-ai → cards-generated-v1 → platform-svc | 알림 |\r\n\r\n### 3-2. API 레벨 검증\r\n\r\n```bash\r\n# 회원가입 → 프로필 자동 생성\r\ncurl -X POST http://localhost:18081/api/v1/auth/register \\\r\n  -H \"Content-Type: application/json\" \\\r\n  -d '{\"email\":\"staging-e2e@test.synapse.dev\",\"password\":\"Test1234!\"}'\r\n\r\n# 잠시 대기 (Kafka 비동기)\r\nsleep 3\r\n\r\n# engagement-svc에서 프로필 확인\r\ncurl http://localhost:18082/api/v1/profiles?email=staging-e2e@test.synapse.dev\r\n```\r\n\r\n## 4. 롤백 시나리오\r\n\r\nstaging에서 문제 발견 시 절차:\r\n\r\n### 4-1. ArgoCD 빠른 롤백\r\n\r\n```bash\r\n# 이전 리비전 확인\r\nargocd app history synapse-platform-svc-staging\r\n\r\n# 롤백\r\nargocd app rollback synapse-platform-svc-staging <REVISION>\r\n\r\n# 상태 확인\r\nbash scripts/verify-argocd-deploy.sh synapse-staging\r\n```\r\n\r\n### 4-2. Git Revert (영구 롤백)\r\n\r\n```bash\r\ngit log --oneline -5\r\ngit revert <COMMIT_SHA>\r\ngit push origin main\r\n# ArgoCD가 자동 sync (또는 수동 sync)\r\n```\r\n\r\n## 5. 검증 완료 체크리스트\r\n\r\n- [ ] synapse-staging namespace 존재\r\n- [ ] 5개 앱 ArgoCD Synced + Healthy\r\n- [ ] staging replicas >= 2\r\n- [ ] SPRING_PROFILES_ACTIVE=staging 확인\r\n- [ ] ExternalSecret 5/5 SecretSynced\r\n- [ ] 헬스체크 ALL HEALTHY\r\n- [ ] (서비스 구현 후) E2E 4개 시나리오 PASS\r\n- [ ] 롤백 절차 1회 검증\r\n```\r\n\r\n- [ ] **Step 2: Commit**\r\n\r\n```bash\r\ngit add docs/guides/STAGING_VERIFICATION.md\r\ngit commit -m \"docs: add staging environment verification guide\"\r\n```\r\n\r\n---\r\n\r\n## Phase 3: 코드 품질 + 문서 정비\r\n\r\n### Task 9: HANDOFF 문서 갱신 + 합류 체크리스트\r\n\r\n**Files:**\r\n- Modify: `docs/project-management/HANDOFF_2026-05-19.md`\r\n\r\n- [ ] **Step 1: 05-21 세션 작업 내역 섹션 추가**\r\n\r\n`## 05-20 세션 작업 내역` 섹션 뒤에 추가:\r\n\r\n```markdown\r\n## 05-21 세션 작업 내역\r\n\r\n### 상황\r\n\r\n- synapse-gitops 별도 세션에서 서비스 안정화(CrashLoop 해결) + W3 작업(staging overlay, Observability) 진행 중\r\n- 이 세션에서는 gitops 영역과 겹치지 않는 선제 준비 작업 수행\r\n\r\n### 완료: E2E 테스트 인프라 보강\r\n\r\n| 작업 | 상태 |\r\n|------|:----:|\r\n| note-updated 샘플 이벤트 추가 | ✅ |\r\n| 에러 케이스 샘플 3개 추가 (missing field, invalid tenant, empty data) | ✅ |\r\n| 멀티테넌트 샘플 추가 (tenant-e2e-002) | ✅ |\r\n| DB 시드: engagement 프로필 + XP (V004) | ✅ |\r\n| DB 시드: learning-ai 생성 이력 (V005) | ✅ |\r\n| kafka-e2e-test.sh 보강 (자동 판정, 리포트, --error-cases, --full) | ✅ |\r\n\r\n### 완료: 배포 검증 사전 준비\r\n\r\n| 작업 | 상태 |\r\n|------|:----:|\r\n| ArgoCD 배포 검증 자동화 스크립트 (verify-argocd-deploy.sh) | ✅ |\r\n| 서비스 헬스체크 통합 스크립트 (verify-service-health.sh) | ✅ |\r\n| staging 환경 검증 가이드 (STAGING_VERIFICATION.md) | ✅ |\r\n\r\n### 완료: W3 사전 준비 산출물 (추가)\r\n\r\n| 산출물 | 경로 |\r\n|--------|------|\r\n| E2E 에러 샘플 | `src/test/resources/e2e-samples/error/*.json` |\r\n| 멀티테넌트 샘플 | `src/test/resources/e2e-samples/multi-tenant/*.json` |\r\n| note-updated 샘플 | `src/test/resources/e2e-samples/note-updated.json` |\r\n| Engagement 시드 | `src/test/resources/seed/V004__test_engagement_profiles.sql` |\r\n| Learning-AI 시드 | `src/test/resources/seed/V005__test_learning_ai.sql` |\r\n| ArgoCD 검증 스크립트 | `scripts/verify-argocd-deploy.sh` |\r\n| 서비스 헬스체크 스크립트 | `scripts/verify-service-health.sh` |\r\n| Staging 검증 가이드 | `docs/guides/STAGING_VERIFICATION.md` |\r\n| 설계 문서 | `docs/superpowers/specs/2026-05-21-shared-preemptive-prep-design.md` |\r\n| 구현 계획 | `docs/superpowers/plans/2026-05-21-shared-preemptive-prep.md` |\r\n```\r\n\r\n- [ ] **Step 2: 미해결 항목 상태 갱신**\r\n\r\n미해결 항목 테이블을 업데이트:\r\n\r\n```markdown\r\n## 미해결 항목\r\n\r\n| 항목 | 우선순위 | 비고 |\r\n|------|:--------:|------|\r\n| ~~synapse-gateway `master` → `main` 변경~~ | ~~Low~~ | ✅ 완료 |\r\n| ~~deploy.yml Node.js 20 deprecation 경고~~ | ~~Low~~ | ✅ 완료 |\r\n| ~~engagement-svc KAFKA_BROKERS 누락~~ | ~~Medium~~ | ✅ 완료 |\r\n| MSK dev 클러스터 토픽 생성 | Medium | 인프라 담당자 실행 대기 → `docs/guides/MSK_TOPIC_SETUP.md` |\r\n| synapse-gateway ApplicationSet 미포함 | Low | gitops 영역 — 별도 Application 필요 |\r\n| staging 오버레이 미생성 | Medium | gitops 세션에서 진행 중 (W3 Step 7) |\r\n```\r\n\r\n- [ ] **Step 3: 합류 체크리스트 섹션 추가**\r\n\r\n`## 다음 작업` 섹션을 다음으로 교체:\r\n\r\n```markdown\r\n## 다음 작업\r\n\r\n### gitops 세션 합류 조건\r\n\r\n아래 조건이 모두 충족되면 검증 착수:\r\n\r\n- [ ] 5개 서비스 모두 ArgoCD Healthy (CrashLoop 해결 완료)\r\n- [ ] staging namespace 존재 + ApplicationSet에 staging 포함\r\n- [ ] ExternalSecret 5/5 SecretSynced (dev + staging)\r\n\r\n### 합류 후 작업 순서\r\n\r\n```\r\n1. verify-argocd-deploy.sh synapse-dev 실행 → dev 환경 최종 확인\r\n2. verify-service-health.sh 실행 → 5개 서비스 health 확인\r\n3. STAGING_VERIFICATION.md 기반 staging 검증\r\n4. 팀원 Kafka 구현 완료 대기 → KAFKA_E2E_TEST.md 기반 E2E 검증\r\n```\r\n\r\n### Step 7: Kafka E2E 검증 + 코드 리뷰 조율 (팀원 구현 완료 후)\r\n- kafka-e2e-test.sh --all 실행 → 5개 토픽 정상 흐름 확인\r\n- kafka-e2e-test.sh --error-cases 실행 → 에러 핸들링 확인\r\n- 전체 서비스 코드 리뷰 1차\r\n\r\n### Step 8: ArgoCD dev/staging 배포 검증 (gitops 합류 후)\r\n- verify-argocd-deploy.sh synapse-dev → dev 상태 확인\r\n- verify-argocd-deploy.sh synapse-staging → staging 상태 확인\r\n- STAGING_VERIFICATION.md 체크리스트 전체 수행\r\n- Rollback 시나리오 1회 테스트\r\n```\r\n\r\n- [ ] **Step 4: Commit**\r\n\r\n```bash\r\ngit add docs/project-management/HANDOFF_2026-05-19.md\r\ngit commit -m \"docs: update HANDOFF — 05-21 session work + convergence checklist\"\r\n```\r\n\r\n---\r\n\r\n## 작업 순서 요약\r\n\r\n| 순서 | Task | 내용 | 의존 |\r\n|:----:|:----:|------|:----:|\r\n| 1 | Task 1 | note-updated 샘플 추가 | — |\r\n| 2 | Task 2 | 에러 케이스 샘플 3개 추가 | — |\r\n| 3 | Task 3 | 멀티테넌트 샘플 추가 | — |\r\n| 4 | Task 4 | DB 시드 V004 + V005 + seed 스크립트 갱신 | — |\r\n| 5 | Task 5 | kafka-e2e-test.sh 보강 | Task 1~3 (샘플 파일 존재 필요) |\r\n| 6 | Task 6 | verify-argocd-deploy.sh | — |\r\n| 7 | Task 7 | verify-service-health.sh | — |\r\n| 8 | Task 8 | STAGING_VERIFICATION.md | — |\r\n| 9 | Task 9 | HANDOFF 갱신 + 합류 체크리스트 | Task 1~8 완료 후 |\r\n\r\nTask 1~4는 병렬 가능. Task 5는 Task 1~3 완료 필요. Task 6~8은 병렬 가능. Task 9는 마지막.\r\n"
+}

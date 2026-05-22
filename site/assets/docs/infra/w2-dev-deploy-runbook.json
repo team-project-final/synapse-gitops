@@ -1,0 +1,82 @@
+{
+  "slug": "w2-dev-deploy-runbook",
+  "title": "Runbook: W2 Dev 환경 배포 + 시크릿 + 이미지 자동화 실행 가이드",
+  "category": "infra",
+  "source": "synapse-gitops",
+  "tags": [
+    "argocd",
+    "eks",
+    "docker",
+    "helm",
+    "dev"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-18",
+    "status": "active",
+    "completionRate": 0
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "0. 준비물 체크리스트",
+      "anchor": "0-준비물-체크리스트"
+    },
+    {
+      "level": 2,
+      "text": "Step 4. Dev Overlay 5개 앱 완성 (2일)",
+      "anchor": "step-4-dev-overlay-5개-앱-완성-2일"
+    },
+    {
+      "level": 2,
+      "text": "Step 5. ESO Secret 관리 (1.5일)",
+      "anchor": "step-5-eso-secret-관리-15일"
+    },
+    {
+      "level": 2,
+      "text": "Step 6. 이미지 태그 자동 Sync (1.5일)",
+      "anchor": "step-6-이미지-태그-자동-sync-15일"
+    },
+    {
+      "level": 2,
+      "text": "검증 체크리스트 (Done 표시용)",
+      "anchor": "검증-체크리스트-done-표시용"
+    },
+    {
+      "level": 2,
+      "text": "트러블슈팅 (공통)",
+      "anchor": "트러블슈팅-공통"
+    },
+    {
+      "level": 3,
+      "text": "ArgoCD sync가 안 됨",
+      "anchor": "argocd-sync가-안-됨"
+    },
+    {
+      "level": 3,
+      "text": "kubectl 연결 끊김",
+      "anchor": "kubectl-연결-끊김"
+    },
+    {
+      "level": 3,
+      "text": "ECR 이미지 pull 실패",
+      "anchor": "ecr-이미지-pull-실패"
+    },
+    {
+      "level": 3,
+      "text": "Helm 설치 실패",
+      "anchor": "helm-설치-실패"
+    },
+    {
+      "level": 2,
+      "text": "실 환경 정리 (W2 학습 완료 후)",
+      "anchor": "실-환경-정리-w2-학습-완료-후"
+    },
+    {
+      "level": 2,
+      "text": "도움 요청",
+      "anchor": "도움-요청"
+    }
+  ],
+  "body": "# Runbook: W2 Dev 환경 배포 + 시크릿 + 이미지 자동화 실행 가이드\n\n> **대상**: gitops 트랙 담당자 (@VelkaressiaBlutkrone) 또는 dev 환경 배포 작업자\n> **소요 시간**: 약 5일 (2026-05-19 ~ 2026-05-23)\n> **전제**: W1 완료 (ArgoCD 부트스트랩 + ApplicationSet 구성 + CI 검증), EKS 클러스터 Running, ArgoCD UI 접속 가능\n>\n> 이전 단계: [w1-argocd-bootstrap-runbook.md](./w1-argocd-bootstrap-runbook.md) 완료 상태\n\n---\n\n## 0. 준비물 체크리스트\n\n실행 전에 모두 확보:\n\n- [ ] W1 runbook 완료 확인: `argocd app list`에 5개 `synapse-*-dev` Application 표시\n- [ ] `kubectl` — EKS 클러스터 연결 확인 (`kubectl get nodes` → Ready)\n- [ ] `argocd` CLI — 로그인 상태 (`argocd account get-user-info`)\n- [ ] `helm` v3 — ESO 및 Image Updater 설치용\n- [ ] `aws` CLI — Secrets Manager 접근 가능 (`aws secretsmanager list-secrets`)\n- [ ] `gitleaks` 또는 `trufflehog` — 시크릿 스캔용\n- [ ] 5개 앱 Docker 이미지 — ECR에 최소 1개 태그 push 완료\n- [ ] `gh` CLI 로그인 + 레포 push 권한\n- [ ] 작업 디렉토리: `synapse-gitops` 레포 루트, main 최신 sync (`git pull origin main`)\n\n도구 부재 시:\n```bash\n# macOS (Homebrew)\nbrew install helm gitleaks\n\n# Windows (Chocolatey)\nchoco install kubernetes-helm gitleaks\n\n# gitleaks 수동 설치\n# https://github.com/gitleaks/gitleaks/releases\n```\n\n5개 앱 목록:\n\n| 앱 | 디렉토리 | 포트 | 설명 |\n|---|---|---|---|\n| platform-svc | `apps/platform-svc/` | 8080 | 플랫폼 공통 서비스 |\n| engagement-svc | `apps/engagement-svc/` | 8080 | 사용자 참여 서비스 |\n| knowledge-svc | `apps/knowledge-svc/` | 8080 | 지식 관리 서비스 |\n| learning-card | `apps/learning-card/` | 3000 | 학습 카드 프론트엔드 |\n| learning-ai | `apps/learning-ai/` | 8000 | AI 학습 서비스 |\n\n---\n\n## Step 4. Dev Overlay 5개 앱 완성 (2일)\n\n5개 앱의 base 매니페스트 + dev overlay를 작성하고, ArgoCD 자동 sync로 dev 네임스페이스에 배포한다.\n\n📖 **[step4-dev-overlay.md](./step4-dev-overlay.md)** — 4-A 사전 분석 / 4-B base 매니페스트 작성 / 4-C dev overlay 작성 / 4-D ArgoCD sync + 검증. 트러블슈팅 5건.\n\n요약:\n1. 5개 앱별 리소스 요구사항, 환경변수, 포트, 헬스체크 endpoint 정리\n2. `apps/{app}/base/`에 deployment.yaml, service.yaml, configmap.yaml, kustomization.yaml 작성\n3. `apps/{app}/overlays/dev/kustomization.yaml`에 dev 전용 설정 (replica=1, 최소 리소스, LOG_LEVEL=DEBUG)\n4. git push → ArgoCD 자동 sync → 5앱 Synced + Healthy 확인\n\n검증:\n```bash\nargocd app list\n# 5개 모두 Status: Synced, Health: Healthy\n\nkubectl get pods -n dev\n# 5개 pod 모두 Running\n```\n\n---\n\n## Step 5. ESO Secret 관리 (1.5일)\n\nExternal Secrets Operator를 도입해 AWS Secrets Manager에서 시크릿을 자동 동기화한다. git에서 평문 시크릿을 완전히 제거한다.\n\n📖 **[step5-eso-secrets.md](./step5-eso-secrets.md)** — 5-A 사전 분석 / 5-B AWS Secrets Manager 등록 / 5-C ESO 설치 / 5-D 테스트 / 5-E 5개 앱 ExternalSecret 작성 / 5-F 보안 검증. 트러블슈팅 4건.\n\n요약:\n1. ESO vs SOPS vs Sealed Secrets 비교 후 ESO 선택 (AWS native, 운영 단순)\n2. AWS Secrets Manager에 5개 앱 시크릿 등록 (명명: `synapse/dev/{app}/{key}`)\n3. Helm으로 ESO 설치 + IRSA 설정 + ClusterSecretStore 생성\n4. 5개 앱 ExternalSecret 매니페스트 작성, 기존 평문 Secret 제거\n5. gitleaks로 git history 전체 스캔 → 평문 시크릿 0건 확인\n\n검증:\n```bash\nkubectl get externalsecret -n dev\n# 5개 모두 SecretSynced=True\n\ngitleaks detect --source . --verbose\n# 0 findings\n```\n\n---\n\n## Step 6. 이미지 태그 자동 Sync (1.5일)\n\nArgoCD Image Updater를 설치해 ECR에 새 이미지가 push되면 자동으로 dev 환경에 반영하고, 태그 변경 이력을 git log에 남긴다.\n\n📖 **[step6-image-sync.md](./step6-image-sync.md)** — 6-A 사전 분석 / 6-B Image Updater 설치 / 6-C Application annotation 추가 / 6-D 자동 머지 정책 / 6-E 검증. 트러블슈팅 4건.\n\n요약:\n1. ArgoCD Image Updater vs GitHub Actions PR 방식 비교 후 Image Updater 선택\n2. Helm으로 Image Updater 설치 + ECR 인증 설정\n3. 5개 Application에 image-updater annotation 추가 (update-strategy: semver)\n4. write-back-method: git → 태그 변경이 git commit으로 기록\n5. 테스트 이미지 push → 5분 이내 dev Pod 반영 확인\n\n검증:\n```bash\n# 새 이미지 push 후 5분 대기\nkubectl get pods -n dev -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.spec.containers[0].image}{\"\\n\"}{end}'\n\n# git log에 태그 변경 커밋 확인\ngit log --oneline -5\n```\n\n---\n\n## 검증 체크리스트 (Done 표시용)\n\nW2 PRD 검수 기준 최종 검증:\n\n- [ ] **FR-GO-201**: `argocd app list` 출력에 5개 앱 모두 `Synced` + `Healthy` (P0)\n- [ ] **FR-GO-202**: `curl -s -o /dev/null -w '%{http_code}' https://dev-platform-svc.<도메인>/health` → `200` (5개 앱 모두) (P0)\n- [ ] **FR-GO-203**: `gitleaks detect --source .` → 0 findings + `kubectl get externalsecret -n dev` 모두 정상 (P0)\n- [ ] **FR-GO-204**: `kubectl get externalsecret -n dev` → 5개 모두 `SecretSynced=True` (P0)\n- [ ] **FR-GO-205**: ECR에 새 이미지 push 후 5분 이내 `kubectl get pods -n dev`에서 신규 이미지 태그 확인 (P1)\n- [ ] **FR-GO-206**: `git log --oneline` → Image Updater의 태그 변경 커밋 존재 (P1)\n\n---\n\n## 트러블슈팅 (공통)\n\n### ArgoCD sync가 안 됨\n\n```bash\n# Application 상태 확인\nargocd app get synapse-platform-svc-dev\n\n# sync 강제 실행\nargocd app sync synapse-platform-svc-dev\n\n# ApplicationSet 상태 확인\nkubectl get applicationset -n argocd\nkubectl describe applicationset synapse-apps -n argocd\n```\n\n### kubectl 연결 끊김\n\n```bash\n# kubeconfig 갱신\naws eks update-kubeconfig --name synapse-dev --region ap-northeast-2\n\n# 노드 상태 확인\nkubectl get nodes\n```\n\n### ECR 이미지 pull 실패\n\n```bash\n# ECR 로그인 토큰 갱신 (12시간마다 만료)\naws ecr get-login-password --region ap-northeast-2 | kubectl create secret docker-registry ecr-cred \\\n  --docker-server=<ACCOUNT>.dkr.ecr.ap-northeast-2.amazonaws.com \\\n  --docker-username=AWS \\\n  --docker-password=$(aws ecr get-login-password --region ap-northeast-2) \\\n  -n dev --dry-run=client -o yaml | kubectl apply -f -\n```\n\n### Helm 설치 실패\n\n```bash\n# Helm repo 업데이트\nhelm repo update\n\n# 설치된 릴리즈 확인\nhelm list -A\n\n# 실패한 릴리즈 삭제 후 재설치\nhelm uninstall <release-name> -n <namespace>\n```\n\n---\n\n## 실 환경 정리 (W2 학습 완료 후)\n\n```bash\n# Image Updater 제거\nhelm uninstall argocd-image-updater -n argocd\n\n# ESO 제거\nhelm uninstall external-secrets -n external-secrets\n\n# Application 삭제\nargocd app delete -y synapse-platform-svc-dev synapse-engagement-svc-dev \\\n  synapse-knowledge-svc-dev synapse-learning-card-dev synapse-learning-ai-dev\n\n# dev 네임스페이스 정리\nkubectl delete namespace dev\n\n# AWS Secrets Manager 시크릿 정리\nfor app in platform-svc engagement-svc knowledge-svc learning-card learning-ai; do\n  aws secretsmanager delete-secret --secret-id synapse/dev/$app/db-password --region ap-northeast-2\ndone\n```\n\n---\n\n## 도움 요청\n\n- 본 runbook의 단계가 막힐 때: HISTORY에 \"도움 요청\" 항목으로 기록 + Slack #synapse-gitops 채널\n- ArgoCD Image Updater: https://argocd-image-updater.readthedocs.io/\n- External Secrets Operator: https://external-secrets.io/\n- Kustomize: https://kustomize.io/\n"
+}

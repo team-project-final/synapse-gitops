@@ -1,0 +1,43 @@
+{
+  "slug": "schema_evolution",
+  "title": "Schema Evolution Guide\r",
+  "category": "etc",
+  "source": "synapse-shared",
+  "tags": [
+    "schema"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-14",
+    "status": "active",
+    "completionRate": null
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "Backward Compatibility Rules",
+      "anchor": "backward-compatibility-rules"
+    },
+    {
+      "level": 3,
+      "text": "Allowed Changes",
+      "anchor": "allowed-changes"
+    },
+    {
+      "level": 3,
+      "text": "Forbidden Actions",
+      "anchor": "forbidden-actions"
+    },
+    {
+      "level": 2,
+      "text": "PR Procedure",
+      "anchor": "pr-procedure"
+    },
+    {
+      "level": 2,
+      "text": "Schema Registry",
+      "anchor": "schema-registry"
+    }
+  ],
+  "body": "# Schema Evolution Guide\r\n\r\n## Backward Compatibility Rules\r\n\r\nAll Avro schema changes MUST maintain **backward compatibility** — new schema\r\ncan read data written by the old schema.\r\n\r\n### Allowed Changes\r\n\r\n| Change | Safe? | Notes |\r\n|---|---|---|\r\n| Add field with default | Yes | New readers get default for old data |\r\n| Remove field with default | Yes | Old readers ignore missing field |\r\n| Add enum symbol at end | Yes | Existing readers ignore new values |\r\n| Widen numeric type | Yes | e.g. `int` → `long` |\r\n\r\n### Forbidden Actions\r\n\r\n- **Never** remove a field that has no default value\r\n- **Never** rename a field (add new + deprecate old instead)\r\n- **Never** change a field's type incompatibly (e.g. `string` → `int`)\r\n- **Never** reorder enum symbols\r\n- **Never** change a field's default value semantics\r\n\r\n## PR Procedure\r\n\r\n1. Create a feature branch from `main`\r\n2. Modify `.avsc` files under `src/main/avro/`\r\n3. Run `./gradlew build` to verify schema compilation\r\n4. Open a PR with:\r\n   - Before/after schema diff\r\n   - Compatibility justification\r\n   - List of affected consumers\r\n5. Require at least **1 approval** from a schema owner\r\n6. CI will run schema compatibility check automatically\r\n\r\n## Schema Registry\r\n\r\nSchemas are registered in Confluent Schema Registry with\r\n`BACKWARD` compatibility mode. The CI pipeline validates\r\ncompatibility before merge.\r\n"
+}

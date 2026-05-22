@@ -1,0 +1,123 @@
+{
+  "slug": "readme",
+  "title": "Synapse 프로젝트 관리 문서 체계\r",
+  "category": "management",
+  "source": "synapse-shared",
+  "tags": [
+    "security"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-14",
+    "status": "active",
+    "completionRate": 0
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "1. 개요",
+      "anchor": "1-개요"
+    },
+    {
+      "level": 2,
+      "text": "2. 문서 흐름",
+      "anchor": "2-문서-흐름"
+    },
+    {
+      "level": 2,
+      "text": "3. 문서별 역할",
+      "anchor": "3-문서별-역할"
+    },
+    {
+      "level": 2,
+      "text": "4. 디렉토리 구조",
+      "anchor": "4-디렉토리-구조"
+    },
+    {
+      "level": 2,
+      "text": "5. 작업 진행/완료 시 업데이트 규칙",
+      "anchor": "5-작업-진행완료-시-업데이트-규칙"
+    },
+    {
+      "level": 3,
+      "text": "핵심 원칙",
+      "anchor": "핵심-원칙"
+    },
+    {
+      "level": 2,
+      "text": "6. Task 문서 작성 규칙",
+      "anchor": "6-task-문서-작성-규칙"
+    },
+    {
+      "level": 3,
+      "text": "6.1 용어 정의",
+      "anchor": "61-용어-정의"
+    },
+    {
+      "level": 3,
+      "text": "6.2 필수 필드 (10개)",
+      "anchor": "62-필수-필드-10개"
+    },
+    {
+      "level": 3,
+      "text": "6.3 Step Goal — 측정 가능 문장 강제",
+      "anchor": "63-step-goal-측정-가능-문장-강제"
+    },
+    {
+      "level": 3,
+      "text": "6.4 Done When — 고정 배치 (강제)",
+      "anchor": "64-done-when-고정-배치-강제"
+    },
+    {
+      "level": 3,
+      "text": "6.5 Scope — In/Out 고정 구조",
+      "anchor": "65-scope-inout-고정-구조"
+    },
+    {
+      "level": 3,
+      "text": "6.6 Constraints vs RULE Reference 구분",
+      "anchor": "66-constraints-vs-rule-reference-구분"
+    },
+    {
+      "level": 3,
+      "text": "6.7 강제 사항",
+      "anchor": "67-강제-사항"
+    },
+    {
+      "level": 2,
+      "text": "7. 기능 개발 Workflow (10단계)",
+      "anchor": "7-기능-개발-workflow-10단계"
+    },
+    {
+      "level": 3,
+      "text": "Security 1차 체크리스트",
+      "anchor": "security-1차-체크리스트"
+    },
+    {
+      "level": 3,
+      "text": "Security 2차 체크리스트",
+      "anchor": "security-2차-체크리스트"
+    },
+    {
+      "level": 3,
+      "text": "설계 철학",
+      "anchor": "설계-철학"
+    },
+    {
+      "level": 2,
+      "text": "8. 담당자 매핑표",
+      "anchor": "8-담당자-매핑표"
+    },
+    {
+      "level": 2,
+      "text": "9. GitHub Repositories",
+      "anchor": "9-github-repositories"
+    },
+    {
+      "level": 2,
+      "text": "참조 문서",
+      "anchor": "참조-문서"
+    }
+  ],
+  "body": "# Synapse 프로젝트 관리 문서 체계\r\n\r\n> **프로젝트명**: Synapse — 통합 학습-지식 그래프 SaaS  \r\n> **기간**: 2026-05-12 ~ 2026-06-15 (5주 + 발표일, 22 영업일 — 5/25 부처님오신날·6/3 지방선거 제외)  \r\n> **팀 구성**: 팀장 1명 + 팀원 6명\r\n\r\n---\r\n\r\n## 1. 개요\r\n\r\n본 문서 체계는 Synapse 프로젝트의 **작업 정의 → 진행 → 완료**를 추적 가능하게 하는 5종 문서 시스템이다.\r\n\r\n---\r\n\r\n## 2. 문서 흐름\r\n\r\n```\r\nSCOPE (5주 전체 책임 정의)\r\n  ↓ 참조\r\nPRD (주차별 요구사항)\r\n  ↓ 분해\r\nTASK (Step 단위 작업 정의 — 필수 10필드)\r\n  ↓ 세분화\r\nWORKFLOW (Step별 기능개발 10단계)\r\n  ↓ 기록\r\nHISTORY (상태 대시보드 + 날짜별 일지)\r\n```\r\n\r\n---\r\n\r\n## 3. 문서별 역할\r\n\r\n| 문서 | 위치 | 역할 | 작성 시점 |\r\n|------|------|------|-----------|\r\n| SCOPE | `scope/SCOPE_{담당자}.md` | 담당자의 5주 전체 책임/경계 정의 | 프로젝트 시작 시 |\r\n| PRD | `prd/PRD_W{N}.md` | 주차별 기능/비기능 요구사항 | 각 주차 시작 전 |\r\n| TASK | `task/TASK_{담당자}.md` | Step 단위 작업 정의 (필수 10필드) | PRD 확정 후 |\r\n| WORKFLOW | `workflow/WORKFLOW_{담당자}_W{N}.md` | Step을 기능개발 10단계로 세분화 | TASK 확정 후 |\r\n| HISTORY | `history/HISTORY_{담당자}.md` | 상태 추적 + 날짜별 작업 일지 | 매일 업데이트 |\r\n\r\n---\r\n\r\n## 4. 디렉토리 구조\r\n\r\n```\r\ndocs/project-management/\r\n├── README.md                              # 본 문서\r\n├── scope/                                 # 작업 스코프 정의\r\n│   ├── SCOPE_team-lead.md\r\n│   ├── SCOPE_platform.md\r\n│   ├── SCOPE_engagement.md\r\n│   ├── SCOPE_knowledge-1.md\r\n│   ├── SCOPE_knowledge-2.md\r\n│   ├── SCOPE_learning-card.md\r\n│   └── SCOPE_learning-ai.md\r\n├── prd/                                   # 주차별 PRD (W1~W5)\r\n│   ├── PRD_W1.md\r\n│   ├── PRD_W2.md\r\n│   ├── PRD_W3.md  # 이벤트 발행자 + RRF + AI 자동 생성\r\n│   ├── PRD_W4.md  # 이벤트 소비자 + 운영\r\n│   └── PRD_W5.md  # E2E + 발표 준비\r\n├── task/                                  # 담당자별 Task\r\n│   ├── TASK_team-lead.md\r\n│   ├── TASK_platform.md\r\n│   ├── TASK_engagement.md\r\n│   ├── TASK_knowledge-1.md\r\n│   ├── TASK_knowledge-2.md\r\n│   ├── TASK_learning-card.md\r\n│   ├── TASK_learning-ai.md\r\n│   └── TASK_frontend.md\r\n├── workflow/                              # 담당자 × 주차\r\n│   ├── WORKFLOW_team-lead_W1.md\r\n│   ├── WORKFLOW_platform_W1.md\r\n│   └── ...\r\n└── history/                               # 담당자별 이력\r\n    ├── HISTORY_team-lead.md\r\n    └── ...\r\n```\r\n\r\n---\r\n\r\n## 5. 작업 진행/완료 시 업데이트 규칙\r\n\r\n| 이벤트 | PRD | TASK | WORKFLOW | HISTORY |\r\n|--------|-----|------|----------|---------|\r\n| **작업 시작** | — | Step Status → `In Progress` | 해당 단계 시작 표시 | 시작일 기록 + 로그 작성 |\r\n| **하위 단계 완료** | — | — | 체크박스 `[x]` 체크 | 로그에 완료 기록 |\r\n| **Step 완료** | — | Step Status → `Done` | 전체 체크박스 완료 | 완료일 기록 + 로그 |\r\n| **주차 종료** | 성공 기준 체크 | — | — | 주간 요약 작성 |\r\n| **이슈 발생** | — | Constraints 갱신 | 해당 단계에 이슈 메모 | 이슈 기록 |\r\n| **스코프 변경** | 요구사항 수정 | Scope 필드 갱신 | — | 변경 사유 기록 |\r\n\r\n### 핵심 원칙\r\n\r\n> **작업 진행과 작업 완료 시, PRD / TASK / WORKFLOW / HISTORY 문서를 모두 확인·체크·업데이트 해야 한다.**\r\n\r\n---\r\n\r\n## 6. Task 문서 작성 규칙\r\n\r\n### 6.1 용어 정의\r\n\r\n| 용어 | 의미 |\r\n|------|------|\r\n| TASK | 문서 단위. `TASK_SERVER.md` 등 하나의 md 파일이 하나의 TASK 문서 |\r\n| Step | TASK 문서 내 개별 작업 단위. 필수 필드로 정의되는 하나의 작업 블록 |\r\n\r\n### 6.2 필수 필드 (10개)\r\n\r\n| # | 필드 | 설명 |\r\n|---|------|------|\r\n| 1 | **Step Name** | 단계 이름 |\r\n| 2 | **Step Goal** | 측정 가능한 목표 문장 (§6.3 참조) |\r\n| 3 | **Done When** | 성공 기준 (**Step Goal 바로 다음 고정 배치**) |\r\n| 4 | **Scope** | In Scope / Out of Scope (§6.5 참조) |\r\n| 5 | **Input** | 필요한 입력 (문서·코드·환경 등) |\r\n| 6 | **Instructions** | 수행할 작업 목록 |\r\n| 7 | **Output Format** | 산출물 형태·위치·형식 |\r\n| 8 | **Constraints** | Step 고유 규칙·제약 |\r\n| 9 | **Duration** | 예상 작업일 (1명 기준) |\r\n| 10 | **RULE Reference** | 참조 문서 위치 |\r\n| (선택) | **Assignee** | 담당자 |\r\n| (선택) | **Reviewer** | 리뷰어 |\r\n\r\n### 6.3 Step Goal — 측정 가능 문장 강제\r\n\r\n형식: **[주체]가 [대상]에 대해 [행위]를 [결과]한다.**\r\n\r\n| 부적절 | 적절 |\r\n|--------|------|\r\n| 게시글 좋아요 기능 구현 | 로그인 사용자가 게시글에 좋아요를 최대 1회만 등록할 수 있다. |\r\n| 회원 관리 기능 | 관리자가 회원을 상태별로 검색하고 일괄 정지할 수 있다. |\r\n| API 개발 | 비로그인 사용자가 게시글 목록을 페이지네이션으로 조회할 수 있다. |\r\n\r\n### 6.4 Done When — 고정 배치 (강제)\r\n\r\n**Step Name → Step Goal → Done When → Scope → Input → ...**\r\n\r\nDone When은 Step Goal 바로 다음에 반드시 배치한다.\r\n\r\n### 6.5 Scope — In/Out 고정 구조\r\n\r\n```markdown\r\n- **Scope**:\r\n  - In Scope:\r\n    - 포함 항목 1\r\n    - 포함 항목 2\r\n  - Out of Scope:\r\n    - 제외 항목 1\r\n    - 향후 고려: ...\r\n```\r\n\r\n### 6.6 Constraints vs RULE Reference 구분\r\n\r\n| 필드 | 의미 |\r\n|------|------|\r\n| Constraints | 이번 Step 고유 제약 (예: \"인증 필수\", \"N+1 방지\") |\r\n| RULE Reference | 참조 문서 위치 (예: \"공통_개발_규칙.md §3.2\") |\r\n\r\n### 6.7 강제 사항\r\n\r\n- 신규 Step 추가 시 **10개 필수 필드 모두 작성**\r\n- 필드 누락 시 코드 리뷰에서 보완 요청 대상\r\n- Step Goal이 측정 불가능한 문장이면 반려\r\n\r\n---\r\n\r\n## 7. 기능 개발 Workflow (10단계)\r\n\r\nTASK 문서의 각 Step을 실행할 때, 아래 10단계를 순서대로 따른다. WORKFLOW 문서에 체크박스로 추적한다.\r\n\r\n```\r\nTASK 시작  ← Step Goal/Done When/Scope/Input/Duration 확인\r\n    ↓\r\n요구사항 분석  ← Instructions 초안, Constraints\r\n    ↓\r\nSecurity 1차 검토  ← 인증/권한/공개API 체크\r\n    ↓\r\nERD 설계  ← Duration(final) 갱신\r\n    ↓\r\nSecurity 2차 검토  ← 암호화/SoftDelete/행단위접근 체크\r\n    ↓\r\nDTO/Entity 설계 (API First: DTO → Entity)\r\n    ↓\r\nRepository 구현\r\n    ↓\r\nService + Test (병행)\r\n    ↓\r\nController + Test (병행, 401/403 포함)\r\n    ↓\r\nView + Test (Smoke 1건 이상 필수)\r\n```\r\n\r\n### Security 1차 체크리스트\r\n- [ ] 인증 필요 여부\r\n- [ ] 권한 종류 (일반/관리자/특정 권한)\r\n- [ ] 공개 API 여부 → Rate Limiting 필요성\r\n\r\n### Security 2차 체크리스트\r\n- [ ] 민감 정보 암호화 여부\r\n- [ ] Soft Delete vs 물리 삭제\r\n- [ ] 행 단위 접근 제어(Row-level) 필요 여부\r\n\r\n### 설계 철학\r\n\r\n본 프로젝트는 **API First**를 기본으로 한다: DTO 설계 → Entity 순서. 도메인 복잡도가 높은 기능은 팀 합의로 Entity 우선을 허용한다.\r\n\r\n---\r\n\r\n## 8. 담당자 매핑표\r\n\r\n| Handle | 트랙 | 서비스 | 모듈 | 파일 접미사 |\r\n|--------|------|--------|------|------------|\r\n| `@team-lead` | 팀장 | Gateway / 인프라 | Schema Registry, ArgoCD, CI/CD | `team-lead` |\r\n| `@platform-owner` | A | synapse-platform-svc | auth, audit, billing, notification | `platform` |\r\n| `@engagement-owner` | B | synapse-engagement-svc | community, gamification | `engagement` |\r\n| `@knowledge-owner-1` | C-1 | synapse-knowledge-svc | note, graph | `knowledge-1` |\r\n| `@knowledge-owner-2` | C-2 | synapse-knowledge-svc | chunking, 검색, Modulith | `knowledge-2` |\r\n| `@learning-card-owner` | D-1 | synapse-learning-svc | card, srs (Java) | `learning-card` |\r\n| `@learning-ai-owner` | D-2 | synapse-learning-svc | ai (Python/FastAPI) | `learning-ai` |\r\n| 전체 협업 | — | synapse-frontend | Flutter UI | `frontend` |\r\n\r\n---\r\n\r\n## 9. GitHub Repositories\r\n\r\n| 레포지토리 | 가시성 | 용도 | 담당 |\r\n|------------|:------:|------|------|\r\n| [synapse-platform-svc](https://github.com/team-project-final/synapse-platform-svc) | public | auth · audit · billing · notification | @platform-owner |\r\n| [synapse-engagement-svc](https://github.com/team-project-final/synapse-engagement-svc) | public | community · gamification | @engagement-owner |\r\n| [synapse-knowledge-svc](https://github.com/team-project-final/synapse-knowledge-svc) | public | note · graph · chunking | @knowledge-owner-1, @knowledge-owner-2 |\r\n| [synapse-learning-svc](https://github.com/team-project-final/synapse-learning-svc) | public | card · srs (Java) + ai (Python) | @learning-card-owner, @learning-ai-owner |\r\n| [synapse-frontend](https://github.com/team-project-final/synapse-frontend) | public | Flutter (web/mobile) | 전체 협업 |\r\n| [synapse-shared](https://github.com/team-project-final/synapse-shared) | public | Avro 스키마 + 공통 라이브러리 | @team-lead |\r\n| [synapse-mirror](https://github.com/team-project-final/synapse-mirror) | private | Tier 1 자동 미러 (읽기 전용) | 자동 (Actions) |\r\n| [synapse-gitops](https://github.com/team-project-final/synapse-gitops) | private | K8s manifest + ArgoCD ApplicationSet | @team-lead |\r\n| [syn](https://github.com/team-project-final/syn) | public | 부트스트랩 스크립트 + 스펙 + 플랜 | @team-lead |\r\n| [documents](https://github.com/team-project-final/documents) | public | 프로젝트 관리 문서 (본 레포) | 전체 |\r\n\r\n---\r\n\r\n## 참조 문서\r\n\r\n| 문서 | 위치 |\r\n|------|------|\r\n| 스케줄 | [wiki 17_스케줄](https://github.com/Public-Project-Area-Oragans/syn/wiki/17_스케줄) |\r\n| 아키텍처 | [wiki 03_아키텍처_정의서](https://github.com/Public-Project-Area-Oragans/syn/wiki/03_프로젝트_아키텍처_정의서) |\r\n| Git 규칙 | [wiki 09_Git_규칙_정의서](https://github.com/Public-Project-Area-Oragans/syn/wiki/09_Git_규칙_정의서) |\r\n| 공통 개발 규칙 | [docs/공통_개발_규칙.md](../공통_개발_규칙.md) |\r\n| Spring 컨벤션 | [docs/Spring_개발_컨벤션.md](../Spring_개발_컨벤션.md) |\r\n| Flutter 컨벤션 | [docs/Flutter_개발_컨벤션.md](../Flutter_개발_컨벤션.md) |\r\n"
+}

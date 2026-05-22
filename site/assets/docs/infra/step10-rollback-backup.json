@@ -1,0 +1,152 @@
+{
+  "slug": "step10-rollback-backup",
+  "title": "Runbook: 롤백 + 백업 체계 구축 (Step 10 상세)",
+  "category": "infra",
+  "source": "synapse-gitops",
+  "tags": [
+    "argocd",
+    "eks",
+    "helm",
+    "staging",
+    "dev"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-18",
+    "status": "active",
+    "completionRate": null
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "10-A. 사전 분석 (30분)",
+      "anchor": "10-a-사전-분석-30분"
+    },
+    {
+      "level": 3,
+      "text": "롤백 시나리오 분류",
+      "anchor": "롤백-시나리오-분류"
+    },
+    {
+      "level": 3,
+      "text": "RTO/RPO 목표",
+      "anchor": "rtorpo-목표"
+    },
+    {
+      "level": 3,
+      "text": "백업 저장소",
+      "anchor": "백업-저장소"
+    },
+    {
+      "level": 2,
+      "text": "10-B. ArgoCD 롤백 검증 (1시간)",
+      "anchor": "10-b-argocd-롤백-검증-1시간"
+    },
+    {
+      "level": 3,
+      "text": "10-B-1. ArgoCD History 기반 롤백",
+      "anchor": "10-b-1-argocd-history-기반-롤백"
+    },
+    {
+      "level": 3,
+      "text": "10-B-2. git revert 기반 롤백",
+      "anchor": "10-b-2-git-revert-기반-롤백"
+    },
+    {
+      "level": 3,
+      "text": "10-B-3. Image Updater 태그 강제 고정",
+      "anchor": "10-b-3-image-updater-태그-강제-고정"
+    },
+    {
+      "level": 2,
+      "text": "10-C. Velero 설치 (1시간)",
+      "anchor": "10-c-velero-설치-1시간"
+    },
+    {
+      "level": 3,
+      "text": "10-C-1. S3 백업 버킷 생성",
+      "anchor": "10-c-1-s3-백업-버킷-생성"
+    },
+    {
+      "level": 3,
+      "text": "10-C-2. IRSA for Velero ServiceAccount",
+      "anchor": "10-c-2-irsa-for-velero-serviceaccount"
+    },
+    {
+      "level": 3,
+      "text": "10-C-3. Helm으로 Velero 설치",
+      "anchor": "10-c-3-helm으로-velero-설치"
+    },
+    {
+      "level": 2,
+      "text": "10-D. 백업 스케줄 + 복구 시뮬레이션 (2시간)",
+      "anchor": "10-d-백업-스케줄-복구-시뮬레이션-2시간"
+    },
+    {
+      "level": 3,
+      "text": "10-D-1. 일일 스케줄 백업 정의",
+      "anchor": "10-d-1-일일-스케줄-백업-정의"
+    },
+    {
+      "level": 3,
+      "text": "10-D-2. 수동 백업 + 복구 시뮬레이션",
+      "anchor": "10-d-2-수동-백업-복구-시뮬레이션"
+    },
+    {
+      "level": 2,
+      "text": "10-E. 백업 모니터링 + 문서화 (1시간)",
+      "anchor": "10-e-백업-모니터링-문서화-1시간"
+    },
+    {
+      "level": 3,
+      "text": "10-E-1. 백업 실패 알람 (PrometheusRule)",
+      "anchor": "10-e-1-백업-실패-알람-prometheusrule"
+    },
+    {
+      "level": 3,
+      "text": "10-E-2. etcd snapshot 정책",
+      "anchor": "10-e-2-etcd-snapshot-정책"
+    },
+    {
+      "level": 3,
+      "text": "10-E-3. 롤백/백업 절차 문서",
+      "anchor": "10-e-3-롤백백업-절차-문서"
+    },
+    {
+      "level": 2,
+      "text": "자주 막히는 지점",
+      "anchor": "자주-막히는-지점"
+    },
+    {
+      "level": 3,
+      "text": "Velero IRSA 권한 부족",
+      "anchor": "velero-irsa-권한-부족"
+    },
+    {
+      "level": 3,
+      "text": "S3 bucket 생성 안 됨",
+      "anchor": "s3-bucket-생성-안-됨"
+    },
+    {
+      "level": 3,
+      "text": "백업 크기 과다 (PV 제외 옵션)",
+      "anchor": "백업-크기-과다-pv-제외-옵션"
+    },
+    {
+      "level": 3,
+      "text": "복구 순서 의존성",
+      "anchor": "복구-순서-의존성"
+    },
+    {
+      "level": 3,
+      "text": "etcd snapshot 직접 접근 불가",
+      "anchor": "etcd-snapshot-직접-접근-불가"
+    },
+    {
+      "level": 2,
+      "text": "다음 단계",
+      "anchor": "다음-단계"
+    }
+  ],
+  "body": "# Runbook: 롤백 + 백업 체계 구축 (Step 10 상세)\n\n> **소요 시간**: 약 2일 (2026-06-04 ~ 06-05)\n> **결과**: staging 복구 시뮬 통과, 백업 스케줄 동작, 롤백 절차 검증 완료\n> **상위 문서**: [w4-prod-rollback-runbook.md](./w4-prod-rollback-runbook.md) Step 10\n> **사전 조건**: Step 9 완료 (15 Application, prod Manual Sync, RBAC 검증 통과)\n\n---\n\n## 10-A. 사전 분석 (30분)\n\n### 롤백 시나리오 분류\n\n| 시나리오 | 롤백 방법 | 복구 시간 |\n|---|---|---|\n| 매니페스트 롤백 | git revert → ArgoCD auto sync | 2~5분 |\n| 이미지만 롤백 | ArgoCD History rollback 또는 태그 고정 | 3~5분 |\n| 클러스터 전체 복구 | Velero restore (S3 백업) | 15~30분 |\n\n### RTO/RPO 목표\n\n- **RTO** 30분: Velero restore + ArgoCD sync 포함\n- **RPO** 1시간: 일일 백업 + git history 보완 (매니페스트는 git에 있으므로 RPO 사실상 0)\n\n### 백업 저장소\n\nS3 `synapse-velero-backups` 버킷. 일일 백업 7일 보존, 수동 백업 30일 보존. 암호화(AES-256) + 퍼블릭 차단.\n\n---\n\n## 10-B. ArgoCD 롤백 검증 (1시간)\n\n### 10-B-1. ArgoCD History 기반 롤백\n\n```bash\n# 이전 sync 이력 확인\nargocd app history synapse-platform-svc-staging\n\n# 이전 revision으로 롤백\nargocd app rollback synapse-platform-svc-staging <HISTORY_ID>\n```\n\n**Expected**: 이전 revision 매니페스트로 Pod 재생성.\n\n> ArgoCD rollback은 git을 변경하지 않는다. 다음 sync 시 HEAD로 돌아간다. 영구 롤백은 git revert 사용.\n\n### 10-B-2. git revert 기반 롤백\n\n```bash\ngit log --oneline -10\ngit revert <problem-commit-hash> --no-edit\ngit push origin main\nargocd app wait synapse-platform-svc-staging --sync --timeout 120\n```\n\n**Expected**: dev/staging 자동 sync로 이전 상태 복원.\n\n### 10-B-3. Image Updater 태그 강제 고정\n\n```bash\n# Image Updater 자동 업데이트 무시 — annotation override\nargocd app set synapse-platform-svc-staging \\\n  --annotation argocd-image-updater.argoproj.io/image-list=\"\"\n```\n\n또는 `kustomization.yaml`에서 `images[].newTag`를 고정 태그로 지정.\n\n---\n\n## 10-C. Velero 설치 (1시간)\n\n### 10-C-1. S3 백업 버킷 생성\n\n```bash\naws s3api create-bucket --bucket synapse-velero-backups \\\n  --region ap-northeast-2 \\\n  --create-bucket-configuration LocationConstraint=ap-northeast-2\n\naws s3api put-bucket-versioning --bucket synapse-velero-backups \\\n  --versioning-configuration Status=Enabled\n\naws s3api put-bucket-encryption --bucket synapse-velero-backups \\\n  --server-side-encryption-configuration \\\n  '{\"Rules\":[{\"ApplyServerSideEncryptionByDefault\":{\"SSEAlgorithm\":\"AES256\"}}]}'\n\naws s3api put-public-access-block --bucket synapse-velero-backups \\\n  --public-access-block-configuration \\\n  \"BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true\"\n```\n\n### 10-C-2. IRSA for Velero ServiceAccount\n\n```bash\n# IAM Policy 생성 (S3 + EBS snapshot 권한)\naws iam create-policy --policy-name VeleroAccessPolicy \\\n  --policy-document file://infra/velero/velero-iam-policy.json\n\n# IRSA 연결\neksctl create iamserviceaccount --name velero --namespace velero \\\n  --cluster synapse-dev \\\n  --attach-policy-arn arn:aws:iam::<ACCOUNT_ID>:policy/VeleroAccessPolicy \\\n  --approve --override-existing-serviceaccounts\n```\n\n필요 권한: `ec2:DescribeVolumes`, `ec2:CreateSnapshot`, `ec2:DeleteSnapshot`, `s3:GetObject/PutObject/DeleteObject/ListBucket`.\n\n### 10-C-3. Helm으로 Velero 설치\n\n```bash\nhelm repo add vmware-tanzu https://vmware-tanzu.github.io/helm-charts && helm repo update\n\nhelm install velero vmware-tanzu/velero --namespace velero --create-namespace \\\n  --set configuration.backupStorageLocation[0].name=default \\\n  --set configuration.backupStorageLocation[0].provider=aws \\\n  --set configuration.backupStorageLocation[0].bucket=synapse-velero-backups \\\n  --set configuration.backupStorageLocation[0].config.region=ap-northeast-2 \\\n  --set configuration.volumeSnapshotLocation[0].name=default \\\n  --set configuration.volumeSnapshotLocation[0].provider=aws \\\n  --set configuration.volumeSnapshotLocation[0].config.region=ap-northeast-2 \\\n  --set initContainers[0].name=velero-plugin-for-aws \\\n  --set initContainers[0].image=velero/velero-plugin-for-aws:v1.9.0 \\\n  --set initContainers[0].volumeMounts[0].mountPath=/target \\\n  --set initContainers[0].volumeMounts[0].name=plugins \\\n  --set serviceAccount.server.create=false \\\n  --set serviceAccount.server.name=velero\n```\n\n```bash\nkubectl get pods -n velero            # velero pod Running\nvelero version                        # Client + Server 버전\nvelero backup-location get            # default BSL Phase: Available\n```\n\n---\n\n## 10-D. 백업 스케줄 + 복구 시뮬레이션 (2시간)\n\n### 10-D-1. 일일 스케줄 백업 정의\n\n```yaml\n# infra/velero/daily-schedule.yaml\napiVersion: velero.io/v1\nkind: Schedule\nmetadata:\n  name: daily-backup\n  namespace: velero\nspec:\n  schedule: \"0 2 * * *\"          # 매일 02:00 UTC (KST 11:00)\n  template:\n    includedNamespaces: [dev, staging, prod]\n    excludedResources: [events, events.events.k8s.io]\n    storageLocation: default\n    ttl: 168h0m0s                # 7일 보존\n    snapshotVolumes: true\n```\n\n```bash\nkubectl apply -f infra/velero/daily-schedule.yaml\nvelero schedule get                   # daily-backup Enabled\n```\n\n### 10-D-2. 수동 백업 + 복구 시뮬레이션\n\n```bash\n# 1. staging 수동 백업\nvelero backup create staging-manual-backup \\\n  --include-namespaces staging --storage-location default --ttl 72h\n\n# 2. 백업 완료 대기\nvelero backup describe staging-manual-backup --details\n# Expected: Phase: Completed\n\n# 3. 복구 시뮬 시작 — staging 삭제\nSTART_TIME=$(date +%s)\nkubectl delete namespace staging --wait=true\nkubectl get namespace staging          # NotFound\n\n# 4. Velero restore\nvelero restore create staging-restore --from-backup staging-manual-backup \\\n  --include-namespaces staging\nvelero restore wait staging-restore --timeout 30m\n\n# 5. 검증 + RTO 측정\nkubectl get pods -n staging            # 5개 pod Running\nEND_TIME=$(date +%s)\necho \"소요: $(( (END_TIME - START_TIME) / 60 ))분\"\n\n# 6. ArgoCD 재연결\nfor app in platform-svc engagement-svc knowledge-svc learning-card learning-ai; do\n  argocd app get synapse-$app-staging --hard-refresh\ndone\n```\n\n**Expected**: staging 5개 Pod 복구, RTO 30분 이내, ArgoCD `Synced` + `Healthy`.\n\n---\n\n## 10-E. 백업 모니터링 + 문서화 (1시간)\n\n### 10-E-1. 백업 실패 알람 (PrometheusRule)\n\n```yaml\n# infra/monitoring/velero-alerts.yaml\napiVersion: monitoring.coreos.com/v1\nkind: PrometheusRule\nmetadata:\n  name: velero-backup-alerts\n  namespace: monitoring\n  labels: { release: prometheus }\nspec:\n  groups:\n    - name: velero.rules\n      rules:\n        - alert: VeleroBackupFailed\n          expr: increase(velero_backup_failure_total[24h]) > 0\n          for: 5m\n          labels: { severity: critical }\n          annotations: { summary: \"Velero 백업 실패 감지\" }\n        - alert: VeleroBackupNotScheduled\n          expr: time() - velero_backup_last_successful_timestamp{schedule=\"daily-backup\"} > 90000\n          for: 10m\n          labels: { severity: warning }\n          annotations: { summary: \"Velero 일일 백업 25시간 이상 미실행\" }\n```\n\n```bash\nkubectl apply -f infra/monitoring/velero-alerts.yaml\n```\n\n### 10-E-2. etcd snapshot 정책\n\n> EKS 관리형: etcd는 AWS 책임. 직접 접근/백업 불가. 클러스터 전체 복구 시 새 EKS 생성 + Velero restore.\n> self-managed K8s는 `etcdctl snapshot save` 정기 실행 필요.\n\n### 10-E-3. 롤백/백업 절차 문서\n\n- **매니페스트 롤백**: `git revert` → main push → auto sync\n- **이미지 롤백**: `argocd app rollback <app> <ID>` + Image Updater annotation 제거\n- **전체 복구**: `velero restore create --from-backup <name>` → `argocd hard-refresh`\n\n---\n\n## 자주 막히는 지점\n\n### Velero IRSA 권한 부족\n**증상**: `AccessDenied` 또는 `NoCredentialProviders`. SA annotation 확인 → `kubectl get sa velero -n velero -o yaml`. 없으면 IRSA 재설정 후 `kubectl rollout restart deployment velero -n velero`.\n\n### S3 bucket 생성 안 됨\n`BucketAlreadyExists` → 글로벌 unique 이름 변경. `403 Forbidden` → IAM 권한 부족.\n\n### 백업 크기 과다 (PV 제외 옵션)\nGitOps는 매니페스트가 git에 있으므로 `--snapshot-volumes=false`로 PV 제외 가능.\n\n### 복구 순서 의존성\n`velero restore describe --details`로 실패 리소스 확인. 순서: Namespace → Secret/ConfigMap → ServiceAccount → Deployment → Service. 부분 복구 후 나머지 수동 적용.\n\n### etcd snapshot 직접 접근 불가\nEKS 관리형은 etcd 접근 불가. Velero 리소스 레벨 백업 + git 매니페스트로 대체.\n\n---\n\n## 다음 단계\n\nW4 완료 후 전체 파이프라인 완성: 코드 변경 → CI → dev/staging(auto) → prod(manual) → 장애 시 롤백/Velero restore.\n\n📖 상위 문서: [w4-prod-rollback-runbook.md](./w4-prod-rollback-runbook.md)\n"
+}

@@ -1,0 +1,212 @@
+{
+  "slug": "2026-05-19-w1w2-catchup",
+  "title": "W1/W2 미완료 캐치업 구현 계획",
+  "category": "prd",
+  "source": "synapse-shared",
+  "tags": [
+    "kafka",
+    "redis",
+    "opensearch",
+    "docker",
+    "dev"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-19",
+    "status": "active",
+    "completionRate": 0
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "기존 상태 정정 (Spec 대비)",
+      "anchor": "기존-상태-정정-spec-대비"
+    },
+    {
+      "level": 2,
+      "text": "파일 구조",
+      "anchor": "파일-구조"
+    },
+    {
+      "level": 3,
+      "text": "생성할 파일",
+      "anchor": "생성할-파일"
+    },
+    {
+      "level": 3,
+      "text": "수정할 파일",
+      "anchor": "수정할-파일"
+    },
+    {
+      "level": 3,
+      "text": "Step 6 (Gateway) 대상 레포/위치",
+      "anchor": "step-6-gateway-대상-레포위치"
+    },
+    {
+      "level": 2,
+      "text": "Task 1: Docker Compose 전체 로컬 환경 구성 (Step 2)",
+      "anchor": "task-1-docker-compose-전체-로컬-환경-구성-step-2"
+    },
+    {
+      "level": 3,
+      "text": "1-1. TASK 문서 Status 갱신",
+      "anchor": "1-1-task-문서-status-갱신"
+    },
+    {
+      "level": 3,
+      "text": "1-2. .env.example 작성",
+      "anchor": "1-2-envexample-작성"
+    },
+    {
+      "level": 3,
+      "text": "1-3. docker-compose.yml 작성",
+      "anchor": "1-3-docker-composeyml-작성"
+    },
+    {
+      "level": 3,
+      "text": "1-4. 동작 검증",
+      "anchor": "1-4-동작-검증"
+    },
+    {
+      "level": 3,
+      "text": "1-5. README 업데이트",
+      "anchor": "1-5-readme-업데이트"
+    },
+    {
+      "level": 2,
+      "text": "Quick Start (Local Dev)",
+      "anchor": "quick-start-local-dev"
+    },
+    {
+      "level": 3,
+      "text": "사전 요구",
+      "anchor": "사전-요구"
+    },
+    {
+      "level": 3,
+      "text": "실행",
+      "anchor": "실행"
+    },
+    {
+      "level": 3,
+      "text": "포트 매핑",
+      "anchor": "포트-매핑"
+    },
+    {
+      "level": 3,
+      "text": "종료",
+      "anchor": "종료"
+    },
+    {
+      "level": 2,
+      "text": "Avro Schemas",
+      "anchor": "avro-schemas"
+    },
+    {
+      "level": 3,
+      "text": "빌드",
+      "anchor": "빌드"
+    },
+    {
+      "level": 3,
+      "text": "스키마 호환성 검증",
+      "anchor": "스키마-호환성-검증"
+    },
+    {
+      "level": 2,
+      "text": "CI/CD",
+      "anchor": "cicd"
+    },
+    {
+      "level": 3,
+      "text": "1-6. 커밋",
+      "anchor": "1-6-커밋"
+    },
+    {
+      "level": 3,
+      "text": "1-7. 문서 갱신",
+      "anchor": "1-7-문서-갱신"
+    },
+    {
+      "level": 2,
+      "text": "Task 2: deploy.yml 작성 (Step 3 — 잔여분)",
+      "anchor": "task-2-deployyml-작성-step-3-잔여분"
+    },
+    {
+      "level": 3,
+      "text": "2-1. TASK 문서 Status 갱신",
+      "anchor": "2-1-task-문서-status-갱신"
+    },
+    {
+      "level": 3,
+      "text": "2-2. deploy.yml 작성",
+      "anchor": "2-2-deployyml-작성"
+    },
+    {
+      "level": 3,
+      "text": "2-3. 검증",
+      "anchor": "2-3-검증"
+    },
+    {
+      "level": 3,
+      "text": "2-4. 커밋",
+      "anchor": "2-4-커밋"
+    },
+    {
+      "level": 3,
+      "text": "2-5. WORKFLOW Step 3 체크박스 갱신",
+      "anchor": "2-5-workflow-step-3-체크박스-갱신"
+    },
+    {
+      "level": 2,
+      "text": "Task 3: Spring Cloud Gateway 라우팅 + Rate Limit (Step 6)",
+      "anchor": "task-3-spring-cloud-gateway-라우팅-rate-limit-step-6"
+    },
+    {
+      "level": 3,
+      "text": "3-1. TASK 문서 Status 갱신",
+      "anchor": "3-1-task-문서-status-갱신"
+    },
+    {
+      "level": 3,
+      "text": "3-2. Gateway 프로젝트 구성 (별도 레포)",
+      "anchor": "3-2-gateway-프로젝트-구성-별도-레포"
+    },
+    {
+      "level": 3,
+      "text": "3-3. docker-compose.yml에 Gateway 추가",
+      "anchor": "3-3-docker-composeyml에-gateway-추가"
+    },
+    {
+      "level": 3,
+      "text": "3-4. 테스트",
+      "anchor": "3-4-테스트"
+    },
+    {
+      "level": 3,
+      "text": "3-5. 커밋 (Gateway 레포)",
+      "anchor": "3-5-커밋-gateway-레포"
+    },
+    {
+      "level": 3,
+      "text": "3-6. synapse-shared docker-compose 갱신 커밋",
+      "anchor": "3-6-synapse-shared-docker-compose-갱신-커밋"
+    },
+    {
+      "level": 3,
+      "text": "3-7. 문서 갱신",
+      "anchor": "3-7-문서-갱신"
+    },
+    {
+      "level": 2,
+      "text": "Task 4: W1 문서 불일치 정정",
+      "anchor": "task-4-w1-문서-불일치-정정"
+    },
+    {
+      "level": 2,
+      "text": "실행 순서 요약",
+      "anchor": "실행-순서-요약"
+    }
+  ],
+  "body": "# W1/W2 미완료 캐치업 구현 계획\n\n> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.\n\n**Goal:** W1/W2 미완료 Step 2(Docker Compose), Step 3(CI/CD), Step 6(Gateway)을 W2 기간(05-19~05-23) 내에 완료한다.\n\n**Architecture:** synapse-shared 레포의 기존 docker-compose.schema-registry.yml을 확장하여 전체 로컬 개발 환경을 구성한다. CI/CD는 이미 mirror.yml + ci-java.yml이 존재하므로 deploy.yml만 추가한다. Gateway는 별도 Spring Boot 프로젝트로 구성한다.\n\n**Tech Stack:** Docker Compose, GitHub Actions, Spring Cloud Gateway, Redis, PostgreSQL 16, Kafka (Confluent 7.7.0), OpenSearch, Java 21\n\n---\n\n## 기존 상태 정정 (Spec 대비)\n\n탐색 결과, Spec에서 \"미시작\"으로 기록된 항목 중 실제로 이미 존재하는 것이 있다:\n\n| 항목 | Spec 상태 | 실제 상태 |\n|------|-----------|-----------|\n| `mirror.yml` | 미시작 | **이미 존재 + 동작 확인됨** (`.github/workflows/mirror.yml`) |\n| `ci-java.yml` | 미시작 | **이미 존재 + PR #2 통과** (`.github/workflows/ci-java.yml`) |\n| `schema-check.yml` | — | 이미 존재 (Avro 스키마 호환성 검증) |\n| `docker-compose.schema-registry.yml` | 미시작 | **부분 존재** (zookeeper + kafka + schema-registry) |\n\n따라서 실제 작업량은 Spec 예상보다 적다:\n- **Step 3**: deploy.yml 1개만 작성 (2일 → 반일)\n- **Step 2**: 기존 compose 파일 확장 (postgres, redis, elasticsearch, 앱 서비스 추가)\n\n---\n\n## 파일 구조\n\n### 생성할 파일\n| 파일 | 역할 |\n|------|------|\n| `docker-compose.yml` | 전체 로컬 개발 환경 (인프라 + 5 앱 서비스) |\n| `.env.example` | 환경변수 템플릿 |\n| `.github/workflows/deploy.yml` | main push → Docker build → ECR push → gitops tag patch |\n\n### 수정할 파일\n| 파일 | 변경 내용 |\n|------|-----------|\n| `README.md` | Docker Compose 실행 방법 + CI/CD 파이프라인 설명 추가 |\n| `docs/project-management/task/TASK_team-lead.md` | Step 2, 3 Status 갱신 |\n| `docs/project-management/workflow/WORKFLOW_team-lead_W1.md` | Step 2, 3 체크박스 갱신 |\n| `docs/project-management/workflow/WORKFLOW_team-lead_W2.md` | Step 6 체크박스 갱신 |\n| `docs/project-management/history/HISTORY_team-lead.md` | 일별 로그 + 대시보드 갱신 |\n\n### Step 6 (Gateway) 대상 레포/위치\nGateway는 synapse-shared가 아닌 별도 프로젝트이다. 구현 위치는 실행 시점에 결정한다 (syn 레포 또는 별도 gateway 레포).\n\n---\n\n## Task 1: Docker Compose 전체 로컬 환경 구성 (Step 2)\n\n**Files:**\n- Create: `docker-compose.yml`\n- Create: `.env.example`\n- Modify: `README.md`\n- Reference: `docker-compose.schema-registry.yml` (기존 구성 참고)\n- Reference: `scripts/create-kafka-topics.sh` (토픽 자동 생성)\n\n### 1-1. TASK 문서 Status 갱신\n\n- [ ] **Step 1: TASK Step 2 Status → In Progress**\n\n`docs/project-management/task/TASK_team-lead.md`의 Step 2 마지막 줄을 수정한다:\n\n```markdown\n**Status**: [x] Not Started / [ ] In Progress / [ ] Done\n```\n→\n```markdown\n**Status**: [ ] Not Started / [x] In Progress / [ ] Done\n```\n\n### 1-2. .env.example 작성\n\n- [ ] **Step 2: .env.example 파일 생성**\n\n```env\n# === PostgreSQL ===\nPOSTGRES_DB=synapse\nPOSTGRES_USER=synapse\nPOSTGRES_PASSWORD=synapse_local_pw\n\n# === Redis ===\nREDIS_PASSWORD=redis_local_pw\n\n# === Kafka ===\nKAFKA_BROKER_ID=1\n\n# === Schema Registry ===\nSCHEMA_REGISTRY_PORT=8085\n\n# === OpenSearch ===\nOPENSEARCH_INITIAL_ADMIN_PASSWORD=OpenSearch_local_1!\nDISCOVERY_TYPE=single-node\n\n# === App Services — Spring profiles ===\nSPRING_PROFILES_ACTIVE=local\n\n# === App Services — DB ===\nSPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/synapse\nSPRING_DATASOURCE_USERNAME=synapse\nSPRING_DATASOURCE_PASSWORD=synapse_local_pw\n\n# === App Services — Redis ===\nSPRING_DATA_REDIS_HOST=redis\nSPRING_DATA_REDIS_PORT=6379\nSPRING_DATA_REDIS_PASSWORD=redis_local_pw\n\n# === App Services — Kafka ===\nSPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092\nSPRING_KAFKA_PROPERTIES_SCHEMA_REGISTRY_URL=http://schema-registry:8081\n\n# === App Services — OpenSearch ===\nOPENSEARCH_URL=http://opensearch:9200\n```\n\n- [ ] **Step 3: .gitignore에 .env.example 예외 확인**\n\n`.gitignore`에 이미 `!.env.example` 예외가 있음을 확인한다 (기존 `.gitignore` 9-11행):\n```\n.env\n.env.*\n!.env.example\n```\n별도 수정 불필요.\n\n### 1-3. docker-compose.yml 작성\n\n- [ ] **Step 4: docker-compose.yml 작성 — 인프라 서비스**\n\n기존 `docker-compose.schema-registry.yml`의 zookeeper/kafka/schema-registry 설정을 기반으로, 새 `docker-compose.yml`에 전체 인프라를 구성한다.\n\n```yaml\nname: synapse-local\n\nservices:\n  # ── Infrastructure ──────────────────────────────────\n\n  postgres:\n    image: postgres:16-alpine\n    container_name: synapse-postgres\n    environment:\n      POSTGRES_DB: ${POSTGRES_DB:-synapse}\n      POSTGRES_USER: ${POSTGRES_USER:-synapse}\n      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-synapse_local_pw}\n    ports:\n      - \"5432:5432\"\n    volumes:\n      - postgres-data:/var/lib/postgresql/data\n    healthcheck:\n      test: [\"CMD-SHELL\", \"pg_isready -U ${POSTGRES_USER:-synapse}\"]\n      interval: 5s\n      timeout: 3s\n      retries: 5\n    networks:\n      - synapse-net\n\n  redis:\n    image: redis:7-alpine\n    container_name: synapse-redis\n    command: redis-server --requirepass ${REDIS_PASSWORD:-redis_local_pw}\n    ports:\n      - \"6379:6379\"\n    volumes:\n      - redis-data:/data\n    healthcheck:\n      test: [\"CMD\", \"redis-cli\", \"-a\", \"${REDIS_PASSWORD:-redis_local_pw}\", \"ping\"]\n      interval: 5s\n      timeout: 3s\n      retries: 5\n    networks:\n      - synapse-net\n\n  zookeeper:\n    image: confluentinc/cp-zookeeper:7.7.0\n    container_name: synapse-zookeeper\n    environment:\n      ZOOKEEPER_CLIENT_PORT: 2181\n      ZOOKEEPER_TICK_TIME: 2000\n    healthcheck:\n      test: [\"CMD-SHELL\", \"echo ruok | nc localhost 2181 | grep imok\"]\n      interval: 5s\n      timeout: 3s\n      retries: 5\n    networks:\n      - synapse-net\n\n  kafka:\n    image: confluentinc/cp-kafka:7.7.0\n    container_name: synapse-kafka\n    depends_on:\n      zookeeper:\n        condition: service_healthy\n    ports:\n      - \"9092:9092\"\n    environment:\n      KAFKA_BROKER_ID: ${KAFKA_BROKER_ID:-1}\n      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181\n      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT\n      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092\n      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092\n      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT\n      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1\n    healthcheck:\n      test: [\"CMD-SHELL\", \"kafka-broker-api-versions --bootstrap-server localhost:9092\"]\n      interval: 10s\n      timeout: 5s\n      retries: 5\n    networks:\n      - synapse-net\n\n  schema-registry:\n    image: confluentinc/cp-schema-registry:7.7.0\n    container_name: synapse-schema-registry\n    depends_on:\n      kafka:\n        condition: service_healthy\n    ports:\n      - \"${SCHEMA_REGISTRY_PORT:-8085}:8081\"\n    environment:\n      SCHEMA_REGISTRY_HOST_NAME: schema-registry\n      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:29092\n      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081\n      SCHEMA_REGISTRY_SCHEMA_COMPATIBILITY_LEVEL: BACKWARD\n    healthcheck:\n      test: [\"CMD-SHELL\", \"curl -f http://localhost:8081/ || exit 1\"]\n      interval: 10s\n      timeout: 5s\n      retries: 5\n    networks:\n      - synapse-net\n\n  kafka-init:\n    image: confluentinc/cp-kafka:7.7.0\n    container_name: synapse-kafka-init\n    depends_on:\n      kafka:\n        condition: service_healthy\n    entrypoint: [\"/bin/bash\", \"-c\"]\n    command:\n      - |\n        echo \"Creating Kafka topics...\"\n        TOPICS=(\n          \"platform.auth.user-registered-v1\"\n          \"knowledge.note.note-created-v1\"\n          \"knowledge.note.note-updated-v1\"\n          \"learning.card.review-completed-v1\"\n          \"learning.ai.cards-generated-v1\"\n        )\n        for topic in \"$${TOPICS[@]}\"; do\n          echo \"Creating topic: $$topic\"\n          kafka-topics --bootstrap-server kafka:29092 \\\n            --create --if-not-exists \\\n            --topic \"$$topic\" \\\n            --partitions 3 \\\n            --replication-factor 1 \\\n            --config retention.ms=604800000 \\\n            --config cleanup.policy=delete\n        done\n        echo \"Topics created:\"\n        kafka-topics --bootstrap-server kafka:29092 --list\n    networks:\n      - synapse-net\n\n  opensearch:\n    image: opensearchproject/opensearch:2.11.0\n    container_name: synapse-opensearch\n    environment:\n      - discovery.type=single-node\n      - plugins.security.disabled=true\n      - OPENSEARCH_JAVA_OPTS=-Xms256m -Xmx256m\n    ports:\n      - \"9200:9200\"\n    volumes:\n      - opensearch-data:/usr/share/opensearch/data\n    healthcheck:\n      test: [\"CMD-SHELL\", \"curl -f http://localhost:9200/_cluster/health || exit 1\"]\n      interval: 10s\n      timeout: 5s\n      retries: 5\n    networks:\n      - synapse-net\n```\n\n- [ ] **Step 5: docker-compose.yml 작성 — 앱 서비스 (stub)**\n\n각 서비스 레포에 아직 Dockerfile이 없을 수 있으므로, `image: eclipse-temurin:21-jre-alpine`로 stub health 엔드포인트를 제공한다. 실제 서비스 이미지가 준비되면 교체한다.\n\n인프라 서비스 뒤에 이어서 추가:\n\n```yaml\n  # ── Application Services (stub — replace with real images) ──\n\n  platform-svc:\n    image: eclipse-temurin:21-jre-alpine\n    container_name: synapse-platform-svc\n    entrypoint: [\"sh\", \"-c\", \"echo 'platform-svc stub running' && sleep infinity\"]\n    ports:\n      - \"8081:8080\"\n    depends_on:\n      postgres:\n        condition: service_healthy\n      redis:\n        condition: service_healthy\n      kafka:\n        condition: service_healthy\n    env_file: .env\n    networks:\n      - synapse-net\n\n  engagement-svc:\n    image: eclipse-temurin:21-jre-alpine\n    container_name: synapse-engagement-svc\n    entrypoint: [\"sh\", \"-c\", \"echo 'engagement-svc stub running' && sleep infinity\"]\n    ports:\n      - \"8082:8080\"\n    depends_on:\n      postgres:\n        condition: service_healthy\n      redis:\n        condition: service_healthy\n      kafka:\n        condition: service_healthy\n    env_file: .env\n    networks:\n      - synapse-net\n\n  knowledge-svc:\n    image: eclipse-temurin:21-jre-alpine\n    container_name: synapse-knowledge-svc\n    entrypoint: [\"sh\", \"-c\", \"echo 'knowledge-svc stub running' && sleep infinity\"]\n    ports:\n      - \"8083:8080\"\n    depends_on:\n      postgres:\n        condition: service_healthy\n      redis:\n        condition: service_healthy\n      kafka:\n        condition: service_healthy\n      opensearch:\n        condition: service_healthy\n    env_file: .env\n    networks:\n      - synapse-net\n\n  learning-card-svc:\n    image: eclipse-temurin:21-jre-alpine\n    container_name: synapse-learning-card-svc\n    entrypoint: [\"sh\", \"-c\", \"echo 'learning-card-svc stub running' && sleep infinity\"]\n    ports:\n      - \"8084:8080\"\n    depends_on:\n      postgres:\n        condition: service_healthy\n      redis:\n        condition: service_healthy\n      kafka:\n        condition: service_healthy\n    env_file: .env\n    networks:\n      - synapse-net\n\n  learning-ai-svc:\n    image: python:3.11-slim\n    container_name: synapse-learning-ai-svc\n    entrypoint: [\"sh\", \"-c\", \"echo 'learning-ai-svc stub running' && sleep infinity\"]\n    ports:\n      - \"8085:8000\"\n    depends_on:\n      kafka:\n        condition: service_healthy\n    env_file: .env\n    networks:\n      - synapse-net\n\nvolumes:\n  postgres-data:\n  redis-data:\n  opensearch-data:\n\nnetworks:\n  synapse-net:\n    driver: bridge\n```\n\n> **주의**: learning-ai-svc 포트(8085)와 schema-registry 외부 포트(8085)가 충돌한다. schema-registry 외부 포트를 `8086`으로 변경하거나 learning-ai-svc를 `8090`으로 변경해야 한다. `.env.example`의 `SCHEMA_REGISTRY_PORT`를 `8086`으로, learning-ai-svc 포트를 `8090:8000`으로 수정한다.\n\n최종 포트 매핑:\n\n| 서비스 | 호스트 포트 |\n|--------|:----------:|\n| postgres | 5432 |\n| redis | 6379 |\n| kafka | 9092 |\n| schema-registry | 8086 |\n| opensearch | 9200 |\n| platform-svc | 8081 |\n| engagement-svc | 8082 |\n| knowledge-svc | 8083 |\n| learning-card-svc | 8084 |\n| learning-ai-svc | 8090 |\n\n- [ ] **Step 6: .env.example의 SCHEMA_REGISTRY_PORT 수정**\n\n```env\nSCHEMA_REGISTRY_PORT=8086\n```\n\n### 1-4. 동작 검증\n\n- [ ] **Step 7: docker compose up 실행 + 인프라 Health 확인**\n\n```bash\ncp .env.example .env\ndocker compose up -d\n```\n\n모든 인프라 서비스가 healthy가 될 때까지 대기:\n```bash\ndocker compose ps\n```\n\nExpected: postgres, redis, zookeeper, kafka, schema-registry, opensearch — 모두 `healthy`\n\n- [ ] **Step 8: Kafka 토픽 자동 생성 확인**\n\n```bash\ndocker exec synapse-kafka kafka-topics --bootstrap-server localhost:9092 --list\n```\n\nExpected output (5개 토픽):\n```\nknowledge.note.note-created-v1\nknowledge.note.note-updated-v1\nlearning.ai.cards-generated-v1\nlearning.card.review-completed-v1\nplatform.auth.user-registered-v1\n```\n\n- [ ] **Step 9: Schema Registry BACKWARD 설정 확인**\n\n```bash\ncurl http://localhost:8086/config\n```\n\nExpected: `{\"compatibilityLevel\":\"BACKWARD\"}`\n\n- [ ] **Step 10: 각 서비스 접속 확인**\n\n```bash\n# PostgreSQL\ndocker exec synapse-postgres pg_isready -U synapse\n\n# Redis\ndocker exec synapse-redis redis-cli -a redis_local_pw ping\n\n# OpenSearch\ncurl http://localhost:9200/_cluster/health\n```\n\nExpected: 모두 성공 응답\n\n### 1-5. README 업데이트\n\n- [ ] **Step 11: README.md에 실행 방법 추가**\n\n`README.md` 전체를 아래로 교체:\n\n```markdown\n# synapse-shared\n\nSynapse — shared Avro schemas + common library\n\n## Quick Start (Local Dev)\n\n### 사전 요구\n\n- Docker Desktop (메모리 8GB 이상 할당)\n- Java 21 (Temurin)\n\n### 실행\n\n```bash\ncp .env.example .env\ndocker compose up -d\n```\n\n전체 서비스가 healthy 상태가 될 때까지 약 1-2분 소요.\n\n### 포트 매핑\n\n| 서비스 | 포트 |\n|--------|:----:|\n| PostgreSQL | 5432 |\n| Redis | 6379 |\n| Kafka | 9092 |\n| Schema Registry | 8086 |\n| OpenSearch | 9200 |\n| platform-svc | 8081 |\n| engagement-svc | 8082 |\n| knowledge-svc | 8083 |\n| learning-card-svc | 8084 |\n| learning-ai-svc | 8090 |\n\n### 종료\n\n```bash\ndocker compose down        # 컨테이너 종료\ndocker compose down -v     # 컨테이너 + 볼륨 삭제\n```\n\n## Avro Schemas\n\n`src/main/avro/` 디렉토리에 도메인별 Avro 스키마가 있다.\n\n### 빌드\n\n```bash\n./gradlew clean build\n```\n\n### 스키마 호환성 검증\n\nSchema Registry가 실행 중일 때:\n\n```bash\nSCHEMA_REGISTRY_URL=http://localhost:8086 ./gradlew testSchemasTask\n```\n\n## CI/CD\n\n| 워크플로 | 트리거 | 동작 |\n|----------|--------|------|\n| `ci-java.yml` | PR → main | Gradle build + Modulith verify |\n| `schema-check.yml` | PR (*.avsc 변경) | Avro 스키마 호환성 검증 |\n| `mirror.yml` | push main | synapse-mirror 자동 동기화 |\n| `deploy.yml` | push main | Docker build → ECR push → gitops tag patch |\n```\n\n### 1-6. 커밋\n\n- [ ] **Step 12: 커밋**\n\n```bash\ngit add docker-compose.yml .env.example README.md\ngit commit -m \"feat(infra): add full Docker Compose local dev environment\n\n- 11 services: postgres, redis, kafka, zookeeper, schema-registry,\n  opensearch, kafka-init, platform/engagement/knowledge/learning-card/learning-ai\n- Health checks on all infrastructure services\n- .env.example with all environment variables\n- README with quick start guide and port mapping\"\n```\n\n### 1-7. 문서 갱신\n\n- [ ] **Step 13: WORKFLOW Step 2 체크박스 갱신**\n\n`docs/project-management/workflow/WORKFLOW_team-lead_W1.md`의 Step 2 섹션:\n모든 체크박스를 `[x]`로 변경하고, 하단 Status를 `[x] Done`으로 변경.\n\n- [ ] **Step 14: TASK Step 2 Done When 체크 + Status → Done**\n\n`docs/project-management/task/TASK_team-lead.md`의 Step 2:\n- Done When 4개 항목 모두 `[x]`\n- Status: `[x] Done`\n\n- [ ] **Step 15: HISTORY 로그 작성**\n\n`docs/project-management/history/HISTORY_team-lead.md`의 대시보드 W1 Step 2 행:\n```markdown\n| Step 2 | Docker Compose 4-서비스 구성 | Done | 05-19 | 05-19 | 11 서비스 compose + .env.example |\n```\n\n당일 로그에 완료 항목 기록.\n\n- [ ] **Step 16: 문서 커밋**\n\n```bash\ngit add docs/project-management/\ngit commit -m \"docs: update Step 2 completion — TASK/WORKFLOW/HISTORY\"\n```\n\n---\n\n## Task 2: deploy.yml 작성 (Step 3 — 잔여분)\n\n**Files:**\n- Create: `.github/workflows/deploy.yml`\n- Modify: `docs/project-management/task/TASK_team-lead.md`\n- Modify: `docs/project-management/workflow/WORKFLOW_team-lead_W1.md`\n- Modify: `docs/project-management/history/HISTORY_team-lead.md`\n\n> **핵심 발견**: mirror.yml과 ci-java.yml은 이미 존재하고 동작 확인됨. Step 3에서 실제로 남은 것은 deploy.yml 1개뿐이다.\n\n### 2-1. TASK 문서 Status 갱신\n\n- [ ] **Step 1: TASK Step 3 Status → In Progress**\n\n`docs/project-management/task/TASK_team-lead.md`의 Step 3 Status:\n```markdown\n**Status**: [ ] Not Started / [x] In Progress / [ ] Done\n```\n\n### 2-2. deploy.yml 작성\n\n- [ ] **Step 2: deploy.yml 작성**\n\n```yaml\nname: Deploy to Dev\n\non:\n  push:\n    branches: [main]\n    paths-ignore:\n      - 'docs/**'\n      - '*.md'\n      - '.github/workflows/mirror.yml'\n      - '.github/workflows/parse-workflow.yml'\n\npermissions:\n  contents: read\n\nenv:\n  AWS_REGION: ap-northeast-2\n  ECR_REPOSITORY: synapse-shared\n\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - name: Checkout\n        uses: actions/checkout@v4\n\n      - name: Configure AWS credentials\n        uses: aws-actions/configure-aws-credentials@v4\n        with:\n          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}\n          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}\n          aws-region: ${{ env.AWS_REGION }}\n\n      - name: Login to Amazon ECR\n        id: ecr-login\n        uses: aws-actions/amazon-ecr-login@v2\n\n      - name: Build and push Docker image\n        env:\n          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}\n          IMAGE_TAG: ${{ github.sha }}\n        run: |\n          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .\n          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .\n          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG\n          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest\n\n      - name: Update gitops image tag\n        env:\n          IMAGE_TAG: ${{ github.sha }}\n        run: |\n          git clone https://x-access-token:${{ secrets.GITOPS_TOKEN }}@github.com/team-project-final/synapse-gitops.git _gitops\n          cd _gitops\n\n          # Update image tag in kustomization or values file\n          # Adjust path based on actual gitops repo structure\n          if [ -f \"services/synapse-shared/dev/kustomization.yaml\" ]; then\n            sed -i \"s|newTag:.*|newTag: $IMAGE_TAG|\" services/synapse-shared/dev/kustomization.yaml\n          fi\n\n          git config user.name \"github-actions[bot]\"\n          git config user.email \"github-actions[bot]@users.noreply.github.com\"\n          git add -A\n          if git diff --cached --quiet; then\n            echo \"No gitops changes.\"\n            exit 0\n          fi\n          git commit -m \"deploy: synapse-shared $IMAGE_TAG\"\n          git push\n```\n\n> **Note**: synapse-shared는 Avro 라이브러리이므로 Docker 이미지가 아닌 JAR 배포가 맞을 수 있다. 이 deploy.yml은 **다른 서비스 레포에서 복사해 사용할 수 있는 템플릿** 역할도 겸한다. synapse-shared 자체에 Dockerfile이 없다면, 이 워크플로는 `paths-ignore`에 의해 docs 변경 시 트리거되지 않고, Dockerfile이 추가될 때 활성화된다.\n\n### 2-3. 검증\n\n- [ ] **Step 3: deploy.yml 문법 검증**\n\n```bash\n# YAML 문법 검증 (actionlint가 있으면)\ncat .github/workflows/deploy.yml | python -c \"import sys,yaml; yaml.safe_load(sys.stdin); print('YAML OK')\"\n```\n\nExpected: `YAML OK`\n\n- [ ] **Step 4: 기존 워크플로 동작 재확인**\n\nGitHub에서 최근 워크플로 실행 상태 확인:\n```bash\ngh run list --limit 5\n```\n\nExpected: mirror.yml, ci-java.yml의 최근 실행이 success\n\n### 2-4. 커밋\n\n- [ ] **Step 5: 커밋**\n\n```bash\ngit add .github/workflows/deploy.yml\ngit commit -m \"feat(ci): add deploy workflow — ECR push + gitops tag update\n\n- Triggers on push to main (ignores docs-only changes)\n- Builds Docker image and pushes to ECR\n- Updates synapse-gitops repo with new image tag\n- Uses GITOPS_TOKEN secret (already registered)\"\n```\n\n### 2-5. WORKFLOW Step 3 체크박스 갱신\n\n- [ ] **Step 6: WORKFLOW Step 3 갱신**\n\n`docs/project-management/workflow/WORKFLOW_team-lead_W1.md`의 Step 3:\n\n기존 mirror.yml, ci-java.yml이 이미 동작하므로 해당 체크박스도 모두 `[x]`로 갱신:\n- 1.1~1.5: Security 검토 항목은 기존 워크플로에 반영된 상태이므로 `[x]`\n- 1.7: mirror.yml `[x]`, ci.yml `[x]`, deploy.yml `[x]`\n- 1.8: mirror 동작 `[x]`, ci 동작 `[x]`, deploy 동작 `[x]` (또는 테스트 후), CI < 5분 `[x]`\n\nStatus: `[x] Done`\n\n- [ ] **Step 7: TASK Step 3 Done When + Status 갱신**\n\n`docs/project-management/task/TASK_team-lead.md`의 Step 3:\n- Done When 4개 항목 모두 `[x]`\n- Status: `[x] Done`\n\n- [ ] **Step 8: HISTORY 로그 작성**\n\nW1 대시보드 Step 3 행:\n```markdown\n| Step 3 | CI/CD 파이프라인 구성 | Done | 05-20 | 05-20 | mirror.yml/ci-java.yml 기존, deploy.yml 추가 |\n```\n\n- [ ] **Step 9: 문서 커밋**\n\n```bash\ngit add docs/project-management/\ngit commit -m \"docs: update Step 3 completion — TASK/WORKFLOW/HISTORY\"\n```\n\n---\n\n## Task 3: Spring Cloud Gateway 라우팅 + Rate Limit (Step 6)\n\n**Files:**\n- Gateway 프로젝트는 synapse-shared 외부에 구성한다 (별도 레포 또는 syn 레포 내)\n- 이 Task는 synapse-shared 관점에서의 작업 범위를 정의한다\n- Modify: `docker-compose.yml` (Gateway 서비스 추가)\n- Modify: `docs/project-management/task/TASK_team-lead.md`\n- Modify: `docs/project-management/workflow/WORKFLOW_team-lead_W2.md`\n- Modify: `docs/project-management/history/HISTORY_team-lead.md`\n\n> **결정 필요**: Gateway 프로젝트 위치. 아래는 docker-compose.yml에 Gateway를 추가하는 부분만 다루고, Gateway 프로젝트 자체 구현은 해당 레포에서 진행한다.\n\n### 3-1. TASK 문서 Status 갱신\n\n- [ ] **Step 1: TASK Step 6 Status → In Progress**\n\n```markdown\n**Status**: [ ] Not Started / [x] In Progress / [ ] Done\n```\n\n### 3-2. Gateway 프로젝트 구성 (별도 레포)\n\n- [ ] **Step 2: Spring Cloud Gateway 프로젝트 생성**\n\nSpring Initializr 또는 수동으로 Gateway 프로젝트를 생성한다:\n- Spring Boot 3.3+\n- Dependencies: `spring-cloud-starter-gateway`, `spring-boot-starter-data-redis-reactive`, `spring-boot-starter-actuator`\n- Java 21\n\n`build.gradle.kts`:\n```kotlin\nplugins {\n    java\n    id(\"org.springframework.boot\") version \"3.3.0\"\n    id(\"io.spring.dependency-management\") version \"1.1.5\"\n}\n\ngroup = \"com.synapse\"\nversion = \"0.1.0\"\n\njava {\n    toolchain {\n        languageVersion.set(JavaLanguageVersion.of(21))\n    }\n}\n\nextra[\"springCloudVersion\"] = \"2023.0.2\"\n\nrepositories {\n    mavenCentral()\n}\n\ndependencyManagement {\n    imports {\n        mavenBom(\"org.springframework.cloud:spring-cloud-dependencies:${property(\"springCloudVersion\")}\")\n    }\n}\n\ndependencies {\n    implementation(\"org.springframework.cloud:spring-cloud-starter-gateway\")\n    implementation(\"org.springframework.boot:spring-boot-starter-data-redis-reactive\")\n    implementation(\"org.springframework.boot:spring-boot-starter-actuator\")\n}\n```\n\n- [ ] **Step 3: application.yml 작성 — 라우팅 규칙**\n\n```yaml\nserver:\n  port: 8080\n\nspring:\n  application:\n    name: synapse-gateway\n  cloud:\n    gateway:\n      globalcors:\n        cors-configurations:\n          '[/**]':\n            allowed-origins:\n              - \"http://localhost:3000\"\n              - \"http://localhost:8080\"\n            allowed-methods:\n              - GET\n              - POST\n              - PUT\n              - DELETE\n              - PATCH\n              - OPTIONS\n            allowed-headers: \"*\"\n            allow-credentials: true\n            max-age: 3600\n      default-filters:\n        - name: RequestRateLimiter\n          args:\n            redis-rate-limiter.replenishRate: 1\n            redis-rate-limiter.burstCapacity: 60\n            redis-rate-limiter.requestedTokens: 1\n            key-resolver: \"#{@ipKeyResolver}\"\n      routes:\n        - id: platform-svc\n          uri: http://platform-svc:8080\n          predicates:\n            - Path=/api/platform/**\n          filters:\n            - StripPrefix=2\n        - id: engagement-svc\n          uri: http://engagement-svc:8080\n          predicates:\n            - Path=/api/engagement/**\n          filters:\n            - StripPrefix=2\n        - id: knowledge-svc\n          uri: http://knowledge-svc:8080\n          predicates:\n            - Path=/api/knowledge/**\n          filters:\n            - StripPrefix=2\n        - id: learning-svc\n          uri: http://learning-card-svc:8080\n          predicates:\n            - Path=/api/learning/**\n          filters:\n            - StripPrefix=2\n  data:\n    redis:\n      host: ${SPRING_DATA_REDIS_HOST:redis}\n      port: ${SPRING_DATA_REDIS_PORT:6379}\n      password: ${SPRING_DATA_REDIS_PASSWORD:redis_local_pw}\n\nmanagement:\n  endpoints:\n    web:\n      exposure:\n        include: health,info\n  endpoint:\n    health:\n      show-details: always\n```\n\n- [ ] **Step 4: RateLimiter KeyResolver 빈 작성**\n\n`src/main/java/com/synapse/gateway/GatewayConfig.java`:\n```java\npackage com.synapse.gateway;\n\nimport org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;\nimport org.springframework.context.annotation.Bean;\nimport org.springframework.context.annotation.Configuration;\nimport reactor.core.publisher.Mono;\n\n@Configuration\npublic class GatewayConfig {\n\n    @Bean\n    public KeyResolver ipKeyResolver() {\n        return exchange -> Mono.just(\n            exchange.getRequest().getRemoteAddress().getAddress().getHostAddress()\n        );\n    }\n}\n```\n\n- [ ] **Step 5: Gateway main 클래스 작성**\n\n`src/main/java/com/synapse/gateway/SynapseGatewayApplication.java`:\n```java\npackage com.synapse.gateway;\n\nimport org.springframework.boot.SpringApplication;\nimport org.springframework.boot.autoconfigure.SpringBootApplication;\n\n@SpringBootApplication\npublic class SynapseGatewayApplication {\n    public static void main(String[] args) {\n        SpringApplication.run(SynapseGatewayApplication.class, args);\n    }\n}\n```\n\n### 3-3. docker-compose.yml에 Gateway 추가\n\n- [ ] **Step 6: docker-compose.yml에 gateway 서비스 추가**\n\n앱 서비스 섹션 맨 위에 추가:\n\n```yaml\n  gateway:\n    build:\n      context: ../synapse-gateway  # Gateway 프로젝트 경로 (조정 필요)\n      dockerfile: Dockerfile\n    image: synapse-gateway:local\n    container_name: synapse-gateway\n    ports:\n      - \"8080:8080\"\n    depends_on:\n      redis:\n        condition: service_healthy\n    environment:\n      SPRING_DATA_REDIS_HOST: redis\n      SPRING_DATA_REDIS_PORT: 6379\n      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_local_pw}\n    healthcheck:\n      test: [\"CMD-SHELL\", \"curl -f http://localhost:8080/actuator/health || exit 1\"]\n      interval: 10s\n      timeout: 5s\n      retries: 5\n    networks:\n      - synapse-net\n```\n\n> Gateway 이미지가 아직 없으면 stub으로 대체하고, 프로젝트 빌드 후 교체:\n> ```yaml\n>   gateway:\n>     image: eclipse-temurin:21-jre-alpine\n>     container_name: synapse-gateway\n>     entrypoint: [\"sh\", \"-c\", \"echo 'gateway stub' && sleep infinity\"]\n>     ports:\n>       - \"8080:8080\"\n>     networks:\n>       - synapse-net\n> ```\n\n### 3-4. 테스트\n\n- [ ] **Step 7: Gateway 로컬 실행 + 라우팅 확인**\n\nGateway 프로젝트 디렉토리에서:\n```bash\n./gradlew bootRun\n```\n\n각 서비스 라우팅 확인 (서비스가 stub이면 connection refused가 정상):\n```bash\ncurl -v http://localhost:8080/api/platform/health\ncurl -v http://localhost:8080/api/engagement/health\ncurl -v http://localhost:8080/api/knowledge/health\ncurl -v http://localhost:8080/api/learning/health\n```\n\nExpected: Gateway가 요청을 해당 서비스로 포워딩 시도 (upstream 서비스가 없으면 503)\n\n- [ ] **Step 8: Rate Limit 429 확인**\n\n```bash\n# 60회 초과 요청으로 429 확인\nfor i in $(seq 1 65); do\n  STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/api/platform/health)\n  echo \"Request $i: $STATUS\"\ndone\n```\n\nExpected: 61번째 이후 요청에서 `429` 응답\n\n- [ ] **Step 9: Health check 확인**\n\n```bash\ncurl http://localhost:8080/actuator/health\n```\n\nExpected: `{\"status\":\"UP\",...}`\n\n### 3-5. 커밋 (Gateway 레포)\n\n- [ ] **Step 10: Gateway 프로젝트 커밋**\n\nGateway 프로젝트 디렉토리에서:\n```bash\ngit add .\ngit commit -m \"feat(gateway): Spring Cloud Gateway with routing + rate limit\n\n- Routes: /api/platform/**, /api/engagement/**, /api/knowledge/**, /api/learning/**\n- Rate Limit: 60 req/min per IP (Redis-based)\n- CORS: localhost origins allowed\n- Health: /actuator/health\"\n```\n\n### 3-6. synapse-shared docker-compose 갱신 커밋\n\n- [ ] **Step 11: docker-compose.yml Gateway 추가 커밋**\n\nsynapse-shared 레포에서:\n```bash\ngit add docker-compose.yml\ngit commit -m \"feat(infra): add gateway service to Docker Compose\"\n```\n\n### 3-7. 문서 갱신\n\n- [ ] **Step 12: WORKFLOW Step 6 체크박스 갱신**\n\n`docs/project-management/workflow/WORKFLOW_team-lead_W2.md`의 Step 6:\n전체 체크박스 `[x]`, Status: `[x] Done`\n\n- [ ] **Step 13: TASK Step 6 Done When + Status 갱신**\n\n`docs/project-management/task/TASK_team-lead.md`의 Step 6:\n- Done When 6개 항목 모두 `[x]`\n- Status: `[x] Done`\n\n- [ ] **Step 14: HISTORY 로그 작성**\n\nW2 대시보드 Step 6 행:\n```markdown\n| Step 6 | Gateway 라우팅 | Done | 05-22 | 05-22 | 4-서비스 라우팅 + Rate Limit 60req/min |\n```\n\n- [ ] **Step 15: 문서 커밋**\n\n```bash\ngit add docs/project-management/\ngit commit -m \"docs: update Step 6 completion — TASK/WORKFLOW/HISTORY\"\n```\n\n---\n\n## Task 4: W1 문서 불일치 정정\n\n**Files:**\n- Modify: `docs/project-management/history/HISTORY_team-lead.md`\n\n> HISTORY 대시보드에서 W1 Step 1이 \"Not Started\"로 되어 있지만, WORKFLOW/TASK에서는 Done이다. 이 불일치를 정정한다.\n\n- [ ] **Step 1: HISTORY W1 대시보드 Step 1 정정**\n\n```markdown\n| Step 1 | AWS 인프라 프로비저닝 | Done | 05-12 | 05-16 | EKS/RDS/MSK/Redis/OpenSearch/ArgoCD 완료 |\n```\n\n- [ ] **Step 2: HISTORY W2 대시보드 Step 정보 정정**\n\n현재 W2 대시보드의 Step 7/8/9가 실제로는 Step 4/5/6이어야 한다:\n```markdown\n| Step 4 | Kafka 토픽 설계 | Done | 05-18 | 05-19 | Avro 스키마 4개 + 토픽 생성 스크립트 |\n| Step 5 | Schema Registry 구성 | Done | 05-18 | 05-19 | BACKWARD 호환성 정책 + 검증 완료 |\n| Step 6 | Gateway 라우팅 | Not Started | — | — | |\n```\n\nW3 대시보드도 실제 Step 번호와 맞추어 정정:\n```markdown\n| Step 7 | Kafka E2E 검증 + 코드 리뷰 | Not Started | — | — | |\n| Step 8 | ArgoCD dev/staging 배포 검증 | Not Started | — | — | |\n```\n\nW4 대시보드:\n```markdown\n| Step 9 | E2E 테스트 시나리오 | Not Started | — | — | |\n| Step 10 | SLA 성능 검증 | Not Started | — | — | |\n| Step 11 | Staging 배포 + 모니터링 | Not Started | — | — | |\n| Step 12 | 발표 자료 + 리허설 | Not Started | — | — | |\n```\n\n- [ ] **Step 3: 커밋**\n\n```bash\ngit add docs/project-management/history/HISTORY_team-lead.md\ngit commit -m \"docs: fix HISTORY dashboard — align step numbers and status with TASK/WORKFLOW\"\n```\n\n---\n\n## 실행 순서 요약\n\n| 순서 | Task | 일차 | 예상 소요 |\n|:----:|:----:|:----:|:---------:|\n| 1 | Task 4: HISTORY 불일치 정정 | D1 | 15분 |\n| 2 | Task 1: Docker Compose | D1 | 반일 |\n| 3 | Task 2: deploy.yml | D2 | 반일 |\n| 4 | Task 3: Gateway | D2~D3 | 1일 |\n\n> **Spec 대비 변경**: mirror.yml + ci-java.yml이 이미 존재하므로 Step 3은 deploy.yml만 추가하면 된다. 원래 2일 예상이 반일로 단축되어 **D3~D5가 전부 버퍼**가 된다. Gateway 작업을 D2 오후부터 시작할 수 있다.\n"
+}

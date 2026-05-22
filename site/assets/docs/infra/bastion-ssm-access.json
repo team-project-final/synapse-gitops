@@ -1,0 +1,69 @@
+{
+  "slug": "bastion-ssm-access",
+  "title": "Bastion SSM 접근 가이드\r",
+  "category": "infra",
+  "source": "synapse-gitops",
+  "tags": [
+    "helm",
+    "dev"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-20",
+    "status": "active",
+    "completionRate": null
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "사전 요구사항",
+      "anchor": "사전-요구사항"
+    },
+    {
+      "level": 2,
+      "text": "접속",
+      "anchor": "접속"
+    },
+    {
+      "level": 3,
+      "text": "1. Bastion Instance ID 확인",
+      "anchor": "1-bastion-instance-id-확인"
+    },
+    {
+      "level": 3,
+      "text": "2. SSM 세션 시작",
+      "anchor": "2-ssm-세션-시작"
+    },
+    {
+      "level": 3,
+      "text": "3. kubectl 사용",
+      "anchor": "3-kubectl-사용"
+    },
+    {
+      "level": 3,
+      "text": "4. helm 확인",
+      "anchor": "4-helm-확인"
+    },
+    {
+      "level": 2,
+      "text": "트러블슈팅",
+      "anchor": "트러블슈팅"
+    },
+    {
+      "level": 3,
+      "text": "SSM 연결 실패",
+      "anchor": "ssm-연결-실패"
+    },
+    {
+      "level": 3,
+      "text": "kubectl 인증 실패",
+      "anchor": "kubectl-인증-실패"
+    },
+    {
+      "level": 3,
+      "text": "User Data 실행 실패 (kubectl/helm 미설치)",
+      "anchor": "user-data-실행-실패-kubectlhelm-미설치"
+    }
+  ],
+  "body": "# Bastion SSM 접근 가이드\r\n\r\n## 사전 요구사항\r\n\r\n1. **AWS CLI v2** 설치\r\n2. **Session Manager Plugin** 설치:\r\n   - Windows: `choco install session-manager-plugin`\r\n   - macOS: `brew install --cask session-manager-plugin`\r\n   - 확인: `session-manager-plugin --version`\r\n3. **AWS 자격증명** 설정: `aws sts get-caller-identity` 정상 응답 확인\r\n\r\n## 접속\r\n\r\n### 1. Bastion Instance ID 확인\r\n\r\n```bash\r\n# terraform output으로 확인\r\ncd infra/aws/dev\r\nterraform output bastion_instance_id\r\n\r\n# 또는 AWS CLI로 확인\r\naws ec2 describe-instances \\\r\n  --filters \"Name=tag:Name,Values=synapse-dev-bastion\" \"Name=instance-state-name,Values=running\" \\\r\n  --query \"Reservations[].Instances[].InstanceId\" \\\r\n  --output text --region ap-northeast-2\r\n```\r\n\r\n### 2. SSM 세션 시작\r\n\r\n```bash\r\naws ssm start-session --target <instance-id> --region ap-northeast-2\r\n```\r\n\r\n### 3. kubectl 사용\r\n\r\n```bash\r\n# kubeconfig는 User Data에서 자동 설정됨\r\nkubectl get nodes\r\nkubectl get pods -n synapse-dev\r\nkubectl get configmap -n synapse-dev -o yaml | grep DATABASE_HOST\r\n```\r\n\r\n### 4. helm 확인\r\n\r\n```bash\r\nhelm list -n argocd\r\nhelm list -n synapse-dev\r\n```\r\n\r\n## 트러블슈팅\r\n\r\n### SSM 연결 실패\r\n\r\n1. **Instance 상태 확인**: `aws ec2 describe-instance-status --instance-ids <id>`\r\n   - running 상태인지 확인\r\n2. **SSM Agent 상태 확인**: EC2 콘솔 → Fleet Manager → Managed Instances에서 bastion 확인\r\n3. **IAM 권한 확인**: Instance Profile에 `AmazonSSMManagedInstanceCore` 정책 연결 확인\r\n4. **네트워크 확인**: Public subnet에 Internet Gateway 연결 + Egress 443 허용 확인\r\n\r\n### kubectl 인증 실패\r\n\r\n1. **aws-auth ConfigMap 확인**:\r\n   ```bash\r\n   kubectl get configmap aws-auth -n kube-system -o yaml\r\n   ```\r\n2. Bastion IAM Role ARN이 `mapRoles`에 등록되어 있는지 확인\r\n3. 없으면 등록:\r\n   ```bash\r\n   kubectl edit configmap aws-auth -n kube-system\r\n   ```\r\n   `mapRoles` 하위에 추가:\r\n   ```yaml\r\n   - rolearn: arn:aws:iam::963773969059:role/synapse-dev-bastion-role\r\n     username: bastion\r\n     groups:\r\n       - system:masters\r\n   ```\r\n\r\n### User Data 실행 실패 (kubectl/helm 미설치)\r\n\r\nSSM 접속 후 수동 설치:\r\n```bash\r\n# kubectl\r\ncurl -LO \"https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl\"\r\nsudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl\r\n\r\n# helm\r\ncurl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash\r\n\r\n# kubeconfig\r\naws eks update-kubeconfig --name synapse-dev --region ap-northeast-2\r\n```\r\n"
+}

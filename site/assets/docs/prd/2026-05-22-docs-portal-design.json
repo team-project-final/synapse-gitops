@@ -1,0 +1,177 @@
+{
+  "slug": "2026-05-22-docs-portal-design",
+  "title": "설계: Synapse Docs Portal — 통합 문서 사이트",
+  "category": "prd",
+  "source": "synapse-shared",
+  "tags": [
+    "kafka",
+    "argocd",
+    "terraform",
+    "msk",
+    "staging"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-22",
+    "status": "active",
+    "completionRate": 13
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "1. 개요",
+      "anchor": "1-개요"
+    },
+    {
+      "level": 3,
+      "text": "목적",
+      "anchor": "목적"
+    },
+    {
+      "level": 3,
+      "text": "배경",
+      "anchor": "배경"
+    },
+    {
+      "level": 3,
+      "text": "기존 자산",
+      "anchor": "기존-자산"
+    },
+    {
+      "level": 3,
+      "text": "접근 방식",
+      "anchor": "접근-방식"
+    },
+    {
+      "level": 2,
+      "text": "2. 콘텐츠 구조",
+      "anchor": "2-콘텐츠-구조"
+    },
+    {
+      "level": 3,
+      "text": "카테고리 체계",
+      "anchor": "카테고리-체계"
+    },
+    {
+      "level": 3,
+      "text": "문서 JSON 스키마",
+      "anchor": "문서-json-스키마"
+    },
+    {
+      "level": 3,
+      "text": "진행 상태 자동 추출",
+      "anchor": "진행-상태-자동-추출"
+    },
+    {
+      "level": 2,
+      "text": "3. 검색 시스템",
+      "anchor": "3-검색-시스템"
+    },
+    {
+      "level": 3,
+      "text": "빌드 시 역인덱스 생성",
+      "anchor": "빌드-시-역인덱스-생성"
+    },
+    {
+      "level": 3,
+      "text": "검색 기능",
+      "anchor": "검색-기능"
+    },
+    {
+      "level": 3,
+      "text": "한계점 (의도적 축소)",
+      "anchor": "한계점-의도적-축소"
+    },
+    {
+      "level": 2,
+      "text": "4. AI 요약",
+      "anchor": "4-ai-요약"
+    },
+    {
+      "level": 3,
+      "text": "빌드 시 사전 생성",
+      "anchor": "빌드-시-사전-생성"
+    },
+    {
+      "level": 3,
+      "text": "표시 방식",
+      "anchor": "표시-방식"
+    },
+    {
+      "level": 3,
+      "text": "비용",
+      "anchor": "비용"
+    },
+    {
+      "level": 2,
+      "text": "5. 가독성 개선",
+      "anchor": "5-가독성-개선"
+    },
+    {
+      "level": 3,
+      "text": "5.1 자동 TOC (Table of Contents)",
+      "anchor": "51-자동-toc-table-of-contents"
+    },
+    {
+      "level": 3,
+      "text": "5.2 진행 상태 시각화",
+      "anchor": "52-진행-상태-시각화"
+    },
+    {
+      "level": 3,
+      "text": "5.3 카테고리 필터 + 태그",
+      "anchor": "53-카테고리-필터-태그"
+    },
+    {
+      "level": 2,
+      "text": "6. 페이지 구조 + 라우트",
+      "anchor": "6-페이지-구조-라우트"
+    },
+    {
+      "level": 3,
+      "text": "라우트",
+      "anchor": "라우트"
+    },
+    {
+      "level": 3,
+      "text": "파일 구조 (기존 gitops/site 확장)",
+      "anchor": "파일-구조-기존-gitopssite-확장"
+    },
+    {
+      "level": 2,
+      "text": "7. 디자인 시스템",
+      "anchor": "7-디자인-시스템"
+    },
+    {
+      "level": 2,
+      "text": "8. 빌드 파이프라인 상세",
+      "anchor": "8-빌드-파이프라인-상세"
+    },
+    {
+      "level": 3,
+      "text": "입력 소스",
+      "anchor": "입력-소스"
+    },
+    {
+      "level": 3,
+      "text": "카테고리 자동 분류 규칙",
+      "anchor": "카테고리-자동-분류-규칙"
+    },
+    {
+      "level": 3,
+      "text": "태그 자동 추출",
+      "anchor": "태그-자동-추출"
+    },
+    {
+      "level": 2,
+      "text": "9. 제약사항",
+      "anchor": "9-제약사항"
+    },
+    {
+      "level": 2,
+      "text": "10. 성공 기준",
+      "anchor": "10-성공-기준"
+    }
+  ],
+  "body": "# 설계: Synapse Docs Portal — 통합 문서 사이트\n\n> **작성일**: 2026-05-22\n> **작성자**: @team-lead\n> **상태**: 설계 완료, 구현 대기\n\n---\n\n## 1. 개요\n\n### 목적\n\nsynapse-gitops(런북 20개)와 synapse-shared(문서 44개)의 마크다운 문서를 하나의 웹 포탈에서 검색/열람/요약할 수 있는 통합 문서 사이트를 구축한다.\n\n### 배경\n\n- 현재 64개 마크다운 파일(11,000줄)이 두 레포에 분산\n- GitHub에서 직접 마크다운을 찾아보는 방식은 비효율적\n- GitOps 작업 내역, AWS 인프라 설정, 레포 간 연결 구성, MSA 전체 구성을 한 곳에서 파악할 수 없음\n\n### 기존 자산\n\n- `synapse-gitops/site/` — Flutter Web 기반 Runbook Viewer (이미 배포)\n  - 컴포넌트: MarkdownViewer, Sidebar, CodeBlock, Runbook 모델\n  - 라우트: `/` (홈), `/runbook/:slug` (개별 런북), `/onboarding`\n  - 데이터: `assets/runbooks/index.json` + 개별 `{slug}.json`\n\n### 접근 방식\n\n기존 gitops/site Flutter 프로젝트를 확장하여 shared 문서까지 통합. 새 프로젝트가 아닌 확장이므로 기존 컴포넌트 재사용, 배포 파이프라인 활용.\n\n---\n\n## 2. 콘텐츠 구조\n\n### 카테고리 체계\n\n| 카테고리 | ID | 소스 | 문서 수 | 설명 |\n|----------|-----|------|:-------:|------|\n| 인프라 | `infra` | gitops/docs/runbooks | ~20 | AWS, Terraform, EKS, ArgoCD 런북 |\n| 가이드 | `guides` | shared/docs/guides | 5 | MSK, E2E, ArgoCD 검증, Staging, 체크리스트 |\n| 프로젝트 관리 | `management` | shared/docs/project-management | ~15 | HANDOFF, WORKFLOW, HISTORY, TASK, KICKOFF |\n| PRD/설계 | `prd` | shared/docs/prd + superpowers | ~11 | 주차별 PRD, 설계 문서, 구현 계획 |\n| 규칙 | `rules` | shared/docs/rules | 15 | 보안, 기술, Kafka, 인증 등 표준 |\n| 수정 요청 | `fix-requests` | shared/docs/fix-requests | 2 | 서비스별 수정 요청서 |\n\n### 문서 JSON 스키마\n\n```json\n{\n  \"slug\": \"msk-topic-setup\",\n  \"title\": \"MSK 토픽 생성 가이드\",\n  \"category\": \"guides\",\n  \"source\": \"synapse-shared\",\n  \"tags\": [\"kafka\", \"msk\", \"infra\"],\n  \"summary\": \"MSK 클러스터에 5개 토픽을 생성하는 절차. TLS 통신 확인 및 ACL 설정 포함.\",\n  \"metadata\": {\n    \"lastUpdated\": \"2026-05-21\",\n    \"status\": \"active\",\n    \"completionRate\": null\n  },\n  \"toc\": [\n    { \"level\": 2, \"text\": \"사전 조건\", \"anchor\": \"사전-조건\" },\n    { \"level\": 2, \"text\": \"환경별 브로커 주소\", \"anchor\": \"환경별-브로커-주소\" }\n  ],\n  \"body\": \"# MSK 토픽 생성 가이드\\n...\"\n}\n```\n\n### 진행 상태 자동 추출\n\n- WORKFLOW 파일의 `- [x]` / `- [ ]` 체크박스 파싱 → `completionRate` 계산\n- HANDOFF 상태 테이블 파싱 → `status: done | in-progress | blocked`\n- 색상 매핑: 0~30% 빨강, 30~70% 주황, 70~100% 녹색\n\n---\n\n## 3. 검색 시스템\n\n### 빌드 시 역인덱스 생성\n\n1. 모든 문서 마크다운 파싱\n2. 한국어 토크나이징 (공백 분리 + 빈출 조사 제거: 은/는/이/가/을/를/의/에/로/와/과)\n3. 토큰별 매핑: `{ slug, title, section, position }`\n4. `search-index.json` 출력 (~200KB, 64문서 기준)\n\n### 검색 기능\n\n| 기능 | 구현 |\n|------|------|\n| 키워드 검색 | 역인덱스 매칭, 제목 가중치 x3 |\n| 실시간 필터링 | 타이핑하면서 결과 즉시 갱신 (debounce 300ms) |\n| 카테고리 필터 | 검색 결과를 카테고리별로 좁힘 |\n| 검색 하이라이트 | 결과 스니펫에서 매칭 키워드 강조 |\n| 최근 검색 | 로컬 스토리지에 최근 5개 저장 |\n\n### 한계점 (의도적 축소)\n\n- 시맨틱 검색(벡터) 없음 — 64개 문서에는 키워드 검색으로 충분\n- 서버 없음 — 순수 클라이언트 사이드\n- 한국어 형태소 분석기 없음 — 공백 분리 + 조사 제거 수준 (정확도 80%+)\n\n---\n\n## 4. AI 요약\n\n### 빌드 시 사전 생성\n\n```\n빌드 스크립트 흐름:\n  1. 각 문서 마크다운 읽기\n  2. 문서 hash 계산 → 캐시와 비교\n  3. 변경된 문서만 Claude API 호출 (Haiku 모델)\n     프롬프트: \"다음 기술 문서를 2~3줄로 요약해줘.\n               핵심 목적, 대상, 결과물을 포함해.\"\n  4. 응답을 {slug}.json의 \"summary\" 필드에 저장\n  5. hash 캐시 갱신 (.summary-cache.json)\n```\n\n### 표시 방식\n\n- 문서 상단에 \"TL;DR\" 카드로 표시 (접이식)\n- 홈페이지 목록에서 제목 아래 요약 1줄 미리보기\n- 검색 결과에서 요약을 스니펫으로 활용\n\n### 비용\n\n- 64문서 x 평균 200줄 x Haiku 1회 = ~$0.05 이하\n- 캐시로 인해 변경분만 재생성 — 증분 비용 거의 0\n\n---\n\n## 5. 가독성 개선\n\n### 5.1 자동 TOC (Table of Contents)\n\n- 문서 내 `##`, `###` 헤딩 파싱\n- 우측 사이드패널에 트리 형태로 표시\n- 클릭 시 해당 섹션으로 스크롤\n- 현재 읽고 있는 섹션 하이라이트 (scroll spy)\n\n### 5.2 진행 상태 시각화\n\n- WORKFLOW/HANDOFF 체크박스 → 프로그레스바 자동 변환\n- 주차별 진행률 표시 (W1: 100%, W2: 100%, W3: 30%)\n- DashboardPage에 전체 현황 종합\n\n### 5.3 카테고리 필터 + 태그\n\n- 홈페이지 카테고리 탭으로 1차 분류\n- 태그 필터로 2차 필터링 (kafka, argocd, terraform, staging 등)\n- 태그는 빌드 시 문서 내용에서 키워드 빈도 기반 상위 3~5개 자동 추출\n\n---\n\n## 6. 페이지 구조 + 라우트\n\n### 라우트\n\n| 경로 | 페이지 | 설명 |\n|------|--------|------|\n| `/` | HomePage | 카테고리 그리드 + 최근 업데이트 + 진행 상태 요약 |\n| `/search` | SearchPage | 전문 검색 + 카테고리/태그 필터링 |\n| `/docs/:category/:slug` | DocPage | 개별 문서 (TOC + 요약 카드 + 본문) |\n| `/dashboard` | DashboardPage | W3 진행 상태, 서비스 상태, 미해결 항목 종합 |\n| `/runbook/:slug` | RunbookPage | 기존 런북 (하위 호환 유지) |\n\n### 파일 구조 (기존 gitops/site 확장)\n\n```\nsynapse-gitops/site/\n  lib/\n    models/\n      runbook.dart          ← 기존 유지\n      doc.dart              ← 새로 추가 (통합 문서 모델)\n      search_index.dart     ← 새로 추가 (검색 인덱스 모델)\n    pages/\n      home_page.dart        ← 확장 (카테고리 그리드 + 현황)\n      runbook_page.dart     ← 기존 유지\n      doc_page.dart         ← 새로 추가 (통합 문서 뷰어)\n      search_page.dart      ← 새로 추가\n      dashboard_page.dart   ← 새로 추가\n    widgets/\n      markdown_viewer.dart  ← 기존 유지\n      sidebar.dart          ← 확장 (카테고리 + 검색)\n      code_block.dart       ← 기존 유지\n      toc_panel.dart        ← 새로 추가\n      progress_bar.dart     ← 새로 추가\n      summary_card.dart     ← 새로 추가\n      search_bar.dart       ← 새로 추가\n      tag_chip.dart         ← 새로 추가\n  assets/\n    runbooks/               ← 기존 유지\n    docs/                   ← 새로 추가\n      index.json\n      search-index.json\n      infra/*.json\n      guides/*.json\n      management/*.json\n      prd/*.json\n      rules/*.json\n      fix-requests/*.json\n  scripts/\n    build_docs.dart         ← 새로 추가 (빌드 파이프라인)\n    .summary-cache.json     ← 요약 캐시 (gitignore)\n```\n\n---\n\n## 7. 디자인 시스템\n\n`documents/DESIGN.md` 준수:\n\n| 요소 | 값 |\n|------|-----|\n| 테마 | Warm Intellectual |\n| 액센트 | Warm Amber `#D97706` |\n| 디스플레이 폰트 | Fraunces (세리프) |\n| 본문 폰트 | Plus Jakarta Sans |\n| 코드 폰트 | Geist Mono |\n| 배경 | Stone 50 `#FAFAF9` |\n| 카드 | Stone 100 `#F5F5F4` + 미세 그림자 |\n\n---\n\n## 8. 빌드 파이프라인 상세\n\n### 입력 소스\n\n빌드 스크립트는 같은 workspace에 두 레포가 체크아웃된 환경을 전제한다:\n\n```\nC:\\workspace\\team-project-final\\\n  synapse-gitops\\docs\\runbooks\\*.md   → ../../synapse-shared 상대 경로\n  synapse-shared\\docs\\**\\*.md         → 같은 workspace 내 상대 경로\n```\n\nCI에서는 GitHub Actions에서 두 레포를 체크아웃한 뒤 빌드 스크립트를 실행한다.\n\n### 카테고리 자동 분류 규칙\n\n| 소스 경로 | 카테고리 |\n|-----------|----------|\n| `gitops/docs/runbooks/*` | `infra` |\n| `shared/docs/guides/*` | `guides` |\n| `shared/docs/project-management/**` | `management` |\n| `shared/docs/prd/*` + `shared/docs/superpowers/**` | `prd` |\n| `shared/docs/rules/*` | `rules` |\n| `shared/docs/fix-requests/*` | `fix-requests` |\n\n### 태그 자동 추출\n\n키워드 사전 기반 매칭 (빈도 불필요, 존재 여부만):\n\n```\nkafka, argocd, terraform, eks, rds, msk, redis, opensearch,\ndocker, helm, staging, dev, prod, security, tls, acl,\nflyway, gradle, ci, cd, deploy, rollback, e2e, avro, schema\n```\n\n문서 본문에서 위 키워드가 3회 이상 등장하면 태그로 추가. 최대 5개.\n\n---\n\n## 9. 제약사항\n\n- **서버 없음**: 순수 클라이언트 사이드 Flutter Web (GitHub Pages 또는 정적 호스팅)\n- **AI API**: 빌드 시에만 사용 (런타임 호출 없음)\n- **기존 호환**: `/runbook/:slug` 라우트 유지, 기존 런북 데이터 그대로 사용\n- **성능**: search-index.json 200KB 이하 유지, 초기 로드 3초 이내\n\n---\n\n## 10. 성공 기준\n\n- [ ] 64개 문서 전체 카테고리별로 열람 가능\n- [ ] 키워드 검색으로 300ms 이내 결과 표시\n- [ ] 모든 문서에 AI 요약 표시\n- [ ] WORKFLOW/HANDOFF 진행 상태 자동 시각화\n- [ ] 기존 런북 라우트 하위 호환 유지\n- [ ] 디자인 시스템(DESIGN.md) 준수\n"
+}

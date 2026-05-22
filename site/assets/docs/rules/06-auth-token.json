@@ -1,0 +1,98 @@
+{
+  "slug": "06-auth-token",
+  "title": "6. 인증/토큰 RULE — Auth & Token\r",
+  "category": "rules",
+  "source": "synapse-shared",
+  "tags": [
+    "redis"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-14",
+    "status": "active",
+    "completionRate": null
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "6.1 JWT \\[MUST\\]",
+      "anchor": "61-jwt-must"
+    },
+    {
+      "level": 3,
+      "text": "토큰 사양",
+      "anchor": "토큰-사양"
+    },
+    {
+      "level": 3,
+      "text": "토큰 구조 예시",
+      "anchor": "토큰-구조-예시"
+    },
+    {
+      "level": 3,
+      "text": "구현 예시",
+      "anchor": "구현-예시"
+    },
+    {
+      "level": 2,
+      "text": "6.2 OAuth \\[MUST\\]",
+      "anchor": "62-oauth-must"
+    },
+    {
+      "level": 3,
+      "text": "지원 소셜 로그인",
+      "anchor": "지원-소셜-로그인"
+    },
+    {
+      "level": 3,
+      "text": "PKCE Flow \\[SHOULD\\]",
+      "anchor": "pkce-flow-should"
+    },
+    {
+      "level": 3,
+      "text": "Spring Security OAuth2 설정 예시",
+      "anchor": "spring-security-oauth2-설정-예시"
+    },
+    {
+      "level": 2,
+      "text": "6.3 MFA \\[SHOULD\\]",
+      "anchor": "63-mfa-should"
+    },
+    {
+      "level": 3,
+      "text": "TOTP 사양",
+      "anchor": "totp-사양"
+    },
+    {
+      "level": 3,
+      "text": "구현 예시",
+      "anchor": "구현-예시"
+    },
+    {
+      "level": 2,
+      "text": "6.4 세션/블랙리스트 \\[MUST\\]",
+      "anchor": "64-세션블랙리스트-must"
+    },
+    {
+      "level": 3,
+      "text": "Redis 기반 토큰 블랙리스트",
+      "anchor": "redis-기반-토큰-블랙리스트"
+    },
+    {
+      "level": 3,
+      "text": "Redis 블랙리스트 구현",
+      "anchor": "redis-블랙리스트-구현"
+    },
+    {
+      "level": 3,
+      "text": "JWT 필터에서 블랙리스트 체크",
+      "anchor": "jwt-필터에서-블랙리스트-체크"
+    },
+    {
+      "level": 3,
+      "text": "전 기기 로그아웃",
+      "anchor": "전-기기-로그아웃"
+    }
+  ],
+  "body": "# 6. 인증/토큰 RULE — Auth & Token\r\n\r\n> **참조**: [전체 Rule 목록](../rules/) | [준수 체크리스트](appendix-c-checklist.md)\r\n\r\n---\r\n\r\n## 6.1 JWT \\[MUST\\]\r\n\r\n### 토큰 사양\r\n\r\n| 항목 | 값 | 비고 |\r\n|---|---|---|\r\n| Access Token TTL | **15분** | 짧게 유지해서 탈취 피해 최소화 |\r\n| Refresh Token TTL | **7일** | 재발급 시 이전 Refresh 즉시 무효화 |\r\n| 서명 알고리즘 | **RS256** (RSA-SHA256) | 대칭키(HS256) 금지 |\r\n| 헤더 필수 필드 | `kid` (Key ID) | 키 로테이션 시 어떤 키로 서명했는지 식별 |\r\n\r\n### 토큰 구조 예시\r\n\r\n```\r\nHeader:\r\n{\r\n  \"alg\": \"RS256\",\r\n  \"typ\": \"JWT\",\r\n  \"kid\": \"synapse-key-2026-05\"\r\n}\r\n\r\nPayload:\r\n{\r\n  \"sub\": \"user-uuid-1234\",\r\n  \"iss\": \"synapse-auth\",\r\n  \"iat\": 1747036800,\r\n  \"exp\": 1747037700,       // +15분\r\n  \"roles\": [\"MEMBER\"],\r\n  \"type\": \"ACCESS\"\r\n}\r\n```\r\n\r\n### 구현 예시\r\n\r\n```java\r\n// ✅ Good — RS256 + kid 헤더 + 짧은 TTL\r\n@Component\r\npublic class JwtTokenProvider {\r\n\r\n    private final RSAPrivateKey privateKey;\r\n    private final String currentKid;\r\n\r\n    public String createAccessToken(UserPrincipal user) {\r\n        return Jwts.builder()\r\n                .setHeaderParam(\"kid\", currentKid)\r\n                .setSubject(user.getId().toString())\r\n                .setIssuer(\"synapse-auth\")\r\n                .setIssuedAt(new Date())\r\n                .setExpiration(new Date(System.currentTimeMillis() + 15 * 60 * 1000))\r\n                .claim(\"roles\", user.getRoles())\r\n                .claim(\"type\", \"ACCESS\")\r\n                .signWith(privateKey, SignatureAlgorithm.RS256)\r\n                .compact();\r\n    }\r\n\r\n    public String createRefreshToken(UserPrincipal user) {\r\n        return Jwts.builder()\r\n                .setHeaderParam(\"kid\", currentKid)\r\n                .setSubject(user.getId().toString())\r\n                .setIssuer(\"synapse-auth\")\r\n                .setIssuedAt(new Date())\r\n                .setExpiration(new Date(System.currentTimeMillis() + 7L * 24 * 60 * 60 * 1000))\r\n                .claim(\"type\", \"REFRESH\")\r\n                .signWith(privateKey, SignatureAlgorithm.RS256)\r\n                .compact();\r\n    }\r\n}\r\n```\r\n\r\n```java\r\n// ❌ Bad — HS256 + 하드코딩 시크릿 + 긴 TTL\r\npublic String createToken(String userId) {\r\n    return Jwts.builder()\r\n            .setSubject(userId)\r\n            .setExpiration(new Date(System.currentTimeMillis() + 30L * 24 * 60 * 60 * 1000)) // 30일\r\n            .signWith(SignatureAlgorithm.HS256, \"my-secret-key\")\r\n            .compact();\r\n}\r\n```\r\n\r\n> **이유**: HS256은 서버 간 시크릿 공유가 필요해서 MSA에서 관리가 어렵고, 긴 TTL은 토큰 탈취 시 피해 기간을 늘려.\r\n\r\n---\r\n\r\n## 6.2 OAuth \\[MUST\\]\r\n\r\n### 지원 소셜 로그인\r\n\r\n| Provider | 용도 | 필수 스코프 |\r\n|---|---|---|\r\n| **Google** | 일반 사용자 로그인 | `openid`, `email`, `profile` |\r\n| **GitHub** | 개발자 로그인 | `read:user`, `user:email` |\r\n\r\n### PKCE Flow \\[SHOULD\\]\r\n\r\nSPA/모바일 클라이언트는 Authorization Code + PKCE flow를 사용해.\r\n`code_verifier` → SHA256 해시 → `code_challenge`로 CSRF/인터셉트 공격 방지.\r\n\r\n### Spring Security OAuth2 설정 예시\r\n\r\n```yaml\r\n# ✅ Good — application.yml OAuth2 설정\r\nspring:\r\n  security:\r\n    oauth2:\r\n      client:\r\n        registration:\r\n          google:\r\n            client-id: ${GOOGLE_CLIENT_ID}\r\n            client-secret: ${GOOGLE_CLIENT_SECRET}\r\n            scope: openid, email, profile\r\n            redirect-uri: \"{baseUrl}/login/oauth2/code/{registrationId}\"\r\n          github:\r\n            client-id: ${GITHUB_CLIENT_ID}\r\n            client-secret: ${GITHUB_CLIENT_SECRET}\r\n            scope: read:user, user:email\r\n            redirect-uri: \"{baseUrl}/login/oauth2/code/{registrationId}\"\r\n        provider:\r\n          google:\r\n            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth\r\n            token-uri: https://oauth2.googleapis.com/token\r\n            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo\r\n```\r\n\r\n```java\r\n// ✅ Good — OAuth2 로그인 성공 후 JWT 발급\r\n@Component\r\npublic class OAuth2AuthenticationSuccessHandler\r\n        extends SimpleUrlAuthenticationSuccessHandler {\r\n\r\n    private final JwtTokenProvider tokenProvider;\r\n\r\n    @Override\r\n    public void onAuthenticationSuccess(HttpServletRequest request,\r\n                                        HttpServletResponse response,\r\n                                        Authentication authentication) throws IOException {\r\n        OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();\r\n        UserPrincipal user = userService.processOAuth2User(oAuth2User);\r\n\r\n        String accessToken = tokenProvider.createAccessToken(user);\r\n        String refreshToken = tokenProvider.createRefreshToken(user);\r\n\r\n        String redirectUrl = UriComponentsBuilder.fromUriString(clientRedirectUri)\r\n                .queryParam(\"access_token\", accessToken)\r\n                .queryParam(\"refresh_token\", refreshToken)\r\n                .build().toUriString();\r\n\r\n        getRedirectStrategy().sendRedirect(request, response, redirectUrl);\r\n    }\r\n}\r\n```\r\n\r\n```java\r\n// ❌ Bad — client-secret을 코드에 하드코딩\r\n@Bean\r\npublic ClientRegistration googleClientRegistration() {\r\n    return ClientRegistration.withRegistrationId(\"google\")\r\n            .clientId(\"123456.apps.googleusercontent.com\")\r\n            .clientSecret(\"GOCSPX-hardcoded-secret-here\")  // 절대 안 됨\r\n            .build();\r\n}\r\n```\r\n\r\n> **이유**: OAuth client-secret이 코드에 노출되면 공격자가 우리 앱으로 위장할 수 있어. 환경변수/시크릿 매니저에서 주입해야 해.\r\n\r\n---\r\n\r\n## 6.3 MFA \\[SHOULD\\]\r\n\r\n### TOTP 사양\r\n\r\n| 항목 | 값 |\r\n|---|---|\r\n| 알고리즘 | HMAC-SHA1 (RFC 6238) |\r\n| 자릿수 | **6자리** |\r\n| 유효 시간 | **30초** |\r\n| 허용 오차 | 전후 1 스텝 (±30초) |\r\n| 복구 코드 | **10개** 발급, 일회용 |\r\n\r\n### 구현 예시\r\n\r\n```java\r\n// ✅ Good — TOTP 등록 + 검증\r\n@Service\r\npublic class TotpService {\r\n\r\n    private static final int CODE_DIGITS = 6;\r\n    private static final int TIME_STEP_SECONDS = 30;\r\n    private static final int ALLOWED_SKEW = 1;\r\n\r\n    public TotpSetupResponse setupTotp(Long userId) {\r\n        String secretKey = generateSecretKey();  // Base32 인코딩된 20바이트\r\n        List<String> recoveryCodes = generateRecoveryCodes(10);\r\n\r\n        totpRepository.save(new TotpCredential(userId, secretKey, recoveryCodes));\r\n\r\n        String otpAuthUri = String.format(\r\n            \"otpauth://totp/Synapse:%s?secret=%s&issuer=Synapse&digits=%d&period=%d\",\r\n            userEmail, secretKey, CODE_DIGITS, TIME_STEP_SECONDS\r\n        );\r\n\r\n        return new TotpSetupResponse(otpAuthUri, recoveryCodes);\r\n    }\r\n\r\n    public boolean verifyCode(Long userId, String code) {\r\n        TotpCredential credential = totpRepository.findByUserId(userId)\r\n                .orElseThrow(() -> new MfaNotConfiguredException());\r\n\r\n        long currentInterval = System.currentTimeMillis() / 1000 / TIME_STEP_SECONDS;\r\n\r\n        for (int i = -ALLOWED_SKEW; i <= ALLOWED_SKEW; i++) {\r\n            String expected = generateTotp(credential.getSecretKey(), currentInterval + i);\r\n            if (MessageDigest.isEqual(expected.getBytes(), code.getBytes())) {\r\n                return true;\r\n            }\r\n        }\r\n        return false;\r\n    }\r\n\r\n    private List<String> generateRecoveryCodes(int count) {\r\n        return IntStream.range(0, count)\r\n                .mapToObj(i -> RandomStringUtils.randomAlphanumeric(8).toUpperCase())\r\n                .collect(Collectors.toList());\r\n    }\r\n}\r\n```\r\n\r\n```java\r\n// ❌ Bad — MFA 코드를 단순 equals로 비교 (타이밍 공격 취약)\r\nif (inputCode.equals(expectedCode)) {\r\n    return true;\r\n}\r\n```\r\n\r\n> **이유**: `String.equals()`는 첫 불일치 지점에서 바로 리턴해서 타이밍 사이드채널 공격에 취약해. 반드시 `MessageDigest.isEqual()` 같은 상수 시간 비교를 써야 해.\r\n\r\n---\r\n\r\n## 6.4 세션/블랙리스트 \\[MUST\\]\r\n\r\n### Redis 기반 토큰 블랙리스트\r\n\r\n로그아웃하면 해당 Access Token을 **즉시 Redis 블랙리스트에 등록**해.\r\n남은 TTL 만큼만 Redis에 보관하면 되니까 메모리 낭비 없어.\r\n\r\n| 동작 | Redis 키 패턴 | TTL |\r\n|---|---|---|\r\n| 로그아웃 | `blacklist:{jti}` | Access Token 남은 만료 시간 |\r\n| Refresh 무효화 | `refresh:revoked:{jti}` | Refresh Token 남은 만료 시간 |\r\n| 활성 세션 추적 | `session:{userId}:{deviceId}` | 7일 |\r\n\r\n### Redis 블랙리스트 구현\r\n\r\n```java\r\n// ✅ Good — 로그아웃 시 즉시 블랙리스트 등록\r\n@Service\r\n@RequiredArgsConstructor\r\npublic class TokenBlacklistService {\r\n\r\n    private final StringRedisTemplate redisTemplate;\r\n    private final JwtTokenProvider tokenProvider;\r\n\r\n    private static final String BLACKLIST_PREFIX = \"blacklist:\";\r\n    private static final String REFRESH_REVOKED_PREFIX = \"refresh:revoked:\";\r\n\r\n    public void logout(String accessToken, String refreshToken) {\r\n        // Access Token 블랙리스트 등록\r\n        Claims accessClaims = tokenProvider.parseClaims(accessToken);\r\n        String accessJti = accessClaims.getId();\r\n        long accessTtl = accessClaims.getExpiration().getTime() - System.currentTimeMillis();\r\n\r\n        if (accessTtl > 0) {\r\n            redisTemplate.opsForValue()\r\n                    .set(BLACKLIST_PREFIX + accessJti, \"logout\",\r\n                         accessTtl, TimeUnit.MILLISECONDS);\r\n        }\r\n\r\n        // Refresh Token 무효화\r\n        Claims refreshClaims = tokenProvider.parseClaims(refreshToken);\r\n        String refreshJti = refreshClaims.getId();\r\n        long refreshTtl = refreshClaims.getExpiration().getTime() - System.currentTimeMillis();\r\n\r\n        if (refreshTtl > 0) {\r\n            redisTemplate.opsForValue()\r\n                    .set(REFRESH_REVOKED_PREFIX + refreshJti, \"revoked\",\r\n                         refreshTtl, TimeUnit.MILLISECONDS);\r\n        }\r\n    }\r\n\r\n    public boolean isBlacklisted(String token) {\r\n        Claims claims = tokenProvider.parseClaims(token);\r\n        String jti = claims.getId();\r\n        return Boolean.TRUE.equals(redisTemplate.hasKey(BLACKLIST_PREFIX + jti));\r\n    }\r\n}\r\n```\r\n\r\n### JWT 필터에서 블랙리스트 체크\r\n\r\n```java\r\n// ✅ Good — 요청마다 블랙리스트 확인\r\n@Component\r\n@RequiredArgsConstructor\r\npublic class JwtAuthenticationFilter extends OncePerRequestFilter {\r\n\r\n    private final JwtTokenProvider tokenProvider;\r\n    private final TokenBlacklistService blacklistService;\r\n\r\n    @Override\r\n    protected void doFilterInternal(HttpServletRequest request,\r\n                                    HttpServletResponse response,\r\n                                    FilterChain filterChain) throws ServletException, IOException {\r\n\r\n        String token = resolveToken(request);\r\n\r\n        if (token != null && tokenProvider.validateToken(token)) {\r\n            if (blacklistService.isBlacklisted(token)) {\r\n                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, \"Token revoked\");\r\n                return;\r\n            }\r\n\r\n            Authentication auth = tokenProvider.getAuthentication(token);\r\n            SecurityContextHolder.getContext().setAuthentication(auth);\r\n        }\r\n\r\n        filterChain.doFilter(request, response);\r\n    }\r\n\r\n    private String resolveToken(HttpServletRequest request) {\r\n        String bearer = request.getHeader(\"Authorization\");\r\n        if (bearer != null && bearer.startsWith(\"Bearer \")) {\r\n            return bearer.substring(7);\r\n        }\r\n        return null;\r\n    }\r\n}\r\n```\r\n\r\n```java\r\n// ❌ Bad — 블랙리스트 체크 없이 토큰 유효성만 확인\r\nif (token != null && tokenProvider.validateToken(token)) {\r\n    Authentication auth = tokenProvider.getAuthentication(token);\r\n    SecurityContextHolder.getContext().setAuthentication(auth);\r\n}\r\n```\r\n\r\n> **이유**: 블랙리스트 체크가 없으면 로그아웃한 사용자의 토큰이 만료될 때까지 최대 15분간 유효해. 계정 탈취 시 즉시 대응이 불가능해져.\r\n\r\n### 전 기기 로그아웃\r\n\r\n```java\r\n// ✅ Good — 특정 사용자의 모든 세션 무효화\r\npublic void logoutAllDevices(Long userId) {\r\n    Set<String> sessionKeys = redisTemplate.keys(\"session:\" + userId + \":*\");\r\n    if (sessionKeys != null && !sessionKeys.isEmpty()) {\r\n        redisTemplate.delete(sessionKeys);\r\n    }\r\n    // 해당 사용자의 모든 Refresh Token도 무효화\r\n    refreshTokenRepository.revokeAllByUserId(userId);\r\n}\r\n```\r\n\r\n```java\r\n// ❌ Bad — DB에서만 세션 삭제하고 Redis 캐시는 그대로\r\npublic void logoutAll(Long userId) {\r\n    sessionRepository.deleteByUserId(userId);  // Redis에는 여전히 남아있음\r\n}\r\n```\r\n\r\n> **이유**: Redis와 DB 둘 다 정리해야 해. 한쪽만 지우면 캐시된 세션으로 여전히 접근 가능해.\r\n\r\n---\r\n\r\n_마지막 업데이트: 2026-05-12_\r\n"
+}

@@ -1,0 +1,162 @@
+{
+  "slug": "w2-eks-transition",
+  "title": "Runbook: W2 EKS 전환 가이드 (Phase 2)\r",
+  "category": "infra",
+  "source": "synapse-gitops",
+  "tags": [
+    "argocd",
+    "terraform",
+    "eks",
+    "helm",
+    "dev"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-19",
+    "status": "active",
+    "completionRate": 0
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "0. 사전 체크리스트",
+      "anchor": "0-사전-체크리스트"
+    },
+    {
+      "level": 2,
+      "text": "1. AWS 인프라 프로비저닝 (Day 4 오전)",
+      "anchor": "1-aws-인프라-프로비저닝-day-4-오전"
+    },
+    {
+      "level": 3,
+      "text": "1-1. State Backend 생성 (신규 계정일 때만)",
+      "anchor": "1-1-state-backend-생성-신규-계정일-때만"
+    },
+    {
+      "level": 3,
+      "text": "1-2. terraform.tfvars 생성",
+      "anchor": "1-2-terraformtfvars-생성"
+    },
+    {
+      "level": 3,
+      "text": "1-3. Terraform Apply",
+      "anchor": "1-3-terraform-apply"
+    },
+    {
+      "level": 3,
+      "text": "1-4. kubeconfig 설정",
+      "anchor": "1-4-kubeconfig-설정"
+    },
+    {
+      "level": 2,
+      "text": "2. ArgoCD 부트스트랩 (Day 4 오전)",
+      "anchor": "2-argocd-부트스트랩-day-4-오전"
+    },
+    {
+      "level": 2,
+      "text": "3. Provider 교체 — ESO (Day 4 오후)",
+      "anchor": "3-provider-교체-eso-day-4-오후"
+    },
+    {
+      "level": 3,
+      "text": "3-1. AWS Secrets Manager에 시크릿 등록",
+      "anchor": "3-1-aws-secrets-manager에-시크릿-등록"
+    },
+    {
+      "level": 3,
+      "text": "3-2. ESO 설치 + IRSA + ClusterSecretStore",
+      "anchor": "3-2-eso-설치-irsa-clustersecretstore"
+    },
+    {
+      "level": 3,
+      "text": "3-3. dev overlay secretStoreRef 교체",
+      "anchor": "3-3-dev-overlay-secretstoreref-교체"
+    },
+    {
+      "level": 3,
+      "text": "3-4. ESO 검증",
+      "anchor": "3-4-eso-검증"
+    },
+    {
+      "level": 2,
+      "text": "4. Provider 교체 — Image Updater (Day 4 오후)",
+      "anchor": "4-provider-교체-image-updater-day-4-오후"
+    },
+    {
+      "level": 3,
+      "text": "4-1. dev overlay 이미지 경로 교체",
+      "anchor": "4-1-dev-overlay-이미지-경로-교체"
+    },
+    {
+      "level": 3,
+      "text": "4-2. ApplicationSet annotation 교체",
+      "anchor": "4-2-applicationset-annotation-교체"
+    },
+    {
+      "level": 3,
+      "text": "4-3. Image Updater Helm 재설치 (ECR 설정)",
+      "anchor": "4-3-image-updater-helm-재설치-ecr-설정"
+    },
+    {
+      "level": 3,
+      "text": "4-4. ImageUpdater CR 적용",
+      "anchor": "4-4-imageupdater-cr-적용"
+    },
+    {
+      "level": 3,
+      "text": "4-5. Deploy Key 설정 (git write-back용)",
+      "anchor": "4-5-deploy-key-설정-git-write-back용"
+    },
+    {
+      "level": 2,
+      "text": "5. PRD W2 검수 (Day 5)",
+      "anchor": "5-prd-w2-검수-day-5"
+    },
+    {
+      "level": 3,
+      "text": "5-1. 전체 검증",
+      "anchor": "5-1-전체-검증"
+    },
+    {
+      "level": 3,
+      "text": "5-2. 문서 업데이트",
+      "anchor": "5-2-문서-업데이트"
+    },
+    {
+      "level": 3,
+      "text": "5-3. 커밋 + PR 업데이트",
+      "anchor": "5-3-커밋-pr-업데이트"
+    },
+    {
+      "level": 2,
+      "text": "6. 비용 관리",
+      "anchor": "6-비용-관리"
+    },
+    {
+      "level": 2,
+      "text": "7. 트러블슈팅",
+      "anchor": "7-트러블슈팅"
+    },
+    {
+      "level": 3,
+      "text": "terraform apply 실패",
+      "anchor": "terraform-apply-실패"
+    },
+    {
+      "level": 3,
+      "text": "EKS 노드 launch 불가",
+      "anchor": "eks-노드-launch-불가"
+    },
+    {
+      "level": 3,
+      "text": "ESO IRSA 권한 오류",
+      "anchor": "eso-irsa-권한-오류"
+    },
+    {
+      "level": 3,
+      "text": "Image Updater ECR 인증 실패",
+      "anchor": "image-updater-ecr-인증-실패"
+    }
+  ],
+  "body": "# Runbook: W2 EKS 전환 가이드 (Phase 2)\r\n\r\n> **목적**: kind에서 검증 완료된 W2 매니페스트를 실제 EKS 환경에 적용\r\n> **소요 시간**: 약 2일 (Day 4~5)\r\n> **사전 조건**: Phase 1 (kind) 검증 완료 (PR #20), AWS 결제수단 verification 완료\r\n> **결과**: 5개 앱이 EKS dev 환경에서 Synced + Healthy, ESO → AWS Secrets Manager, Image Updater → ECR\r\n\r\n---\r\n\r\n## 0. 사전 체크리스트\r\n\r\nEKS 전환 전에 모두 확보:\r\n\r\n- [ ] AWS 결제수단 verification 완료 (EKS 노드 launch 가능)\r\n- [ ] aws CLI 설치 (`choco install awscli -y`)\r\n- [ ] terraform 설치 (`choco install terraform -y`)\r\n- [ ] AWS IAM 자격증명 설정 (`aws configure`)\r\n- [ ] `aws sts get-caller-identity` → `synapse-admin` 확인\r\n- [ ] PR #20 (`feat/w2-dev-deploy`) main 머지 완료\r\n- [ ] kind 클러스터 정리 (비용 없지만 리소스 해제): `kind delete cluster --name synapse-w2`\r\n\r\n도구 설치 검증:\r\n```bash\r\naws --version        # aws-cli/2.x\r\nterraform version    # Terraform v1.x\r\nkubectl version --client\r\nhelm version --short\r\nargocd version --client --short\r\n```\r\n\r\n---\r\n\r\n## 1. AWS 인프라 프로비저닝 (Day 4 오전)\r\n\r\nW1에서 작성한 Terraform 코드를 그대로 사용한다. PR #11/#12의 버그 수정이 이미 main에 반영되어 있다.\r\n\r\n### 1-1. State Backend 생성 (신규 계정일 때만)\r\n\r\n이전에 `terraform destroy`로 자원을 삭제했더라도 S3 state bucket과 DynamoDB lock table은 수동 생성이다.\r\n\r\n```bash\r\n# S3 bucket이 이미 있으면 skip\r\naws s3api head-bucket --bucket synapse-terraform-state 2>/dev/null \\\r\n  && echo \"Bucket exists\" \\\r\n  || aws s3api create-bucket --bucket synapse-terraform-state \\\r\n       --region ap-northeast-2 \\\r\n       --create-bucket-configuration LocationConstraint=ap-northeast-2\r\n\r\n# DynamoDB table이 이미 있으면 skip\r\naws dynamodb describe-table --table-name synapse-terraform-locks --region ap-northeast-2 2>/dev/null \\\r\n  && echo \"Table exists\" \\\r\n  || aws dynamodb create-table --table-name synapse-terraform-locks \\\r\n       --attribute-definitions AttributeName=LockID,AttributeType=S \\\r\n       --key-schema AttributeName=LockID,KeyType=HASH \\\r\n       --billing-mode PAY_PER_REQUEST --region ap-northeast-2\r\n```\r\n\r\n### 1-2. terraform.tfvars 생성\r\n\r\n```bash\r\ncp infra/aws/dev/terraform.tfvars.example infra/aws/dev/terraform.tfvars\r\n```\r\n\r\n`terraform.tfvars`를 편집하여 실제 비밀번호를 입력한다. 상세 절차: [step2-terraform-tfvars.md](./step2-terraform-tfvars.md)\r\n\r\n### 1-3. Terraform Apply\r\n\r\n```bash\r\ncd infra/aws/dev\r\nterraform init\r\nterraform plan    # 변경 내역 확인\r\nterraform apply   # yes 입력\r\n```\r\n\r\n소요 시간: 약 25~45분. 상세 절차 + 트러블슈팅: [step3-terraform-apply.md](./step3-terraform-apply.md)\r\n\r\n### 1-4. kubeconfig 설정\r\n\r\n```bash\r\naws eks update-kubeconfig --name synapse-dev --region ap-northeast-2\r\nkubectl get nodes   # Ready 확인\r\n```\r\n\r\n---\r\n\r\n## 2. ArgoCD 부트스트랩 (Day 4 오전)\r\n\r\n```bash\r\n# 레포 루트로 이동\r\ncd /path/to/synapse-gitops\r\n\r\n# ArgoCD 부트스트랩 (W1에서 작성한 스크립트)\r\nbash scripts/bootstrap-argocd.sh\r\n```\r\n\r\n부트스트랩 검증:\r\n```bash\r\nkubectl get pods -n argocd         # 모든 pod Running\r\nargocd app list                    # 5개 synapse-*-dev 표시\r\n```\r\n\r\nArgoCD UI 접속: [argocd-ui-access.md](./argocd-ui-access.md) 참조\r\n\r\n---\r\n\r\n## 3. Provider 교체 — ESO (Day 4 오후)\r\n\r\n### 3-1. AWS Secrets Manager에 시크릿 등록\r\n\r\n```bash\r\nAWS_REGION=ap-northeast-2\r\n\r\n# platform-svc\r\naws secretsmanager create-secret --name synapse/dev/platform-svc/db-password \\\r\n  --secret-string \"dev-platform-db-password-$(openssl rand -hex 8)\" --region $AWS_REGION\r\naws secretsmanager create-secret --name synapse/dev/platform-svc/jwt-secret \\\r\n  --secret-string \"dev-jwt-secret-$(openssl rand -hex 16)\" --region $AWS_REGION\r\n\r\n# engagement-svc\r\naws secretsmanager create-secret --name synapse/dev/engagement-svc/db-password \\\r\n  --secret-string \"dev-engagement-db-password-$(openssl rand -hex 8)\" --region $AWS_REGION\r\n\r\n# knowledge-svc\r\naws secretsmanager create-secret --name synapse/dev/knowledge-svc/db-password \\\r\n  --secret-string \"dev-knowledge-db-password-$(openssl rand -hex 8)\" --region $AWS_REGION\r\naws secretsmanager create-secret --name synapse/dev/knowledge-svc/s3-access-key \\\r\n  --secret-string \"dev-s3-access-key-$(openssl rand -hex 8)\" --region $AWS_REGION\r\n\r\n# learning-card\r\naws secretsmanager create-secret --name synapse/dev/learning-card/api-key \\\r\n  --secret-string \"dev-learning-card-api-key-$(openssl rand -hex 8)\" --region $AWS_REGION\r\n\r\n# learning-ai\r\naws secretsmanager create-secret --name synapse/dev/learning-ai/openai-api-key \\\r\n  --secret-string \"sk-dev-test-$(openssl rand -hex 16)\" --region $AWS_REGION\r\naws secretsmanager create-secret --name synapse/dev/learning-ai/db-password \\\r\n  --secret-string \"dev-learning-ai-db-password-$(openssl rand -hex 8)\" --region $AWS_REGION\r\n```\r\n\r\n검증:\r\n```bash\r\naws secretsmanager list-secrets --region ap-northeast-2 \\\r\n  --filter Key=name,Values=synapse/dev \\\r\n  --query 'SecretList[].Name' --output table\r\n# Expected: 8개 시크릿\r\n```\r\n\r\n### 3-2. ESO 설치 + IRSA + ClusterSecretStore\r\n\r\n상세 절차: [step5-eso-secrets.md](./step5-eso-secrets.md) 섹션 5-C\r\n\r\n요약:\r\n```bash\r\nACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)\r\n\r\n# 1. IAM Policy 생성\r\n# 2. IRSA Trust Policy + Role 생성\r\n# 3. Helm으로 ESO 설치\r\nhelm install external-secrets external-secrets/external-secrets \\\r\n  --namespace external-secrets --create-namespace \\\r\n  --set serviceAccount.annotations.\"eks\\.amazonaws\\.com/role-arn\"=\"arn:aws:iam::${ACCOUNT_ID}:role/synapse-dev-eso-role\" \\\r\n  --set installCRDs=true --wait\r\n\r\n# 4. AWS ClusterSecretStore 생성\r\ncat <<EOF | kubectl apply -f -\r\napiVersion: external-secrets.io/v1\r\nkind: ClusterSecretStore\r\nmetadata:\r\n  name: aws-secrets-manager\r\nspec:\r\n  provider:\r\n    aws:\r\n      service: SecretsManager\r\n      region: ap-northeast-2\r\n      auth:\r\n        jwt:\r\n          serviceAccountRef:\r\n            name: external-secrets\r\n            namespace: external-secrets\r\nEOF\r\n```\r\n\r\n### 3-3. dev overlay secretStoreRef 교체\r\n\r\n5개 앱의 `apps/{app}/overlays/dev/kustomization.yaml`에서 ExternalSecret patch 값을 교체:\r\n\r\n```yaml\r\n# 변경 전 (kind)\r\n        value: fake-secrets\r\n# 변경 후 (EKS)\r\n        value: aws-secrets-manager\r\n```\r\n\r\n```bash\r\nfor app in platform-svc engagement-svc knowledge-svc learning-card learning-ai; do\r\n  sed -i 's/value: fake-secrets/value: aws-secrets-manager/g' \\\r\n    \"apps/$app/overlays/dev/kustomization.yaml\"\r\ndone\r\n```\r\n\r\n### 3-4. ESO 검증\r\n\r\n```bash\r\nkubectl get clustersecretstore aws-secrets-manager\r\n# STATUS: Valid\r\n\r\nkubectl get externalsecret -n synapse-dev\r\n# 5개 모두 SecretSynced\r\n```\r\n\r\n---\r\n\r\n## 4. Provider 교체 — Image Updater (Day 4 오후)\r\n\r\n### 4-1. dev overlay 이미지 경로 교체\r\n\r\nkind에서 `localhost:5001` → EKS에서 ECR로 교체:\r\n\r\n```bash\r\nACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)\r\n\r\nfor app in platform-svc engagement-svc knowledge-svc learning-card learning-ai; do\r\n  sed -i \"s|newName: localhost:5001/synapse/$app|newName: ${ACCOUNT_ID}.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/$app|g\" \\\r\n    \"apps/$app/overlays/dev/kustomization.yaml\"\r\n  # 태그도 dev-latest로 복원\r\n  sed -i 's|newTag: \"1.0.0\"|newTag: dev-latest|g' \\\r\n    \"apps/$app/overlays/dev/kustomization.yaml\"\r\ndone\r\n```\r\n\r\n### 4-2. ApplicationSet annotation 교체\r\n\r\n`argocd/applicationset.yaml`에서 image-list annotation 교체:\r\n\r\n```bash\r\nACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)\r\n\r\nsed -i \"s|localhost:5001/synapse|${ACCOUNT_ID}.dkr.ecr.ap-northeast-2.amazonaws.com/synapse|g\" \\\r\n  argocd/applicationset.yaml\r\n```\r\n\r\n### 4-3. Image Updater Helm 재설치 (ECR 설정)\r\n\r\n상세 절차: [step6-image-sync.md](./step6-image-sync.md) 섹션 6-B\r\n\r\n```bash\r\nACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)\r\n\r\nhelm upgrade argocd-image-updater argo/argocd-image-updater \\\r\n  --namespace argocd \\\r\n  --set serviceAccount.annotations.\"eks\\.amazonaws\\.com/role-arn\"=\"arn:aws:iam::${ACCOUNT_ID}:role/synapse-dev-image-updater-role\" \\\r\n  --set config.registries[0].name=ecr \\\r\n  --set config.registries[0].api_url=\"https://${ACCOUNT_ID}.dkr.ecr.ap-northeast-2.amazonaws.com\" \\\r\n  --set config.registries[0].prefix=\"${ACCOUNT_ID}.dkr.ecr.ap-northeast-2.amazonaws.com\" \\\r\n  --set config.registries[0].default=true \\\r\n  --set config.argocd.plaintext=true \\\r\n  --set \"extraArgs[0]=--interval=1m\" \\\r\n  --set installCRDs=true \\\r\n  --wait\r\n```\r\n\r\n### 4-4. ImageUpdater CR 적용\r\n\r\n```bash\r\nkubectl apply -f argocd/image-updater.yaml\r\n```\r\n\r\n### 4-5. Deploy Key 설정 (git write-back용)\r\n\r\n```bash\r\n# SSH key 생성\r\nssh-keygen -t ed25519 -C \"argocd-image-updater\" -f /tmp/image-updater-key -N \"\"\r\n\r\n# GitHub 레포 Settings → Deploy keys → Add\r\n# Title: argocd-image-updater\r\n# Key: /tmp/image-updater-key.pub 내용\r\n# Allow write access: 체크\r\n\r\n# K8s Secret 등록\r\nkubectl create secret generic git-creds \\\r\n  -n argocd \\\r\n  --from-file=sshPrivateKey=/tmp/image-updater-key\r\n\r\n# GitHub Rulesets에서 Deploy key bypass 추가\r\n```\r\n\r\n---\r\n\r\n## 5. PRD W2 검수 (Day 5)\r\n\r\n### 5-1. 전체 검증\r\n\r\n```bash\r\n# FR-GO-201: 5개 앱 Synced + Healthy\r\nargocd app list\r\n\r\n# FR-GO-202: 헬스체크 (도메인 미확보 시 port-forward)\r\nfor app in platform-svc engagement-svc knowledge-svc; do\r\n  kubectl port-forward svc/$app -n synapse-dev 8080:80 &\r\n  sleep 2\r\n  curl -s http://localhost:8080/actuator/health/liveness\r\n  kill %1 2>/dev/null\r\ndone\r\n\r\n# FR-GO-203: 평문 시크릿 0건\r\ngitleaks detect --source . --no-git --verbose 2>&1 | tail -5\r\n\r\n# FR-GO-204: ExternalSecret sync\r\nkubectl get externalsecret -n synapse-dev\r\n\r\n# FR-GO-205: 이미지 자동 반영 (ECR에 새 태그 push 후 5분 대기)\r\n# FR-GO-206: git log에 Image Updater 커밋 확인\r\n```\r\n\r\n### 5-2. 문서 업데이트\r\n\r\n```bash\r\n# HISTORY에 EKS 전환 결과 기록\r\n# WORKFLOW_W2.md 체크박스 완료\r\n# TASK_gitops.md Step 4/5/6 Status → Done\r\n```\r\n\r\n### 5-3. 커밋 + PR 업데이트\r\n\r\n```bash\r\ngit add apps/ argocd/ docs/\r\ngit commit -m \"feat: swap kind providers to AWS (ESO + ECR) for EKS\"\r\ngit push origin feat/w2-dev-deploy\r\n```\r\n\r\n---\r\n\r\n## 6. 비용 관리\r\n\r\nEKS 자원이 떠있는 동안 시간당 ~$0.40 발생. 작업 완료 후:\r\n\r\n```bash\r\n# 작업 종료 시 즉시 destroy\r\ncd infra/aws/dev\r\nterraform destroy -auto-approve\r\n```\r\n\r\n다음 작업 재개 시 `terraform apply`로 재생성 가능 (state가 S3에 있으므로).\r\n\r\n---\r\n\r\n## 7. 트러블슈팅\r\n\r\n### terraform apply 실패\r\n\r\nW1에서 발견된 4건의 버그는 PR #11/#12로 이미 수정됨. 새로운 에러 발생 시:\r\n- [step3-terraform-apply.md](./step3-terraform-apply.md) 트러블슈팅 섹션 참조\r\n- HISTORY에 에러 내용 + 해결 방법 기록\r\n\r\n### EKS 노드 launch 불가\r\n\r\nAWS 결제수단 verification이 완료되지 않으면 Free Tier eligible 인스턴스만 허용.\r\n- 확인: AWS 콘솔 → Billing → Payment methods → Verification status\r\n- 24~72시간 소요. 완료 전까지 kind에서 계속 검증.\r\n\r\n### ESO IRSA 권한 오류\r\n\r\n```bash\r\n# ServiceAccount annotation 확인\r\nkubectl get sa -n external-secrets external-secrets -o yaml | grep eks.amazonaws.com\r\n\r\n# IAM Role Trust Policy 확인\r\naws iam get-role --role-name synapse-dev-eso-role --query 'Role.AssumeRolePolicyDocument'\r\n```\r\n\r\n상세: [step5-eso-secrets.md](./step5-eso-secrets.md) 트러블슈팅 섹션\r\n\r\n### Image Updater ECR 인증 실패\r\n\r\n```bash\r\n# IRSA annotation 확인\r\nkubectl get sa -n argocd argocd-image-updater -o yaml | grep eks.amazonaws.com\r\n\r\n# 로그 확인\r\nkubectl logs -n argocd -l app.kubernetes.io/name=argocd-image-updater --tail=20\r\n```\r\n\r\n상세: [step6-image-sync.md](./step6-image-sync.md) 트러블슈팅 섹션\r\n"
+}

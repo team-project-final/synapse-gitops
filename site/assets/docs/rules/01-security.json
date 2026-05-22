@@ -1,0 +1,93 @@
+{
+  "slug": "01-security",
+  "title": "1. 보안 RULE — Security\r",
+  "category": "rules",
+  "source": "synapse-shared",
+  "tags": [
+    "avro"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-14",
+    "status": "active",
+    "completionRate": null
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "1.1 Secrets 관리 \\[MUST\\]",
+      "anchor": "11-secrets-관리-must"
+    },
+    {
+      "level": 3,
+      "text": ".gitignore 필수 항목",
+      "anchor": "gitignore-필수-항목"
+    },
+    {
+      "level": 3,
+      "text": "예시",
+      "anchor": "예시"
+    },
+    {
+      "level": 3,
+      "text": "1.1.1 Secrets Rotation 정책 \\[MUST\\]",
+      "anchor": "111-secrets-rotation-정책-must"
+    },
+    {
+      "level": 2,
+      "text": "1.2 접근 제어 \\[MUST\\]",
+      "anchor": "12-접근-제어-must"
+    },
+    {
+      "level": 3,
+      "text": "IDOR 방지",
+      "anchor": "idor-방지"
+    },
+    {
+      "level": 2,
+      "text": "1.3 CORS \\[MUST\\]",
+      "anchor": "13-cors-must"
+    },
+    {
+      "level": 2,
+      "text": "1.4 입력 검증 \\[SHOULD\\]",
+      "anchor": "14-입력-검증-should"
+    },
+    {
+      "level": 3,
+      "text": "마크다운 XSS",
+      "anchor": "마크다운-xss"
+    },
+    {
+      "level": 3,
+      "text": "SQL Injection 방지",
+      "anchor": "sql-injection-방지"
+    },
+    {
+      "level": 3,
+      "text": "Avro 스키마 검증",
+      "anchor": "avro-스키마-검증"
+    },
+    {
+      "level": 2,
+      "text": "1.5 OWASP Top 10 (2025) 매핑",
+      "anchor": "15-owasp-top-10-2025-매핑"
+    },
+    {
+      "level": 3,
+      "text": "A01 — Broken Access Control 상세 대응",
+      "anchor": "a01-broken-access-control-상세-대응"
+    },
+    {
+      "level": 3,
+      "text": "A06 — Vulnerable & Outdated Components 상세 대응",
+      "anchor": "a06-vulnerable-outdated-components-상세-대응"
+    },
+    {
+      "level": 3,
+      "text": "A10 — 예외 처리 (Server-Side)",
+      "anchor": "a10-예외-처리-server-side"
+    }
+  ],
+  "body": "# 1. 보안 RULE — Security\r\n\r\n> **참조**: [전체 Rule 목록](../rules/) | [준수 체크리스트](appendix-c-checklist.md)\r\n\r\n---\r\n\r\n## 1.1 Secrets 관리 \\[MUST\\]\r\n\r\n`.env`, `*.key`, `*.pem` 파일은 **절대 커밋하지 마**.\r\nGitHub PAT는 반드시 **fine-grained** 토큰만 사용해. classic PAT 쓰면 안 돼.\r\n`MIRROR_TOKEN`, `GITOPS_TOKEN`은 **90일 주기**로 로테이션해야 해.\r\n\r\n### .gitignore 필수 항목\r\n\r\n```gitignore\r\n# Secrets — 절대 커밋 금지\r\n.env\r\n.env.*\r\n*.key\r\n*.pem\r\n*.p12\r\n*.jks\r\n```\r\n\r\n### 예시\r\n\r\n```yaml\r\n# ✅ Good — GitHub Actions에서 secrets 참조\r\nenv:\r\n  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}\r\n  MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}\r\n```\r\n\r\n```java\r\n// ❌ Bad — 하드코딩된 시크릿\r\n@Value(\"sk-live-abc123xyz\")\r\nprivate String apiKey;\r\n```\r\n\r\n> **이유**: 시크릿이 Git 히스토리에 한 번이라도 남으면 영구적으로 노출돼. BFG로 제거해도 포크/미러에 남을 수 있어.\r\n\r\n---\r\n\r\n### 1.1.1 Secrets Rotation 정책 \\[MUST\\]\r\n\r\n시크릿은 종류별로 로테이션 주기가 달라. Grace Period 동안 이전 키와 새 키를 **동시 허용**해서 무중단 전환해.\r\n\r\n| 시크릿 종류 | 로테이션 주기 | Grace Period | 비고 |\r\n|---|---|---|---|\r\n| DB 비밀번호 | 30 ~ 90일 | 1시간 | Spring Vault 연동 권장 |\r\n| API 키 (외부 서비스) | 90일 | 24시간 | 클라이언트 전파 시간 고려 |\r\n| JWT 서명 키 (RSA) | 90 ~ 180일 | 24시간 | `kid` 헤더로 키 식별 |\r\n| MIRROR_TOKEN | 90일 | 1시간 | GitHub Actions secret 갱신 |\r\n| GITOPS_TOKEN | 90일 | 1시간 | ArgoCD 재동기화 필요 |\r\n\r\n```java\r\n// ✅ Good — kid 기반 다중 키 지원으로 무중단 로테이션\r\n@Component\r\npublic class JwtKeyProvider {\r\n    private final Map<String, RSAPublicKey> publicKeys;\r\n\r\n    public RSAPublicKey resolve(String kid) {\r\n        RSAPublicKey key = publicKeys.get(kid);\r\n        if (key == null) throw new InvalidKeyException(\"Unknown kid: \" + kid);\r\n        return key;\r\n    }\r\n}\r\n```\r\n\r\n```java\r\n// ❌ Bad — 단일 키만 지원, 로테이션 시 다운타임 발생\r\n@Value(\"${jwt.secret}\")\r\nprivate String jwtSecret;\r\n```\r\n\r\n> **이유**: Grace Period 없이 키를 바꾸면 기존 토큰이 즉시 무효화돼서 사용자가 전부 로그아웃돼.\r\n\r\n---\r\n\r\n## 1.2 접근 제어 \\[MUST\\]\r\n\r\n### IDOR 방지\r\n\r\n노트, 카드, 덱 등 모든 리소스 접근 시 `userId == currentUser`를 반드시 체크해.\r\n인증 실패(401)와 권한 없음(403)은 명확히 구분해서 응답해.\r\n\r\n| HTTP 상태 | 의미 | 사용 시점 |\r\n|---|---|---|\r\n| `401 Unauthorized` | 미인증 | 토큰 없음 / 만료 |\r\n| `403 Forbidden` | 권한 없음 | 인증됐지만 해당 리소스 접근 불가 |\r\n\r\n```java\r\n// ✅ Good — IDOR 방지: 리소스 소유자 검증\r\n@GetMapping(\"/api/notes/{noteId}\")\r\npublic ResponseEntity<NoteResponse> getNote(\r\n        @PathVariable Long noteId,\r\n        @AuthenticationPrincipal UserPrincipal principal) {\r\n\r\n    Note note = noteRepository.findById(noteId)\r\n            .orElseThrow(() -> new ResourceNotFoundException(\"Note not found\"));\r\n\r\n    if (!note.getUserId().equals(principal.getId())) {\r\n        throw new AccessDeniedException(\"이 노트에 접근 권한이 없습니다\");  // 403\r\n    }\r\n    return ResponseEntity.ok(NoteResponse.from(note));\r\n}\r\n```\r\n\r\n```java\r\n// ❌ Bad — 소유자 검증 없이 ID만으로 조회\r\n@GetMapping(\"/api/notes/{noteId}\")\r\npublic ResponseEntity<NoteResponse> getNote(@PathVariable Long noteId) {\r\n    Note note = noteRepository.findById(noteId)\r\n            .orElseThrow(() -> new ResourceNotFoundException(\"Note not found\"));\r\n    return ResponseEntity.ok(NoteResponse.from(note));\r\n}\r\n```\r\n\r\n> **이유**: IDOR는 OWASP A01 접근 제어 취약점의 대표적인 사례야. `noteId`만 바꿔서 남의 데이터를 볼 수 있으면 끝장이야.\r\n\r\n---\r\n\r\n## 1.3 CORS \\[MUST\\]\r\n\r\nCORS는 **화이트리스트 방식**으로만 설정해. `Access-Control-Allow-Origin: *`는 절대 금지.\r\n`localhost` 허용은 **dev 프로파일에서만** 활성화해.\r\n\r\n```java\r\n// ✅ Good — 화이트리스트 기반 CORS 설정\r\n@Configuration\r\npublic class CorsConfig implements WebMvcConfigurer {\r\n\r\n    @Value(\"${cors.allowed-origins}\")\r\n    private List<String> allowedOrigins;\r\n\r\n    @Override\r\n    public void addCorsMappings(CorsRegistry registry) {\r\n        registry.addMapping(\"/api/**\")\r\n                .allowedOrigins(allowedOrigins.toArray(String[]::new))\r\n                .allowedMethods(\"GET\", \"POST\", \"PUT\", \"DELETE\", \"PATCH\")\r\n                .allowedHeaders(\"Authorization\", \"Content-Type\")\r\n                .allowCredentials(true)\r\n                .maxAge(3600);\r\n    }\r\n}\r\n```\r\n\r\n```yaml\r\n# application-dev.yml\r\ncors:\r\n  allowed-origins:\r\n    - http://localhost:3000\r\n    - http://localhost:5173\r\n\r\n# application-prod.yml\r\ncors:\r\n  allowed-origins:\r\n    - https://synapse.example.com\r\n    - https://app.synapse.example.com\r\n```\r\n\r\n```java\r\n// ❌ Bad — 와일드카드 오리진\r\nregistry.addMapping(\"/**\")\r\n        .allowedOrigins(\"*\")\r\n        .allowedMethods(\"*\");\r\n```\r\n\r\n> **이유**: `*` 쓰면 아무 도메인에서나 API를 때릴 수 있어. CSRF 공격에 문을 활짝 열어주는 거야.\r\n\r\n---\r\n\r\n## 1.4 입력 검증 \\[SHOULD\\]\r\n\r\n### 마크다운 XSS\r\n\r\n사용자가 입력한 마크다운에서 `<script>`, `onerror`, `javascript:` 등을 필터링해.\r\n\r\n```java\r\n// ✅ Good — OWASP Java HTML Sanitizer로 마크다운 XSS 방지\r\nimport org.owasp.html.PolicyFactory;\r\nimport org.owasp.html.Sanitizers;\r\n\r\n@Service\r\npublic class MarkdownSanitizer {\r\n\r\n    private static final PolicyFactory POLICY = Sanitizers.FORMATTING\r\n            .and(Sanitizers.LINKS)\r\n            .and(Sanitizers.BLOCKS)\r\n            .and(Sanitizers.TABLES);\r\n\r\n    public String sanitize(String rawMarkdown) {\r\n        return POLICY.sanitize(rawMarkdown);\r\n    }\r\n}\r\n```\r\n\r\n```java\r\n// ❌ Bad — 사용자 입력을 그대로 저장\r\npublic String save(String rawMarkdown) {\r\n    return noteRepository.save(new Note(rawMarkdown)).getContent();\r\n}\r\n```\r\n\r\n> **이유**: 마크다운 에디터 입력은 결국 HTML로 렌더링돼. 필터링 안 하면 XSS 공격에 노출돼.\r\n\r\n### SQL Injection 방지\r\n\r\nJPA를 쓸 때도 **파라미터 바인딩**을 반드시 사용해. 네이티브 쿼리에서 문자열 concat은 금지야.\r\n\r\n```java\r\n// ✅ Good — 파라미터 바인딩\r\n@Query(\"SELECT n FROM Note n WHERE n.title LIKE %:keyword% AND n.userId = :userId\")\r\nList<Note> searchNotes(@Param(\"keyword\") String keyword, @Param(\"userId\") Long userId);\r\n```\r\n\r\n```java\r\n// ❌ Bad — 문자열 연결 (SQL Injection 취약)\r\n@Query(value = \"SELECT * FROM notes WHERE title LIKE '%\" + keyword + \"%'\", nativeQuery = true)\r\nList<Note> searchNotes(String keyword);\r\n```\r\n\r\n> **이유**: JPA가 기본적으로 파라미터 바인딩을 지원하는데도 문자열 concat을 쓰면 SQL Injection에 무방비야.\r\n\r\n### Avro 스키마 검증\r\n\r\nKafka 메시지를 주고받을 때 Avro 스키마 레지스트리로 **메시지 구조를 검증**해.\r\n스키마에 맞지 않는 메시지는 즉시 reject해.\r\n\r\n```java\r\n// ✅ Good — Avro 직렬화 + Schema Registry\r\n@Bean\r\npublic ProducerFactory<String, GenericRecord> producerFactory() {\r\n    Map<String, Object> config = new HashMap<>();\r\n    config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);\r\n    config.put(\"schema.registry.url\", schemaRegistryUrl);\r\n    config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,\r\n            KafkaAvroSerializer.class);\r\n    return new DefaultKafkaProducerFactory<>(config);\r\n}\r\n```\r\n\r\n```java\r\n// ❌ Bad — JSON 문자열로 직접 전송, 스키마 검증 없음\r\nkafkaTemplate.send(\"topic\", objectMapper.writeValueAsString(event));\r\n```\r\n\r\n> **이유**: 스키마 검증 없이 메시지를 주고받으면 한쪽이 구조를 바꿨을 때 역직렬화 실패가 런타임에 터져.\r\n\r\n---\r\n\r\n## 1.5 OWASP Top 10 (2025) 매핑\r\n\r\nSynapse 프로젝트에서 특히 주의해야 할 OWASP 항목과 대응 방안이야.\r\n\r\n| OWASP 2025 | 위협 설명 | Synapse 대응 |\r\n|---|---|---|\r\n| **A01 — Broken Access Control** | 인증된 사용자가 권한 밖의 리소스에 접근 | IDOR 검증 (1.2절), 노트/카드/덱 소유자 체크, 역할 기반 접근 제어 |\r\n| **A06 — Vulnerable & Outdated Components** | 취약한 라이브러리/프레임워크 사용 | `dependabot` 활성화, `./gradlew dependencyCheckAnalyze` 주기 실행, Spring Boot BOM 최신 유지 |\r\n| **A10 — Server-Side Request Forgery (SSRF)** | 서버 측 요청 위조 | — |\r\n\r\n### A01 — Broken Access Control 상세 대응\r\n\r\n```java\r\n// ✅ Good — 메서드 시큐리티로 역할 기반 접근 제어\r\n@PreAuthorize(\"hasRole('ADMIN') or @deckAccessChecker.isOwner(#deckId, principal)\")\r\n@DeleteMapping(\"/api/decks/{deckId}\")\r\npublic ResponseEntity<Void> deleteDeck(@PathVariable Long deckId) {\r\n    deckService.delete(deckId);\r\n    return ResponseEntity.noContent().build();\r\n}\r\n```\r\n\r\n```java\r\n// ❌ Bad — 역할 검사 없는 관리자 API\r\n@DeleteMapping(\"/api/admin/users/{userId}\")\r\npublic ResponseEntity<Void> deleteUser(@PathVariable Long userId) {\r\n    userService.delete(userId);\r\n    return ResponseEntity.noContent().build();\r\n}\r\n```\r\n\r\n> **이유**: 접근 제어가 없으면 URL만 알면 누구든 관리자 기능을 실행할 수 있어.\r\n\r\n### A06 — Vulnerable & Outdated Components 상세 대응\r\n\r\n```groovy\r\n// ✅ Good — build.gradle에 OWASP Dependency-Check 플러그인 적용\r\nplugins {\r\n    id 'org.owasp.dependencycheck' version '9.2.0'\r\n}\r\n\r\ndependencyCheck {\r\n    failBuildOnCVSS = 7.0f  // CVSS 7.0 이상이면 빌드 실패\r\n    formats = ['HTML', 'JSON']\r\n}\r\n```\r\n\r\n```groovy\r\n// ❌ Bad — 의존성 버전 고정 안 하고 취약점 스캔도 없음\r\ndependencies {\r\n    implementation 'com.fasterxml.jackson.core:jackson-databind:+'\r\n}\r\n```\r\n\r\n> **이유**: 최신 버전을 자동으로 땡기면 검증 안 된 버전이 프로덕션에 들어갈 수 있어. 취약점 스캔도 없으면 알려진 CVE에 무방비야.\r\n\r\n### A10 — 예외 처리 (Server-Side)\r\n\r\n내부 스택 트레이스가 클라이언트에 노출되면 안 돼. `@RestControllerAdvice`로 글로벌 예외 핸들링해.\r\n\r\n```java\r\n// ✅ Good — 글로벌 예외 핸들러로 내부 정보 숨기기\r\n@RestControllerAdvice\r\npublic class GlobalExceptionHandler {\r\n\r\n    @ExceptionHandler(Exception.class)\r\n    public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex) {\r\n        log.error(\"Unhandled exception\", ex);  // 서버 로그에만 기록\r\n        return ResponseEntity.status(500)\r\n                .body(new ErrorResponse(\"INTERNAL_ERROR\", \"서버 오류가 발생했습니다\"));\r\n    }\r\n\r\n    @ExceptionHandler(AccessDeniedException.class)\r\n    public ResponseEntity<ErrorResponse> handleForbidden(AccessDeniedException ex) {\r\n        return ResponseEntity.status(403)\r\n                .body(new ErrorResponse(\"FORBIDDEN\", ex.getMessage()));\r\n    }\r\n}\r\n```\r\n\r\n```java\r\n// ❌ Bad — 스택 트레이스가 그대로 클라이언트에 노출\r\n@GetMapping(\"/api/notes/{id}\")\r\npublic Note getNote(@PathVariable Long id) {\r\n    return noteRepository.findById(id).get();  // NoSuchElementException → 500 + 스택 트레이스\r\n}\r\n```\r\n\r\n> **이유**: 스택 트레이스에는 클래스명, DB 스키마, 라이브러리 버전 등 공격자에게 유용한 정보가 가득해.\r\n\r\n---\r\n\r\n_마지막 업데이트: 2026-05-12_\r\n"
+}

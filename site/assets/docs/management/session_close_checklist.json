@@ -1,0 +1,46 @@
+{
+  "slug": "session_close_checklist",
+  "title": "세션 종료 체크리스트",
+  "category": "management",
+  "source": "synapse-shared",
+  "tags": [],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-22",
+    "status": "active",
+    "completionRate": 0
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "Step 1: 스포크 갱신",
+      "anchor": "step-1-스포크-갱신"
+    },
+    {
+      "level": 2,
+      "text": "Step 2: 허브 동기화",
+      "anchor": "step-2-허브-동기화"
+    },
+    {
+      "level": 2,
+      "text": "Step 3: 정합성 점검 (30초)",
+      "anchor": "step-3-정합성-점검-30초"
+    },
+    {
+      "level": 2,
+      "text": "Step 4: 커밋 + 푸시",
+      "anchor": "step-4-커밋-푸시"
+    },
+    {
+      "level": 2,
+      "text": "Step 5: 비용 정리",
+      "anchor": "step-5-비용-정리"
+    },
+    {
+      "level": 2,
+      "text": "세션 유형별 범위",
+      "anchor": "세션-유형별-범위"
+    }
+  ],
+  "body": "# 세션 종료 체크리스트\n\n> 매 세션 종료 시 이 체크리스트를 따라 허브-스포크 정합성을 유지합니다.\n\n---\n\n## Step 1: 스포크 갱신\n\n작업한 레포의 핸드오프 문서에 세션 결과를 기록합니다.\n\n| 레포 | 스포크 문서 |\n|---|---|\n| synapse-gitops | `docs/superpowers/HANDOFF_W3.md` |\n| synapse-shared | `docs/project-management/HANDOFF_SHARED.md` |\n\n기록 항목:\n- [ ] 완료 사항 (작업 | 산출물 테이블)\n- [ ] 발견 사항 (D-0XX, 해당 시)\n- [ ] PR 현황 (해당 시)\n\n---\n\n## Step 2: 허브 동기화\n\n`docs/project-management/HANDOFF_HUB.md`를 갱신합니다.\n\n- [ ] 헤더의 \"최종 갱신\" 날짜 + 세션 번호 + 갱신자 업데이트\n- [ ] 대시보드 테이블 상태값 갱신 (서비스/인프라/Kafka)\n- [ ] 교차 의존관계 맵 변경 반영 (블로커 해소, 새 블로커 추가)\n- [ ] 스포크 참조 테이블의 \"최종 갱신\" 날짜 업데이트\n- [ ] 다음 세션 작업 순서 갱신 (완료 항목 제거, 새 항목 추가)\n\n---\n\n## Step 3: 정합성 점검 (30초)\n\n3개 질문에 답합니다. 모두 ✅이면 통과.\n\n- [ ] 허브 서비스 상태가 실제(ArgoCD/kubectl)와 같은가?\n- [ ] 허브의 \"스포크 최종 갱신일\"이 오늘 날짜인가? (작업한 레포에 한해)\n- [ ] 허브의 \"다음 세션 작업\"에 오늘 완료한 항목이 남아있지 않은가?\n\n하나라도 ❌이면 해당 항목 수정 후 재커밋.\n\n---\n\n## Step 4: 커밋 + 푸시\n\n- [ ] 스포크: 해당 레포에 커밋 + 푸시\n- [ ] 허브: synapse-shared에 커밋 + 푸시\n\n커밋 메시지 형식:\n```\ndocs: session N handoff — [한줄 요약]\n```\n\n---\n\n## Step 5: 비용 정리\n\n- [ ] 인프라 사용 시: `cd infra/aws/dev && terraform destroy -auto-approve`\n- [ ] S3 state bucket + DynamoDB lock table은 유지 (destroy 대상 아님)\n\n---\n\n## 세션 유형별 범위\n\n| 세션 유형 | 스포크 갱신 | 허브 갱신 | 정합성 점검 |\n|---|---|---|---|\n| gitops만 작업 | gitops만 | 대시보드 + 다음 작업 | 서비스 상태만 |\n| shared만 작업 | shared만 | 스키마/토픽 + 다음 작업 | 의존관계만 |\n| 교차 작업 (양쪽) | 양쪽 모두 | 전체 | 전체 |\n| 서비스 레포만 | 없음 | 대시보드 서비스 상태만 | 서비스 상태만 |\n"
+}

@@ -1,0 +1,77 @@
+{
+  "slug": "2026-05-19-w1w2-catchup-plan-design",
+  "title": "W1/W2 미완료 작업 캐치업 계획",
+  "category": "prd",
+  "source": "synapse-shared",
+  "tags": [
+    "kafka",
+    "argocd",
+    "redis",
+    "docker",
+    "ci"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-19",
+    "status": "active",
+    "completionRate": null
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "1. 배경",
+      "anchor": "1-배경"
+    },
+    {
+      "level": 2,
+      "text": "2. 미완료 항목",
+      "anchor": "2-미완료-항목"
+    },
+    {
+      "level": 2,
+      "text": "3. 의존관계",
+      "anchor": "3-의존관계"
+    },
+    {
+      "level": 2,
+      "text": "4. 일정 계획",
+      "anchor": "4-일정-계획"
+    },
+    {
+      "level": 3,
+      "text": "D1 (05-19) — Step 2: Docker Compose 4-서비스 구성",
+      "anchor": "d1-05-19-step-2-docker-compose-4-서비스-구성"
+    },
+    {
+      "level": 3,
+      "text": "D2 (05-20) — Step 3 전반: mirror.yml + ci.yml",
+      "anchor": "d2-05-20-step-3-전반-mirroryml-ciyml"
+    },
+    {
+      "level": 3,
+      "text": "D3 (05-21) — Step 3 후반: deploy.yml + 전체 검증",
+      "anchor": "d3-05-21-step-3-후반-deployyml-전체-검증"
+    },
+    {
+      "level": 3,
+      "text": "D4 (05-22) — Step 6: Gateway 라우팅/Rate Limit",
+      "anchor": "d4-05-22-step-6-gateway-라우팅rate-limit"
+    },
+    {
+      "level": 3,
+      "text": "D5 (05-23) — 버퍼 + 문서 정리",
+      "anchor": "d5-05-23-버퍼-문서-정리"
+    },
+    {
+      "level": 2,
+      "text": "5. 문서 업데이트 규칙",
+      "anchor": "5-문서-업데이트-규칙"
+    },
+    {
+      "level": 2,
+      "text": "6. 리스크",
+      "anchor": "6-리스크"
+    }
+  ],
+  "body": "# W1/W2 미완료 작업 캐치업 계획\n\n> **작성일**: 2026-05-19  \n> **대상**: @team-lead  \n> **기간**: 2026-05-19 ~ 2026-05-23 (W2)  \n> **접근 방식**: A안 — 순차 진행 (의존관계 기반)\n\n---\n\n## 1. 배경\n\nW1(05-12~05-16) 기간에 Step 1(AWS 인프라 프로비저닝)은 완료했으나 Step 2(Docker Compose), Step 3(CI/CD)가 미시작 상태로 남았다. W2 첫날(05-19)에 Step 4(Kafka 토픽), Step 5(Schema Registry)는 완료했으나 Step 6(Gateway)이 남아 있다.\n\nW2 남은 4영업일(05-19~05-23) 안에 밀린 Step 2, 3과 원래 W2 작업인 Step 6을 모두 완료해야 한다.\n\n## 2. 미완료 항목\n\n| Step | 내용 | 원래 주차 | 상태 | 예상 소요 |\n|:----:|------|:--------:|:----:|:---------:|\n| 2 | Docker Compose 4-서비스 구성 | W1 | 미시작 | 1일 |\n| 3 | CI/CD 파이프라인 구성 | W1 | 미시작 | 2일 |\n| 6 | Gateway 라우팅/Rate Limit | W2 | 미시작 | 1일 |\n\n합계: 4일 (W2 남은 영업일과 동일)\n\n## 3. 의존관계\n\n```\nStep 2 (Docker Compose)\n  ├─→ Step 3 (CI/CD) — Dockerfile + compose 기반으로 ci.yml/deploy.yml 작성\n  └─→ Step 6 (Gateway) — Gateway를 compose에 포함 + 라우팅 테스트 시 4-서비스 필요\n```\n\nStep 2가 Step 3, 6의 공통 선행 조건이다.\n\n## 4. 일정 계획\n\n### D1 (05-19) — Step 2: Docker Compose 4-서비스 구성\n\n**포함 서비스 (11개)**:\n- 인프라: postgres, redis, kafka, zookeeper, schema-registry, elasticsearch\n- 앱: platform-svc, engagement-svc, knowledge-svc, learning-card-svc, learning-ai-svc\n\n**작업 순서**:\n1. TASK Step 2 Status → \"In Progress\" 갱신\n2. docker-compose.yml 작성\n   - 서비스 간 `depends_on` + `healthcheck` 설정\n   - 네트워크: 단일 bridge 네트워크 (`synapse-net`)\n   - 볼륨: DB 데이터 영속화 (`postgres-data`, `redis-data`, `es-data`)\n   - 포트 매핑 정의\n3. `.env.example` 전체 환경변수 정리\n4. kafka-init 서비스 연동 (Step 4 토픽 자동 생성 스크립트 활용)\n5. Schema Registry 포트/호환성 설정 반영 (포트 8085, BACKWARD)\n6. `docker compose up` → Health OK 확인 (< 2분)\n7. README에 실행 방법 문서화\n8. WORKFLOW Step 2 체크박스 업데이트\n9. TASK Step 2 Done When 체크 + Status → \"Done\"\n10. HISTORY 05-19 로그 작성\n\n**제약 조건**:\n- 단일 `docker compose up`으로 전체 실행\n- 메모리 8GB 환경에서 동작\n- Apple Silicon(ARM) 호환\n\n**산출물**: `docker-compose.yml`, `.env.example`, README 실행 방법 섹션\n\n### D2 (05-20) — Step 3 전반: mirror.yml + ci.yml\n\n**작업 순서**:\n1. TASK Step 3 Status → \"In Progress\" 갱신\n2. mirror.yml 작성\n   - 트리거: `on: push` (main)\n   - 동작: 소스 레포 → synapse-mirror 동기화\n   - Secrets: `MIRROR_TOKEN`\n3. ci.yml 작성\n   - 트리거: `on: pull_request` (main 대상)\n   - 단계: checkout → Java 21 → `./gradlew build` → test → Modulith verify\n   - Python(learning-ai): `pip install` → `pytest`\n   - Gradle dependencies 캐시\n4. mirror.yml 동작 테스트\n5. ci.yml 동작 테스트 (PR 생성 → 빌드/테스트 통과)\n6. WORKFLOW Step 3 전반부 체크박스 업데이트\n7. HISTORY 05-20 로그 작성\n\n**제약 조건**: CI 실행 시간 < 5분\n\n**산출물**: `.github/workflows/mirror.yml`, `.github/workflows/ci.yml`\n\n### D3 (05-21) — Step 3 후반: deploy.yml + 전체 검증\n\n**작업 순서**:\n1. deploy.yml 작성\n   - 트리거: `on: push` (main, ci 성공 후)\n   - 단계: checkout → Docker build → ECR push → gitops image tag patch → ArgoCD dev 동기화\n   - Secrets: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `ECR_REGISTRY`, `ARGOCD_TOKEN`\n2. deploy.yml 동작 테스트 (main push → ECR → ArgoCD Sync)\n3. 전체 파이프라인 E2E 검증\n   - PR → ci.yml → squash merge → deploy.yml → mirror.yml 순차 동작 확인\n4. 파이프라인 문서화\n5. WORKFLOW Step 3 나머지 체크박스 완료\n6. TASK Step 3 Done When 체크 + Status → \"Done\"\n7. HISTORY 05-21 로그 작성\n\n**제약 조건**: dev만 자동 배포, staging/prod는 수동 승인\n\n**산출물**: `.github/workflows/deploy.yml`, 파이프라인 문서\n\n### D4 (05-22) — Step 6: Gateway 라우팅/Rate Limit\n\n**작업 순서**:\n1. TASK Step 6 Status → \"In Progress\" 갱신\n2. Spring Cloud Gateway 프로젝트 설정\n3. application.yml 라우팅 규칙 작성\n   - `/api/platform/**` → platform-svc\n   - `/api/engagement/**` → engagement-svc\n   - `/api/knowledge/**` → knowledge-svc\n   - `/api/learning/**` → learning-svc\n4. Redis 기반 Rate Limit 설정 (분당 60회, 사용자별)\n5. CORS 글로벌 설정\n6. Health check 엔드포인트 (`/actuator/health`)\n7. docker-compose.yml에 Gateway 서비스 추가/갱신\n8. 테스트: 라우팅 + Rate Limit 429 + CORS preflight\n9. WORKFLOW Step 6 전체 체크박스 완료\n10. TASK Step 6 Done When 체크 + Status → \"Done\"\n11. HISTORY 05-22 로그 작성\n\n**제약 조건**: Rate Limit 분당 60회, 타임아웃 30초, JWT 검증은 Out of Scope\n\n**산출물**: Gateway application.yml, docker-compose.yml 갱신, Gateway 문서\n\n### D5 (05-23) — 버퍼 + 문서 정리\n\n| 시나리오 | 할 일 |\n|----------|-------|\n| 밀린 작업 있음 | D1~D4 미완료 항목 마무리 |\n| 모두 완료 | HISTORY 주간 요약, SCOPE 성공 기준 체크, W3 선행 준비 (Step 7/8 TASK 읽기) |\n\n## 5. 문서 업데이트 규칙\n\n매 Step 완료 시 3종 문서를 반드시 갱신한다:\n\n| 문서 | 갱신 내용 |\n|------|-----------|\n| TASK | Done When 체크 + Status → \"Done\" |\n| WORKFLOW | 해당 체크박스 모두 `[x]` |\n| HISTORY | 당일 로그 + 대시보드 상태/완료일 갱신 |\n\n## 6. 리스크\n\n| 리스크 | 영향 | 대응 |\n|--------|------|------|\n| Step 3(CI/CD)가 2일 초과 | Step 6 밀림 | D5 버퍼 활용, 최악의 경우 Gateway를 W3 초로 이동 |\n| 4-서비스 Dockerfile 미존재 | Step 2 지연 | 최소 health endpoint만 있는 stub Dockerfile 사용 |\n| ECR/ArgoCD 연동 이슈 | Step 3 후반 지연 | deploy.yml은 dry-run 모드로 먼저 검증 |\n"
+}

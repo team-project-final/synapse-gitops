@@ -1,0 +1,48 @@
+{
+  "slug": "appendix-b-owasp",
+  "title": "부록 B — OWASP Top 10 2025\r",
+  "category": "rules",
+  "source": "synapse-shared",
+  "tags": [
+    "security"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-14",
+    "status": "active",
+    "completionRate": null
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "항목별 상세 참고",
+      "anchor": "항목별-상세-참고"
+    },
+    {
+      "level": 3,
+      "text": "A01 — Broken Access Control",
+      "anchor": "a01-broken-access-control"
+    },
+    {
+      "level": 3,
+      "text": "A03 — Injection",
+      "anchor": "a03-injection"
+    },
+    {
+      "level": 3,
+      "text": "A04 — Insecure Design",
+      "anchor": "a04-insecure-design"
+    },
+    {
+      "level": 3,
+      "text": "A07 — Auth Failures",
+      "anchor": "a07-auth-failures"
+    },
+    {
+      "level": 3,
+      "text": "A08 — Data Integrity",
+      "anchor": "a08-data-integrity"
+    }
+  ],
+  "body": "# 부록 B — OWASP Top 10 2025\r\n\r\n> OWASP Top 10 (2025) 전체 항목에 대해 Synapse 프로젝트가 어떻게 대응하는지 정리했어.\r\n> 각 항목별로 구체적인 대응 방안과 Rule 참조를 달아놨으니까 구현할 때 같이 봐.\r\n\r\n---\r\n\r\n| # | 항목 | 설명 | Synapse 대응 | Rule 참조 |\r\n|---|---|---|---|---|\r\n| A01 | Broken Access Control | 인증된 사용자가 권한 밖 리소스에 접근하는 취약점 | IDOR 체크 (`userId == currentUser`), CORS 화이트리스트, 역할 기반 접근 제어 (`@PreAuthorize`) | 01-security.md §1.2~1.3 |\r\n| A02 | Cryptographic Failures | 암호화 미적용 또는 약한 암호화 사용 | 비밀번호 bcrypt 해싱, 저장 데이터 AES-256 암호화, 전송 구간 TLS 강제 | 11-data-sovereignty.md §11.1 |\r\n| A03 | Injection | SQL Injection, XSS, 명령어 주입 등 | JPA 파라미터 바인딩 필수, 마크다운 XSS 필터 (OWASP HTML Sanitizer), 네이티브 쿼리 문자열 concat 금지 | 01-security.md §1.4 |\r\n| A04 | Insecure Design | 설계 단계에서의 보안 결함 | Spring Modulith 모듈 경계 강제, DIP/OCP 준수로 모듈 간 결합도 최소화, ArchUnit 순환 의존 검증 | 03-technical.md §3.5, 02-function.md §2.5 |\r\n| A05 | Security Misconfiguration | 환경 설정 오류, 불필요한 기능 활성화 | `application-{profile}.yml` 환경별 분리 (local/dev/staging/prod), 시크릿 환경 변수 주입, prod에 debug 로그 금지 | 01-security.md §1.1, 07-platform.md §7.0.2 |\r\n| A06 | Vulnerable and Outdated Components | 취약한 라이브러리/프레임워크 사용 | Dependabot 활성화, `./gradlew dependencyCheckAnalyze` 주기 실행 (CVSS 7.0 이상 빌드 실패), `pip audit` / `npm audit`, Spring Boot BOM 최신 유지 | 04-quality.md §4.4 |\r\n| A07 | Identification and Authentication Failures | 인증/식별 실패 취약점 | JWT RS256 서명 + kid 헤더, Access Token 15분 TTL, OAuth2 PKCE Flow, TOTP 기반 MFA (6자리, 30초) | 06-auth-token.md §6.1~6.3 |\r\n| A08 | Software and Data Integrity Failures | 무결성 검증 없는 데이터/소프트웨어 업데이트 | Kafka 메시지 Avro 스키마 레지스트리로 구조 검증, 스키마 호환성 체크 (BACKWARD 호환), CI 파이프라인 서명 검증 | 08-event.md §8.4~8.5 |\r\n| A09 | Security Logging and Monitoring Failures | 로깅/모니터링 부재로 공격 탐지 불가 | 구조화 로그 (JSON), traceId 전 구간 전파, 개인정보 마스킹, 에러율 급증 시 알림 | 09-observability.md §9.1 |\r\n| A10 | Server-Side Request Forgery (SSRF) | 서버가 공격자가 지정한 URL로 요청을 보내는 취약점 | 입력 URL 화이트리스트 검증, 내부 IP 대역 (10.x, 172.16.x, 192.168.x) 차단, DNS rebinding 방지 | 01-security.md §1.4 |\r\n\r\n---\r\n\r\n## 항목별 상세 참고\r\n\r\n### A01 — Broken Access Control\r\n\r\n가장 빈번한 취약점이야. Synapse에서는 노트, 카드, 덱, 지식그래프 등 모든 사용자 리소스에 소유자 검증을 강제하고 있어. `@PreAuthorize`로 메서드 수준 접근 제어도 적용해.\r\n\r\n### A03 — Injection\r\n\r\n마크다운 에디터가 핵심 기능이니까 XSS 방어가 특히 중요해. `Sanitizers.FORMATTING.and(LINKS).and(BLOCKS).and(TABLES)` 정책으로 허용 태그만 통과시켜.\r\n\r\n### A04 — Insecure Design\r\n\r\nModulith 경계가 설계 수준 보안의 핵심이야. `allowedDependencies`로 모듈 간 의존을 제한하고, `ApplicationModules.verify()`를 CI에서 돌려서 경계 침범을 빌드 타임에 잡아.\r\n\r\n### A07 — Auth Failures\r\n\r\nHS256 금지, 하드코딩 시크릿 금지가 핵심이야. RS256 + kid 기반 키 로테이션으로 서비스 간 키 공유 없이 검증 가능하게 설계했어.\r\n\r\n### A08 — Data Integrity\r\n\r\nKafka 메시지가 서비스 간 계약이니까, Avro Schema Registry로 호환성을 강제해. 스키마 없이 JSON 문자열로 보내는 건 금지야.\r\n\r\n---\r\n\r\n_마지막 업데이트: 2026-05-12_\r\n"
+}

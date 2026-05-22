@@ -1,0 +1,72 @@
+{
+  "slug": "w4-prod-rollback-runbook",
+  "title": "Runbook: W4 Prod 환경 승인 게이트 + 롤백/백업 실행 가이드",
+  "category": "infra",
+  "source": "synapse-gitops",
+  "tags": [
+    "argocd",
+    "eks",
+    "staging",
+    "dev",
+    "prod"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-18",
+    "status": "active",
+    "completionRate": 0
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "0. 준비물 체크리스트",
+      "anchor": "0-준비물-체크리스트"
+    },
+    {
+      "level": 2,
+      "text": "일정 개요",
+      "anchor": "일정-개요"
+    },
+    {
+      "level": 2,
+      "text": "Step 9. Prod 환경 + 승인 게이트 (2일)",
+      "anchor": "step-9-prod-환경-승인-게이트-2일"
+    },
+    {
+      "level": 2,
+      "text": "Step 10. 롤백 + 백업 체계 (2일)",
+      "anchor": "step-10-롤백-백업-체계-2일"
+    },
+    {
+      "level": 2,
+      "text": "검증 체크리스트 (Done 표시용)",
+      "anchor": "검증-체크리스트-done-표시용"
+    },
+    {
+      "level": 2,
+      "text": "트러블슈팅 (공통)",
+      "anchor": "트러블슈팅-공통"
+    },
+    {
+      "level": 3,
+      "text": "ArgoCD prod sync가 자동으로 실행됨",
+      "anchor": "argocd-prod-sync가-자동으로-실행됨"
+    },
+    {
+      "level": 3,
+      "text": "Velero 백업이 PartiallyFailed",
+      "anchor": "velero-백업이-partiallyfailed"
+    },
+    {
+      "level": 3,
+      "text": "kubectl 연결 끊김",
+      "anchor": "kubectl-연결-끊김"
+    },
+    {
+      "level": 2,
+      "text": "도움 요청",
+      "anchor": "도움-요청"
+    }
+  ],
+  "body": "# Runbook: W4 Prod 환경 승인 게이트 + 롤백/백업 실행 가이드\n\n> **대상**: gitops 트랙 담당자 (@VelkaressiaBlutkrone) 또는 prod 배포 및 DR 담당자\n> **소요 시간**: 약 4일 (2026-06-01 ~ 2026-06-05, 6/3 지방선거 제외)\n> **전제**: W3 완료 (staging overlay 10 Application + Observability 스택 Prometheus/Grafana/Loki 동작 확인)\n>\n> 이전 단계: W3 staging + observability runbook 완료 상태\n\n---\n\n## 0. 준비물 체크리스트\n\n- [ ] W3 runbook 완료 확인: `argocd app list`에 10개 `synapse-*-{dev,staging}` Application 표시\n- [ ] `kubectl` — EKS 클러스터 연결 확인 (`kubectl get nodes` → Ready)\n- [ ] `argocd` CLI — 로그인 상태 (`argocd account get-user-info`)\n- [ ] `helm` v3 — Velero 설치용\n- [ ] `velero` CLI — 백업/복구 CLI ([설치 가이드](https://velero.io/docs/v1.13/basic-install/))\n- [ ] `aws` CLI — S3/IAM/EKS 접근 가능\n- [ ] Prometheus + Grafana 접속 가능 (W3에서 설치한 Observability 스택)\n- [ ] `gh` CLI 로그인 + 레포 push 권한\n- [ ] 작업 디렉토리: `synapse-gitops` 레포 루트, main 최신 sync (`git pull origin main`)\n\n도구 부재 시:\n```bash\n# macOS\nbrew install velero\n# Windows\nchoco install velero\n# Linux — https://github.com/vmware-tanzu/velero/releases\n```\n\n---\n\n## 일정 개요\n\n| 날짜 | 작업 | 소요 |\n|---|---|---|\n| 06-01 (월) | Step 9 전반: prod overlay + AppProject + RBAC | 1일 |\n| 06-02 (화) | Step 9 후반: ApplicationSet 확장 + 권한 검증 + 문서화 | 1일 |\n| 06-03 (수) | **지방선거 공휴일 — 작업 없음** | - |\n| 06-04 (목) | Step 10 전반: ArgoCD 롤백 검증 + Velero 설치 | 1일 |\n| 06-05 (금) | Step 10 후반: 백업 스케줄 + 복구 시뮬 + 모니터링 | 1일 |\n\n---\n\n## Step 9. Prod 환경 + 승인 게이트 (2일)\n\nprod overlay를 작성하고, ArgoCD Manual Sync 기반 승인 게이트를 구성한다. 권한 분리(RBAC)로 비권한 사용자의 prod sync를 차단한다.\n\n📖 **[step9-prod-approval.md](./step9-prod-approval.md)** — 9-A 사전 분석 / 9-B prod overlay 작성 / 9-C AppProject + RBAC / 9-D ApplicationSet 확장 / 9-E 권한 검증 / 9-F 문서화. 트러블슈팅 4건.\n\n요약:\n1. prod 네임스페이스 분리 (별도 namespace 추천, 별도 클러스터는 비용상 후순위)\n2. 5개 앱 `apps/{app}/overlays/prod/` 작성 (replicas=3, 운영급 리소스, TLS Ingress)\n3. ArgoCD AppProject `synapse-prod` — syncPolicy 없음 (manual only)\n4. ApplicationSet matrix: 5앱 x 3환경 = 15 Application\n5. RBAC 검증 + dev→staging(auto)→prod(manual) 전체 파이프라인 시뮬레이션\n\n검증:\n```bash\nargocd app list                    # 15개 Application (5 dev + 5 staging + 5 prod)\nargocd proj get synapse-prod       # syncWindows, destinations, roles 확인\n```\n\n---\n\n## Step 10. 롤백 + 백업 체계 (2일)\n\nVelero를 설치하고 일일 백업 스케줄을 구성한다. staging에서 복구 시뮬레이션을 실행해 RTO/RPO 목표를 검증한다.\n\n📖 **[step10-rollback-backup.md](./step10-rollback-backup.md)** — 10-A 사전 분석 / 10-B ArgoCD 롤백 검증 / 10-C Velero 설치 / 10-D 백업 스케줄 + 복구 시뮬 / 10-E 백업 모니터링 + 문서화. 트러블슈팅 5건.\n\n요약:\n1. 롤백 시나리오 분류 (매니페스트 / 이미지 태그 / 클러스터 전체)\n2. ArgoCD History 기반 롤백 + git revert 기반 롤백 검증\n3. Velero + AWS plugin (S3 + EBS snapshot) 설치\n4. 일일 Schedule 백업 + staging 삭제 → 복구 시뮬레이션 (RTO 30분 이내)\n5. 백업 실패 알람 (PrometheusRule)\n\n검증:\n```bash\nvelero backup get               # 최소 1개 Completed\nvelero schedule get              # daily-backup 존재\nkubectl get pods -n staging      # 복구 후 5개 pod Running\n```\n\n---\n\n## 검증 체크리스트 (Done 표시용)\n\n- [ ] **FR-GO-401**: `argocd app list` → 15개 앱 (5앱 x 3환경) (P0)\n- [ ] **FR-GO-402**: prod Application `Sync Policy: <none>` (Manual) (P0)\n- [ ] **FR-GO-403**: 비권한 계정 prod sync RBAC 거부 (P0)\n- [ ] **FR-GO-404**: 권한 계정(`gitops-admin`) prod sync 성공 (P0)\n- [ ] **FR-GO-405**: `velero backup get` → 최소 1개 `Completed` (P0)\n- [ ] **FR-GO-406**: staging 삭제 → Velero restore → 5개 앱 복구, RTO 30분 이내 (P1)\n- [ ] **FR-GO-407**: `velero schedule get` → daily-backup 동작 확인 (P1)\n- [ ] **FR-GO-408**: Grafana에서 Velero 백업 실패 알람 rule 확인 (P2)\n\n---\n\n## 트러블슈팅 (공통)\n\n### ArgoCD prod sync가 자동으로 실행됨\nApplicationSet 템플릿에서 prod 조건 분기 확인. `argocd app get synapse-*-prod -o json | jq '.spec.syncPolicy'` → `null`이어야 함.\n\n### Velero 백업이 PartiallyFailed\n`velero backup logs <name>`으로 상세 확인. IRSA 미설정이 가장 흔한 원인. `kubectl get sa velero -n velero -o yaml`에서 role-arn annotation 확인.\n\n### kubectl 연결 끊김\n`aws eks update-kubeconfig --name synapse-dev --region ap-northeast-2` 재실행.\n\n---\n\n## 도움 요청\n\n- HISTORY에 \"도움 요청\" 기록 + Slack #synapse-gitops\n- ArgoCD RBAC: https://argo-cd.readthedocs.io/en/stable/operator-manual/rbac/\n- Velero: https://velero.io/docs/\n"
+}

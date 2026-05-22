@@ -1,0 +1,62 @@
+{
+  "slug": "handoff_hub",
+  "title": "Synapse 통합 핸드오프 허브",
+  "category": "management",
+  "source": "synapse-shared",
+  "tags": [
+    "kafka",
+    "argocd",
+    "terraform",
+    "staging",
+    "dev"
+  ],
+  "summary": "",
+  "metadata": {
+    "lastUpdated": "2026-05-22",
+    "status": "active",
+    "completionRate": null
+  },
+  "toc": [
+    {
+      "level": 2,
+      "text": "1. 프로젝트 상태 대시보드",
+      "anchor": "1-프로젝트-상태-대시보드"
+    },
+    {
+      "level": 3,
+      "text": "환경별 서비스 상태",
+      "anchor": "환경별-서비스-상태"
+    },
+    {
+      "level": 3,
+      "text": "인프라 상태",
+      "anchor": "인프라-상태"
+    },
+    {
+      "level": 3,
+      "text": "Kafka / 스키마 상태",
+      "anchor": "kafka-스키마-상태"
+    },
+    {
+      "level": 2,
+      "text": "2. 교차 의존관계 맵",
+      "anchor": "2-교차-의존관계-맵"
+    },
+    {
+      "level": 2,
+      "text": "3. 스포크 참조",
+      "anchor": "3-스포크-참조"
+    },
+    {
+      "level": 2,
+      "text": "4. 다음 세션 작업 순서",
+      "anchor": "4-다음-세션-작업-순서"
+    },
+    {
+      "level": 2,
+      "text": "5. 주간 마일스톤 추적",
+      "anchor": "5-주간-마일스톤-추적"
+    }
+  ],
+  "body": "# Synapse 통합 핸드오프 허브\n\n> **최종 갱신**: 2026-05-22 (W2 → W3 전환)\n> **현재 주차**: W3\n> **갱신자**: @VelkaressiaBlutkrone\n\n---\n\n## 1. 프로젝트 상태 대시보드\n\n### 환경별 서비스 상태\n\n| 서비스 | dev | staging | prod |\n|---|---|---|---|\n| platform-svc | ✅ Healthy | ⚠️ staging 프로필 미존재 | ⏳ W4 |\n| engagement-svc | ✅ Healthy | ✅ Healthy | ⏳ W4 |\n| knowledge-svc | ✅ Healthy | ✅ Healthy | ⏳ W4 |\n| learning-card | ✅ Healthy | ✅ Healthy | ⏳ W4 |\n| learning-ai | ✅ Healthy | ✅ Healthy | ⏳ W4 |\n\n> 상태 enum: ✅ Healthy / ⚠️ Degraded / 🔴 Down / ⏳ Not Started\n\n### 인프라 상태\n\n| 컴포넌트 | 상태 | 비고 |\n|---|---|---|\n| EKS | ✅ | destroy/apply 반복 (비용 관리), private endpoint |\n| RDS PostgreSQL 16 | ✅ | SG 매 apply 후 수동 추가 필요 (D-026) |\n| MSK Kafka | ✅ | 토픽 5개 생성 완료, 브로커 주소 PR #42 반영 |\n| Redis | ✅ | SG 수동 추가 필요 |\n| OpenSearch | ✅ | SG 수동 추가 필요 |\n| ArgoCD | ✅ | HA 모드, dev auto-sync + staging manual |\n\n### Kafka / 스키마 상태\n\n| 항목 | 상태 |\n|---|---|\n| Avro 스키마 8개 | ✅ BACKWARD 호환 |\n| MSK 토픽 5개 | ✅ 생성 완료 |\n| 서비스 Kafka Producer/Consumer | 🔴 5/5 미착수 |\n\n---\n\n## 2. 교차 의존관계 맵\n\n```\n[블로커] platform-svc application-staging.yml 추가\n    └─→ staging 5/5 Healthy 달성\n\n[블로커] 5개 서비스 Kafka Producer/Consumer 구현 (서비스 레포)\n    └─→ shared E2E 검증 가능\n        └─→ staging 프로모션 테스트\n\n[독립] Observability 스택 설치 (gitops)\n    └─→ W3 PRD FR-GO-303~307\n\n[독립] terraform state 정리 — SG/OIDC 코드 반영 (gitops)\n```\n\n---\n\n## 3. 스포크 참조\n\n| 레포 | 스포크 문서 | 최종 갱신 | 정합성 |\n|---|---|---|---|\n| synapse-gitops | `docs/superpowers/HANDOFF_W3.md` | 2026-05-22 | ✅ 동기 |\n| synapse-shared | `docs/project-management/HANDOFF_SHARED.md` | 2026-05-22 | ✅ 동기 |\n\n---\n\n## 4. 다음 세션 작업 순서\n\n```\n1. [gitops] terraform apply + 세션 기동 (runbook 12단계)\n     → docs/runbooks/w2-session-bootstrap-runbook.md\n2. [gitops] platform-svc staging 프로필 해결 → staging 5/5\n     → 완료 기준: argocd app sync synapse-platform-svc-staging → Healthy\n3. [gitops] Observability 스택 설치 (kube-prometheus-stack)\n     → 완료 기준: Prometheus + Grafana + Alertmanager Running\n4. [gitops] ServiceMonitor 5개 + Grafana 대시보드\n     → 완료 기준: Grafana Explore에서 5개 앱 메트릭 조회\n5. [shared] 서비스별 Kafka 구현 상태 확인 + E2E 준비\n     → 완료 기준: kafka-e2e-test.sh --all PASS\n6. [gitops] terraform state 정리 (SG/OIDC 코드 반영)\n     → 완료 기준: terraform plan → no unexpected drift\n```\n\n---\n\n## 5. 주간 마일스톤 추적\n\n| 주차 | 목표 | 상태 | 실제 완료일 |\n|---|---|---|---|\n| W1 (5/12-16) | ArgoCD bootstrap + CI | ✅ 완료 | 5/16 |\n| W2 (5/19-23) | Dev 5앱 + secrets + image sync | ✅ 완료 | 5/21 (9차 세션) |\n| W3 (5/26-29) | Staging + Observability | ⏳ 미시작 | — |\n| W4 (6/01-05) | Prod + approval + rollback | ⏳ 계획 | — |\n| W5 (6/08-12) | Runbooks + DR + 비용 최적화 | ⏳ 계획 | — |\n"
+}
