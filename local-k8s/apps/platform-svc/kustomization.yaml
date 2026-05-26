@@ -20,6 +20,8 @@ patches:
         DATABASE_NAME: synapse
         DB_URL: jdbc:postgresql://postgres:5432/synapse
         DB_USERNAME: synapse
+        SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/synapse
+        SPRING_DATASOURCE_USERNAME: synapse
         REDIS_HOST: redis
         REDIS_PORT: "6379"
         KAFKA_BROKERS: kafka:9092

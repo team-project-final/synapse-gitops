@@ -7,6 +7,7 @@ spec:
   template:
     metadata: { labels: { app: kafka } }
     spec:
+      enableServiceLinks: false   # k8s가 주입하는 KAFKA_* 서비스 env가 cp-kafka 설정과 충돌하는 것 방지
       containers:
         - name: kafka
           image: confluentinc/cp-kafka:7.7.0
