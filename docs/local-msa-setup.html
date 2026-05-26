@@ -112,7 +112,7 @@
     <section id="overview"><h2 class="sec"><span class="num">0</span>개요</h2>
       <p>이 가이드를 끝내면 <strong>내 PC에서 Synapse MSA 전체(또는 내가 맡은 서비스)가 돌아갑니다.</strong>
          초보는 번호 단계만 위→아래로 따라가면 되고, 준시니어는 각 단계의 <strong>“▸ 심화”</strong> 박스를 펼쳐
-         원리와 트러블슈팅을 볼 수 있습니다. AWS/EKS 배포는 이 가이드의 범위가 아닙니다(→ <a href="#next">§7 더 깊이 보기</a>).</p>
+         원리와 트러블슈팅을 볼 수 있습니다. AWS/EKS 배포는 이 가이드의 범위가 아닙니다(→ <a href="#next">§9 더 깊이 보기</a>).</p>
 
       <h3>전체 구성도</h3>
       <p class="topo-hint" style="margin-bottom:8px">아래 구성도의 노드를 클릭하면 포트·헬스·확인 명령이 오른쪽(모바일은 아래)에 표시됩니다.</p>
@@ -133,8 +133,8 @@
       <p>서비스 간 비동기 통신은 <strong>Kafka + Avro(Schema Registry)</strong> 이벤트로 이뤄집니다.
          서비스는 도메인별로 분리된 독립 Spring Boot(JDK 21) 앱이며, AI 서비스(learning-ai)만 Python/FastAPI입니다.</p>
 
-      <h3>두 가지 실행 경로</h3>
-      <p>로컬 실행 경로는 두 가지이고, <strong>서로 다른 compose 파일/인프라 스택</strong>을 씁니다. 목적에 따라 하나를 고르세요.</p>
+      <h3>실행 경로</h3>
+      <p><strong>권장 메인 경로는 <a href="#k8s">§3 로컬 k8s(minikube)</a></strong>입니다 — 인프라·Gateway·서비스를 모두 파드로 띄워 실 배포(EKS)와 가장 가깝습니다. 아래 두 가지는 docker compose 기반 <strong>대안</strong>(<a href="#path1">§4</a>/<a href="#path2">§5</a>)이며 서로 다른 인프라 스택을 씁니다.</p>
       <table>
         <thead><tr><th>항목</th>
           <th><span class="badge path1">① 풀 컨테이너</span></th>
@@ -166,11 +166,13 @@
       </details>
     </section>
     <section id="prereq"><h2 class="sec"><span class="num">1</span>사전 준비</h2>
-      <p>로컬 실행에 필요한 도구입니다. <strong>AWS CLI·kubectl은 로컬 개발에 필요하지 않습니다</strong>(EKS 접근은 별도 가이드 → <a href="#next">§7</a>).</p>
+      <p>로컬 실행에 필요한 도구입니다. 메인 경로(<a href="#k8s">§3 k8s</a>)는 minikube·kubectl이 필요하고, compose 대안(<a href="#path1">§4</a>/<a href="#path2">§5</a>)은 Docker만으로 됩니다. <strong>AWS CLI는 로컬 개발에 필요하지 않습니다</strong>(EKS 접근은 별도 가이드 → <a href="#next">§9</a>).</p>
       <table>
         <thead><tr><th>도구</th><th>확인 명령</th><th>비고</th></tr></thead>
         <tbody>
-          <tr><td>Docker Desktop</td><td><code>docker --version</code></td><td>Compose v2 포함</td></tr>
+          <tr><td>Docker Desktop</td><td><code>docker --version</code></td><td>Compose v2 포함 · 이미지 빌드</td></tr>
+          <tr><td>minikube</td><td><code>minikube version</code></td><td>메인 경로(§3) 로컬 k8s 클러스터</td></tr>
+          <tr><td>kubectl</td><td><code>kubectl version --client</code></td><td>메인 경로(§3) 클러스터 조작</td></tr>
           <tr><td>JDK 21 (Temurin)</td><td><code>java -version</code></td><td>모든 Spring 서비스가 Java 21</td></tr>
           <tr><td>Git</td><td><code>git --version</code></td><td>—</td></tr>
           <tr><td>Python 3.12+</td><td><code>python --version</code></td><td>learning-ai를 <em>소스로</em> 실행할 때만 (FastAPI)</td></tr>
@@ -253,7 +255,38 @@ team-project-final/
         </div>
       </details>
     </section>
-    <section id="path1"><h2 class="sec"><span class="num">3</span>경로 ① 풀 컨테이너 (빠른 체험)</h2>
+    <section id="k8s"><h2 class="sec"><span class="num">3</span>로컬 k8s(minikube) — 메인 경로</h2>
+      <p><strong>권장 메인 경로.</strong> minikube 로컬 쿠버네티스에 인프라 + <strong>Gateway</strong> + 5개 서비스를 모두 파드로 띄웁니다. 실 배포(EKS)와 가장 가까운 형태입니다. <code>local-k8s/</code> kustomize가 EKS용 매니페스트를 로컬용으로 적응합니다(ExternalSecret 제거 · 인프라 인클러스터 · 로컬 이미지). docker compose 경로는 <a href="#path1">§4</a>/<a href="#path2">§5</a>의 대안입니다.</p>
+
+      <div class="step"><input type="checkbox" id="k8s-1"><label for="k8s-1">1. 선행 도구</label></div>
+      <div class="code">minikube version
+kubectl version --client
+docker --version</div>
+
+      <div class="step"><input type="checkbox" id="k8s-2"><label for="k8s-2">2. 한 번에 기동(빌드+적재+적용)</label></div>
+      <p>형제 레포(<a href="#clone">§2</a>의 7개)가 클론돼 있어야 합니다. 스크립트가 Gateway·서비스 이미지를 빌드해 minikube에 적재합니다(learning-card는 Dockerfile이 없어 <code>bootBuildImage</code>로 빌드 — 최초 다소 느림).</p>
+      <div class="code">cd C:\workspace\team-project-final\synapse-gitops
+bash scripts/minikube-up.sh</div>
+
+      <div class="step"><input type="checkbox" id="k8s-3"><label for="k8s-3">3. 파드 상태 확인</label></div>
+      <div class="code">kubectl -n synapse-local get pods</div>
+
+      <div class="step"><input type="checkbox" id="k8s-4"><label for="k8s-4">4. 접근 — Gateway 경유 port-forward</label></div>
+      <div class="code">kubectl -n synapse-local port-forward svc/gateway     8080:80
+kubectl -n synapse-local port-forward svc/learning-ai 8000:80</div>
+      <p>그 다음 Gateway 경유로 <code>curl http://localhost:8080/api/platform/actuator/health</code>, 브라우저로 <code>http://localhost:8000/docs</code>. 호출·확인 방법은 <a href="#usage">§6</a> 참고(이 경로는 Gateway 포함 → <code>/api/{서비스}/**</code> 라우팅 동작).</p>
+
+      <details class="deep"><summary>정적 렌더만 먼저 확인하려면 (심화)</summary>
+        <div class="body">클러스터 없이 매니페스트가 올바른지 보려면 <code>kubectl kustomize local-k8s</code>. 인프라 5개 + Gateway + 앱 5개 Deployment(총 11)가 <code>synapse-local</code> 네임스페이스로 렌더되고 ExternalSecret/ghcr/AWS 호스트가 없어야 정상입니다. 실 API 검증은 <code>kubectl apply -k local-k8s --dry-run=server</code>.</div>
+      </details>
+      <details class="deep"><summary>트러블슈팅 (심화)</summary>
+        <div class="body"><strong>ImagePullBackOff</strong>: 이미지가 minikube에 적재 안 됨 → <code>minikube image ls | grep synapse</code> 확인, 없으면 <code>minikube image load synapse-&lt;name&gt;:local</code> 재실행. <strong>검색/카프카 OOM·CrashLoop</strong>: <code>minikube start --memory=6144</code>로 메모리 상향. <strong>토픽 미생성</strong>: <code>kubectl -n synapse-local logs job/kafka-topics-init</code>. <strong>Gateway 502/503</strong>: 대상 서비스가 아직 Ready 아님 → <code>kubectl -n synapse-local get pods</code> 확인. <strong>compose와 동시 실행 금지</strong>: 포트 충돌.</div>
+      </details>
+      <details class="deep"><summary>compose 경로와 무엇이 다른가? (심화)</summary>
+        <div class="body">compose 경로(<a href="#path1">§4</a>/<a href="#path2">§5</a>)는 인프라를 호스트 컨테이너로 띄우지만, 이 경로는 인프라·Gateway까지 <strong>클러스터 안</strong>에 띄워 파드가 서비스 DNS(<code>postgres</code>,<code>kafka</code>,<code>platform-svc</code> 등)로 통신합니다. 실 배포(EKS)와 가장 가깝습니다.</div>
+      </details>
+    </section>
+    <section id="path1"><h2 class="sec"><span class="num">4</span>(대안) 풀 컨테이너 — docker compose</h2>
       <p><span class="badge path1">①</span> <code>synapse-gitops/docker-compose.yml</code>로 <strong>인프라 + 5개 서비스를 한 번에</strong> 띄웁니다.
          서비스는 형제 레포 소스에서 빌드됩니다. “일단 전부 떠 있는 모습”을 빠르게 보고 싶을 때 좋습니다.</p>
 
@@ -299,7 +332,7 @@ docker compose down -v    # 볼륨까지 삭제 (완전 초기화)</div>
       <details class="deep"><summary>메모리가 부족하면 (심화)</summary>
         <div class="body">
           인프라 6개 + 앱 5개를 동시에 띄우면 메모리를 꽤 씁니다(권장 8GB+). Docker Desktop의
-          Settings → Resources에서 메모리를 올리세요. 검색엔진은 JVM 힙이 커서 가장 먼저 영향을 받습니다(→ <a href="#trouble">§6</a>).
+          Settings → Resources에서 메모리를 올리세요. 검색엔진은 JVM 힙이 커서 가장 먼저 영향을 받습니다(→ <a href="#trouble">§8</a>).
         </div>
       </details>
 
@@ -311,7 +344,7 @@ docker compose down -v    # 볼륨까지 삭제 (완전 초기화)</div>
         </div>
       </details>
     </section>
-    <section id="path2"><h2 class="sec"><span class="num">4</span>경로 ② 하이브리드 (실제 개발)</h2>
+    <section id="path2"><h2 class="sec"><span class="num">5</span>(대안) 하이브리드 — compose 인프라 + 소스 실행</h2>
       <p><span class="badge path2">②</span> <strong>인프라는 컨테이너로, 내가 수정하는 서비스만 소스로 직접 실행</strong>합니다.
          코드 수정 → 재기동 루프가 빨라 실제 개발에 적합합니다. <code>synapse-shared/docker-compose.yml</code>을 씁니다.</p>
 
@@ -389,8 +422,8 @@ curl http://localhost:8090/health            # learning-ai</div>
         </div>
       </details>
     </section>
-    <section id="usage"><h2 class="sec"><span class="num">5</span>서비스 사용·확인하기</h2>
-      <p>설치(<a href="#path1">§3</a>/<a href="#path2">§4</a>)로 서비스가 떴다면, 이제 실제로 열어보고 호출하고 이벤트가 흐르는 걸 확인해 봅시다. 경로①은 포트를 직접, 경로②는 Gateway(:8080)를 경유합니다.</p>
+    <section id="usage"><h2 class="sec"><span class="num">6</span>서비스 사용·확인하기</h2>
+      <p>설치(<a href="#k8s">§3 k8s</a> 또는 compose <a href="#path1">§4</a>/<a href="#path2">§5</a>)로 서비스가 떴다면, 이제 실제로 열어보고 호출하고 이벤트가 흐르는 걸 확인해 봅시다. k8s·하이브리드는 Gateway(:8080)를 경유하고, 풀 컨테이너(compose)는 서비스 포트를 직접 호출합니다.</p>
 
       <h3>5.1 브라우저로 열어보는 뷰</h3>
       <p>⭐ <strong>learning-ai Swagger UI</strong> — 이 프로젝트에서 버튼으로 API를 직접 실행("Try it out")해볼 수 있는 유일한 GUI입니다.</p>
@@ -434,7 +467,7 @@ learning.ai.cards-generated-v1</div>
         <div class="body">두 스택 모두 PostgreSQL 사용자/DB는 <code>synapse</code>/<code>synapse</code>이며 컨테이너 내부 로컬 접속은 비밀번호가 필요 없습니다. Redis 비밀번호만 다릅니다 — 경로②(synapse-shared)는 <code>redis_local_pw</code>, 경로①(synapse-gitops)는 <code>redis_local</code>. 값은 각 <code>docker-compose.yml</code>·<code>.env</code> 기본값입니다.</div>
       </details>
     </section>
-    <section id="data"><h2 class="sec"><span class="num">6</span>목업 · 시드 데이터 (선택)</h2>
+    <section id="data"><h2 class="sec"><span class="num">7</span>목업 · 시드 데이터 (선택)</h2>
       <p>초기 데이터가 없어도 서비스는 정상 기동합니다. 화면 확인이나 통합 테스트를 위해 목업/시드 데이터가 필요하면 아래를 참고하세요.</p>
       <ul>
         <li><a href="../../moking-data-guide/index.html">목업 데이터 가이드 (moking-data-guide)</a> — 서비스별 목업 전략·이벤트 목업 HTML 가이드</li>
@@ -442,7 +475,7 @@ learning.ai.cards-generated-v1</div>
       </ul>
       <p class="" style="color:var(--muted);font-size:14px">※ 위 링크는 <a href="#clone">§2</a>의 표준 형제 폴더 구조를 기준으로 한 상대경로입니다.</p>
     </section>
-    <section id="trouble"><h2 class="sec"><span class="num">7</span>트러블슈팅</h2>
+    <section id="trouble"><h2 class="sec"><span class="num">8</span>트러블슈팅</h2>
       <table>
         <thead><tr><th>증상</th><th>원인</th><th>해결</th></tr></thead>
         <tbody>
@@ -455,56 +488,24 @@ learning.ai.cards-generated-v1</div>
           <tr><td><code>up --build</code> 실패: 빌드 컨텍스트 없음</td><td>형제 레포 미클론</td>
               <td><a href="#clone">§2</a>의 7개 레포가 같은 부모 폴더에 형제로 있는지 확인</td></tr>
           <tr><td><code>.env</code> 누락 경고</td><td><code>cp .env.example .env</code> 미실행</td>
-              <td><a href="#path1">§3</a> 1단계 수행</td></tr>
+              <td><a href="#path1">§4</a> 1단계 수행</td></tr>
           <tr><td>하이브리드에서 8080 충돌</td><td>Gateway(:8080)와 platform-svc 기본 포트 겹침</td>
-              <td>인프라만 올리거나 <code>./gradlew bootRun --args='--server.port=8181'</code>로 변경 (<a href="#path2">§4</a> 심화 참고)</td></tr>
+              <td>인프라만 올리거나 <code>./gradlew bootRun --args='--server.port=8181'</code>로 변경 (<a href="#path2">§5</a> 심화 참고)</td></tr>
         </tbody>
       </table>
     </section>
-    <section id="next"><h2 class="sec"><span class="num">8</span>다음 단계 · 더 깊이 보기</h2>
+    <section id="next"><h2 class="sec"><span class="num">9</span>다음 단계 · 더 깊이 보기</h2>
       <p>로컬 환경이 떴다면, 다음 문서로 프로젝트를 더 깊이 이해하거나 클라우드 배포로 넘어갈 수 있습니다.</p>
       <ul>
         <li><a href="synapse-developer-guide.md">Synapse Developer Guide</a> — 올인원 개발자 가이드(레포별 구조, GitOps 배포, AWS 인프라)</li>
         <li><a href="docker-compose-workflow-guide.md">Docker Compose Workflow Guide</a> — compose 구성·헬스체크·메모리 설계 상세</li>
         <li><a href="runbooks/bastion-ssm-access.md">Bastion SSM 접근</a> — (AWS) EKS kubectl 접근 방법</li>
         <li><a href="../README.md">synapse-gitops README</a> — GitOps 레포 개요 + ArgoCD/Terraform</li>
-        <li><a href="#k8s">(고급) 로컬 k8s(minikube)로 띄우기 — §9</a> · docker compose 대신 쿠버네티스로 5개 서비스 기동</li>
       </ul>
       <div class="warn">
         ℹ️ <strong>AWS / EKS 배포는 이 가이드의 범위 밖입니다.</strong> 위 개발자 가이드와 런북을 참고하세요.
         이 문서는 로컬 개발환경 세팅까지만 다룹니다.
       </div>
-    </section>
-    <section id="k8s"><h2 class="sec"><span class="num">9</span>(고급) 로컬 k8s(minikube)로 띄우기</h2>
-      <p>docker compose(<a href="#path1">§3</a>/<a href="#path2">§4</a>) 대신 <strong>minikube 로컬 쿠버네티스</strong>에서 5개 서비스를 파드로 띄우는 경로입니다. <code>local-k8s/</code> kustomize가 EKS용 매니페스트를 로컬용으로 적응합니다(ExternalSecret 제거·인프라 인클러스터·로컬 이미지). <strong>Gateway는 포함되지 않습니다</strong>(매니페스트 없음 — 서비스 직접 접근).</p>
-
-      <div class="step"><input type="checkbox" id="k8s-1"><label for="k8s-1">1. 선행 도구</label></div>
-      <div class="code">minikube version
-kubectl version --client
-docker --version</div>
-
-      <div class="step"><input type="checkbox" id="k8s-2"><label for="k8s-2">2. 한 번에 기동(빌드+적재+적용)</label></div>
-      <p>형제 레포(<a href="#clone">§2</a>의 7개)가 클론돼 있어야 합니다. learning-card는 Dockerfile이 없어 스크립트가 <code>bootBuildImage</code>로 빌드합니다(최초 다소 느림).</p>
-      <div class="code">cd C:\workspace\team-project-final\synapse-gitops
-bash scripts/minikube-up.sh</div>
-
-      <div class="step"><input type="checkbox" id="k8s-3"><label for="k8s-3">3. 파드 상태 확인</label></div>
-      <div class="code">kubectl -n synapse-local get pods</div>
-
-      <div class="step"><input type="checkbox" id="k8s-4"><label for="k8s-4">4. 접근 — port-forward(서비스별 별도 터미널)</label></div>
-      <div class="code">kubectl -n synapse-local port-forward svc/platform-svc 8080:80
-kubectl -n synapse-local port-forward svc/learning-ai   8000:80</div>
-      <p>그 다음 <code>curl http://localhost:8080/actuator/health</code>, 브라우저로 <code>http://localhost:8000/docs</code>. 사용법은 <a href="#usage">§5</a>와 동일합니다(단 Gateway 없음 → 서비스 직접).</p>
-
-      <details class="deep"><summary>정적 렌더만 먼저 확인하려면 (심화)</summary>
-        <div class="body">클러스터 없이 매니페스트가 올바른지 보려면 <code>kubectl kustomize local-k8s</code>. 인프라 5개 + 앱 5개 Deployment가 <code>synapse-local</code> 네임스페이스로 렌더되고 ExternalSecret/ghcr/AWS 호스트가 없어야 정상입니다.</div>
-      </details>
-      <details class="deep"><summary>트러블슈팅 (심화)</summary>
-        <div class="body"><strong>ImagePullBackOff</strong>: 이미지가 minikube에 적재 안 됨 → <code>minikube image ls | grep synapse</code> 확인, 없으면 <code>minikube image load synapse-&lt;svc&gt;:local</code> 재실행. <strong>검색/카프카 OOM·CrashLoop</strong>: <code>minikube start</code> 메모리를 올리세요(예: <code>--memory=6144</code>). <strong>토픽 미생성</strong>: <code>kubectl -n synapse-local logs job/kafka-topics-init</code>. <strong>compose와 동시 실행 금지</strong>: 포트 충돌 — 한쪽을 내리세요.</div>
-      </details>
-      <details class="deep"><summary>compose 경로와 무엇이 다른가? (심화)</summary>
-        <div class="body">compose 경로(①/②)는 인프라를 호스트 컨테이너로 띄우지만, 이 경로는 인프라까지 <strong>클러스터 안</strong>에 띄워 파드가 서비스 DNS(<code>postgres</code>,<code>kafka</code> 등)로 통신합니다. 실 배포(EKS)와 더 가까운 형태를 로컬에서 체험할 수 있습니다.</div>
-      </details>
     </section>
   </main>
 </div>
@@ -584,7 +585,7 @@ kubectl -n synapse-local port-forward svc/learning-ai   8000:80</div>
   var NS='http://www.w3.org/2000/svg';
   var NODES=[
     {id:'client',g:'entry',label:'Client',x:60,y:14,w:130,h:40,role:'브라우저/앱 진입점',tech:'-',p1:'-',p2:'-',check:'-',deps:['Gateway','platform-svc'],note:'경로①은 앱 포트 직접 호출, 경로②는 Gateway 경유'},
-    {id:'gateway',g:'entry',label:'Gateway',x:410,y:14,w:170,h:40,role:'외부 트래픽 라우팅',tech:'Spring Cloud Gateway / JDK 21',p1:'없음',p2:':8080',check:'curl http://localhost:8080/actuator/health',deps:['platform-svc','engagement-svc','knowledge-svc','learning-card','Redis'],note:'경로②(synapse-shared compose)에만 존재'},
+    {id:'gateway',g:'entry',label:'Gateway',x:410,y:14,w:170,h:40,role:'외부 트래픽 라우팅',tech:'Spring Cloud Gateway / JDK 21',p1:'없음',p2:':8080',check:'curl http://localhost:8080/actuator/health',deps:['platform-svc','engagement-svc','knowledge-svc','learning-card','Redis'],note:'§3 k8s · §5 하이브리드에 포함(풀 컨테이너 §4엔 없음)'},
     {id:'platform',g:'app',label:'platform-svc',x:6,y:104,w:116,h:40,role:'인증·결제·알림',tech:'Spring Boot / JDK 21',p1:':8080',p2:'stub :8081',check:'curl http://localhost:8080/actuator/health',deps:['PostgreSQL','Redis','Kafka']},
     {id:'engagement',g:'app',label:'engagement-svc',x:132,y:104,w:116,h:40,role:'참여·활동',tech:'Spring Boot / JDK 21',p1:':8082',p2:'stub :8082',check:'curl http://localhost:8082/actuator/health',deps:['PostgreSQL','Redis','Kafka','learning-card']},
     {id:'knowledge',g:'app',label:'knowledge-svc',x:258,y:104,w:116,h:40,role:'노트·검색',tech:'Spring Boot / JDK 21',p1:':8083',p2:'stub :8083',check:'curl http://localhost:8083/actuator/health',deps:['PostgreSQL','Redis','Kafka','검색엔진']},
