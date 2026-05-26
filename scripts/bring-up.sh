@@ -35,6 +35,57 @@ USAGE
 PHASES=(terraform eks-auth access-entry sg tunnel argocd eso oidc-fix manifests observability status)
 
 # ─── phase 함수 ───────────────────────────────────────────────────────────
+phase_terraform() {
+  run "terraform -chdir=$TFDIR init -input=false"
+  run "terraform -chdir=$TFDIR apply -auto-approve -input=false"
+}
+
+phase_eks_auth() {
+  local mode
+  mode=$(aws eks describe-cluster --name "$CLUSTER_NAME" --region "$AWS_REGION" \
+    --query cluster.accessConfig.authenticationMode --output text 2>/dev/null || echo "")
+  if [ "$mode" = "API_AND_CONFIG_MAP" ] || [ "$mode" = "API" ]; then
+    ok "auth mode 이미 $mode"
+    return
+  fi
+  run "aws eks update-cluster-config --name $CLUSTER_NAME --region $AWS_REGION --access-config authenticationMode=API_AND_CONFIG_MAP"
+  run "aws eks wait cluster-active --name $CLUSTER_NAME --region $AWS_REGION"
+}
+
+phase_access_entry() {
+  local me
+  me=$(aws sts get-caller-identity --query Arn --output text)
+  if aws eks describe-access-entry --cluster-name "$CLUSTER_NAME" --region "$AWS_REGION" \
+    --principal-arn "$me" >/dev/null 2>&1; then
+    ok "access entry 이미 존재: $me"
+    return
+  fi
+  run "aws eks create-access-entry --cluster-name $CLUSTER_NAME --region $AWS_REGION --principal-arn $me --type STANDARD"
+  run "aws eks associate-access-policy --cluster-name $CLUSTER_NAME --region $AWS_REGION --principal-arn $me --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy --access-scope type=cluster"
+}
+
+phase_sg() {
+  local eks_sg rds redis msk os
+  eks_sg=$(terraform -chdir=$TFDIR output -raw eks_cluster_security_group_id)
+  rds=$(terraform -chdir=$TFDIR output -raw sg_rds_id)
+  redis=$(terraform -chdir=$TFDIR output -raw sg_redis_id)
+  msk=$(terraform -chdir=$TFDIR output -raw sg_msk_id)
+  os=$(terraform -chdir=$TFDIR output -raw sg_opensearch_id)
+  _sg_ingress() { # $1=target sg $2=port
+    aws ec2 authorize-security-group-ingress --region "$AWS_REGION" \
+      --group-id "$1" --protocol tcp --port "$2" --source-group "$eks_sg" 2>&1 |
+      grep -q "already exists" && ok "SG $1:$2 규칙 이미 존재" || ok "SG $1:$2 추가"
+  }
+  if $DRY_RUN; then
+    echo "+ SG ingress: rds:5432 redis:6379 msk:9094 os:443 from $eks_sg"
+    return
+  fi
+  _sg_ingress "$rds" 5432
+  _sg_ingress "$redis" 6379
+  _sg_ingress "$msk" 9094
+  _sg_ingress "$os" 443
+}
+
 # (phase 함수들은 후속 Task에서 추가)
 
 main() {
