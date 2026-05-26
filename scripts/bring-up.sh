@@ -55,7 +55,19 @@ phase_eks_auth() {
     return
   fi
   run "aws eks update-cluster-config --name $CLUSTER_NAME --region $AWS_REGION --access-config authenticationMode=API_AND_CONFIG_MAP"
-  run "aws eks wait cluster-active --name $CLUSTER_NAME --region $AWS_REGION"
+  # cluster-active waiter는 auth-config 업데이트 완료를 기다리지 않음 → authenticationMode를 직접 폴링
+  local i m
+  for i in $(seq 1 30); do
+    m=$(aws eks describe-cluster --name "$CLUSTER_NAME" --region "$AWS_REGION" \
+      --query cluster.accessConfig.authenticationMode --output text 2>/dev/null || echo "")
+    if [ "$m" = "API_AND_CONFIG_MAP" ] || [ "$m" = "API" ]; then
+      ok "auth mode → $m"
+      return
+    fi
+    sleep 10
+  done
+  err "auth mode 변경이 시간 내 완료 안 됨"
+  exit 1
 }
 
 phase_access_entry() {
