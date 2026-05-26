@@ -115,22 +115,21 @@
          원리와 트러블슈팅을 볼 수 있습니다. AWS/EKS 배포는 이 가이드의 범위가 아닙니다(→ <a href="#next">§7 더 깊이 보기</a>).</p>
 
       <h3>전체 구성도</h3>
-      <pre class="ascii">
-                              ┌─────────────────────────────┐
-   브라우저 / 클라이언트  ──▶ │  (하이브리드 시) Gateway :8080 │
-                              └───────────────┬─────────────┘
-                                              │  라우팅
-        ┌─────────────────────────────────────┼─────────────────────────────────────┐
-        ▼                 ▼                    ▼                  ▼                    ▼
-  platform-svc      engagement-svc       knowledge-svc      learning-card        learning-ai
-     :8080             :8082                :8083              :8084               :8000  (FastAPI)
-        └─────────────────┴────────┬───────────┴──────────────────┴────────────────────┘
-                                    │  JDBC / Redis / Kafka(Avro) / 검색
-   ┌────────────────────────────────────────────────────────────────────────────────┐
-   │  PostgreSQL :5432   Redis :6379   Kafka :9092 (+Zookeeper)                       │
-   │  Schema Registry (Avro)   Elasticsearch/OpenSearch :9200                         │
-   │  kafka-init → 토픽 5개 자동 생성                                                  │
-   └────────────────────────────────────────────────────────────────────────────────┘</pre>
+      <p class="topo-hint" style="margin-bottom:8px">아래 구성도의 노드를 클릭하면 포트·헬스·확인 명령이 오른쪽(모바일은 아래)에 표시됩니다.</p>
+      <div class="topo">
+        <div class="topo-svg">
+          <svg id="topoSvg" viewBox="0 0 640 360" role="img" aria-labelledby="topoTitle topoDesc">
+            <title id="topoTitle">Synapse MSA 로컬 구성도</title>
+            <desc id="topoDesc">Client에서 Gateway를 거쳐 platform·engagement·knowledge·learning-card·learning-ai 5개 서비스로 이어지고, 서비스들은 Kafka·Schema Registry·PostgreSQL·Redis·검색엔진에 연결됩니다.</desc>
+            <g id="topoEdges"></g>
+            <g id="topoNodes"></g>
+          </svg>
+        </div>
+        <aside class="topo-panel" id="topoPanel" aria-live="polite">
+          <p class="topo-hint">노드를 클릭하면 포트·헬스·확인 명령이 표시됩니다.</p>
+        </aside>
+      </div>
+      <p class="sr-only">구성 요약: Client → Gateway(경로② 전용) → 서비스 5개(platform 8080, engagement 8082, knowledge 8083, learning-card 8084, learning-ai 8000/8090) → Kafka 9092, Schema Registry 8085/8086, PostgreSQL 5432, Redis 6379, 검색엔진 9200.</p>
       <p>서비스 간 비동기 통신은 <strong>Kafka + Avro(Schema Registry)</strong> 이벤트로 이뤄집니다.
          서비스는 도메인별로 분리된 독립 Spring Boot(JDK 21) 앱이며, AI 서비스(learning-ai)만 Python/FastAPI입니다.</p>
 
