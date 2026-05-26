@@ -114,8 +114,13 @@ phase_tunnel() {
 
 phase_argocd() {
   run "kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -"
-  run "kubectl apply -n argocd --server-side -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml"
-  run "kubectl -n argocd patch deploy argocd-server --type=json -p='[{\"op\":\"add\",\"path\":\"/spec/template/spec/containers/0/args/-\",\"value\":\"--insecure\"}]' || true"
+  # --force-conflicts: 재실행 시 --insecure 패치(kubectl-patch 매니저)와의 field 충돌 방지
+  run "kubectl apply -n argocd --server-side --force-conflicts -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml"
+  if $DRY_RUN; then
+    echo "+ argocd-server --insecure patch (없을 때만)"
+  elif ! kubectl -n argocd get deploy argocd-server -o jsonpath='{.spec.template.spec.containers[0].args}' 2>/dev/null | grep -q -- '--insecure'; then
+    kubectl -n argocd patch deploy argocd-server --type=json -p='[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--insecure"}]'
+  fi
   run "kubectl -n argocd rollout status deploy/argocd-server --timeout=300s"
 }
 
