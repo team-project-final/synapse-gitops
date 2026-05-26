@@ -29,3 +29,7 @@ infra/aws/dev/tfplan
 .superpowers/
 .playwright-mcp/
 *.png
+
+# === Docs portal build artifacts ===
+site/scripts/node_modules/
+site/scripts/.summary-cache.json
