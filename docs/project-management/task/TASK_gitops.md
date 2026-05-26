@@ -82,7 +82,7 @@
   - [x] EKS 배포: 3/5 Healthy (engagement-svc, knowledge-svc, learning-card)
   - [ ] EKS 배포: platform-svc Healthy (앱 코드 수정 필요 — mfa_credentials 테이블)
   - [ ] EKS 배포: learning-ai Healthy (앱 코드 수정 필요 — Python 기동 문제)
-  - [ ] Pod에 트래픽 도달 확인 (Ingress 또는 port-forward)
+  - [x] Pod에 트래픽 도달 확인 (S4: knowledge-svc `/actuator/health` → HTTP 200/UP, port-forward, 2026-05-26)
 - **Duration**: 2일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
@@ -119,7 +119,7 @@
   - [x] ImageUpdater CR 작성 (`argocd/image-updater.yaml`)
   - [x] ECR 이미지 경로로 교체 완료 (ApplicationSet + dev overlay)
   - [x] write-back-method: git + write-back-target: kustomization 설정
-  - [ ] 새 이미지 푸시 → 5분 이내 dev에 반영 확인 — EKS 배포 후
+  - [~] 새 이미지 푸시 → dev 반영(S6 EKS): image-updater 설치(v0.15.2)+ECR IRSA+pullsecret 인증+git repo-cred **검증 완료**, ECR 태그 리스팅 성공. write-back E2E는 **2중 블록** — ① dev overlay가 `dev-latest`(semver 전략 불일치) ② **main 보호 ruleset이 직접 push 거부**(PR 필수, bypass 없음). **결정: dev/staging=A(전용 봇 bypass), prod(W4+)=B(PR write-back)** — 실행 절차·A/B: `docs/runbooks/image-updater-ecr-setup.md`. 라이브 완주는 차기 세션(과금).
   - [x] 태그 변경 이력이 git log에 남음 (git write-back 설정)
 - **Duration**: 1.5일
 - **Assignee**: @VelkaressiaBlutkrone
