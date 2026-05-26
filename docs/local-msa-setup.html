@@ -389,6 +389,51 @@ curl http://localhost:8090/health            # learning-ai</div>
         </div>
       </details>
     </section>
+    <section id="usage"><h2 class="sec"><span class="num">5</span>서비스 사용·확인하기</h2>
+      <p>설치(<a href="#path1">§3</a>/<a href="#path2">§4</a>)로 서비스가 떴다면, 이제 실제로 열어보고 호출하고 이벤트가 흐르는 걸 확인해 봅시다. 경로①은 포트를 직접, 경로②는 Gateway(:8080)를 경유합니다.</p>
+
+      <h3>5.1 브라우저로 열어보는 뷰</h3>
+      <p>⭐ <strong>learning-ai Swagger UI</strong> — 이 프로젝트에서 버튼으로 API를 직접 실행("Try it out")해볼 수 있는 유일한 GUI입니다.</p>
+      <div class="code">http://localhost:8000/docs     # 경로① Swagger UI
+http://localhost:8090/docs     # 경로② Swagger UI
+http://localhost:8000/redoc    # ReDoc (읽기용 문서)</div>
+      <p>브라우저로 바로 열리는 상태(JSON) 뷰:</p>
+      <div class="code">http://localhost:8080/actuator/health   # platform-svc 상태
+http://localhost:8085/subjects           # 등록된 Avro 스키마 (경로② :8086)
+http://localhost:9200/_cluster/health    # 검색엔진 상태</div>
+      <details class="deep"><summary>다른 서비스는 왜 Swagger UI가 없나? (심화)</summary>
+        <div class="body">Spring 서비스(platform·engagement·knowledge·learning-card)에는 springdoc이 적용돼 있지 않아 Swagger UI가 없습니다. 대신 <code>/actuator/health</code> 등 actuator 엔드포인트로 상태를 확인합니다. learning-ai만 FastAPI 기본 제공으로 <code>/docs</code>가 열립니다.</div>
+      </details>
+
+      <h3>5.2 API 호출해보기 — Gateway 경유 vs 직접</h3>
+      <p>경로②는 Gateway가 <code>/api/{서비스}/**</code> 요청을 받아 해당 서비스로 전달합니다(앞 2개 세그먼트 제거 후 전달).</p>
+      <div class="code">curl http://localhost:8080/api/platform/actuator/health     # → platform-svc
+curl http://localhost:8080/api/knowledge/actuator/health    # → knowledge-svc</div>
+      <p>경로①은 Gateway가 없으니 서비스 포트로 직접 호출합니다.</p>
+      <div class="code">curl http://localhost:8080/actuator/health   # platform-svc 직접
+curl http://localhost:8083/actuator/health   # knowledge-svc 직접</div>
+      <details class="deep"><summary>Gateway 라우팅 규칙 (심화)</summary>
+        <div class="body">Gateway(<code>synapse-gateway</code>)는 4개 경로를 stripPrefix(2)로 전달합니다: <code>/api/platform/**</code>→platform-svc, <code>/api/engagement/**</code>→engagement-svc, <code>/api/knowledge/**</code>→knowledge-svc, <code>/api/learning/**</code>→learning-card. 예: <code>/api/platform/actuator/health</code> → platform-svc의 <code>/actuator/health</code>. (Redis 기반 rate limit 적용)</div>
+      </details>
+
+      <h3>5.3 Kafka 이벤트가 흐르는 걸 보기</h3>
+      <p>한 터미널에서 토픽을 구독해 두고, 다른 터미널에서 액션을 일으키면 이벤트가 실시간으로 출력됩니다 — MSA가 이벤트로 도는 걸 눈으로 확인할 수 있습니다.</p>
+      <div class="code">docker exec -it synapse-kafka kafka-console-consumer --bootstrap-server localhost:9092 --topic knowledge.note.note-created-v1 --from-beginning</div>
+      <p>자동 생성되는 토픽 5개:</p>
+      <div class="code">platform.auth.user-registered-v1
+knowledge.note.note-created-v1
+knowledge.note.note-updated-v1
+learning.card.review-completed-v1
+learning.ai.cards-generated-v1</div>
+
+      <h3>5.4 저장된 데이터 직접 확인</h3>
+      <div class="code">docker exec -it synapse-postgres psql -U synapse -d synapse -c "\dt"</div>
+      <div class="code">docker exec -it synapse-redis redis-cli -a redis_local_pw keys '*'   # 경로② (경로①: -a redis_local)</div>
+      <div class="code">curl http://localhost:9200/_cat/indices?v</div>
+      <details class="deep"><summary>자격증명은 어디서 오나? (심화)</summary>
+        <div class="body">두 스택 모두 PostgreSQL 사용자/DB는 <code>synapse</code>/<code>synapse</code>이며 컨테이너 내부 로컬 접속은 비밀번호가 필요 없습니다. Redis 비밀번호만 다릅니다 — 경로②(synapse-shared)는 <code>redis_local_pw</code>, 경로①(synapse-gitops)는 <code>redis_local</code>. 값은 각 <code>docker-compose.yml</code>·<code>.env</code> 기본값입니다.</div>
+      </details>
+    </section>
     <section id="data"><h2 class="sec"><span class="num">6</span>목업 · 시드 데이터 (선택)</h2>
       <p>초기 데이터가 없어도 서비스는 정상 기동합니다. 화면 확인이나 통합 테스트를 위해 목업/시드 데이터가 필요하면 아래를 참고하세요.</p>
       <ul>
