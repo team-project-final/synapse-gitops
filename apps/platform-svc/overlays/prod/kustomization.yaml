@@ -6,6 +6,9 @@ resources:
 
 namespace: synapse-prod
 
+# ⚠️ 스캐폴드: prod 전용 인프라(RDS/ElastiCache/MSK)가 아직 없습니다(infra/aws 에는 dev 만 존재).
+#    아래 REPLACE_ME_* 호스트는 prod 인프라 프로비저닝 후 실제 엔드포인트로 교체해야 합니다.
+#    Redis 키는 dev/staging 의 버그(REDIS_HOST/PORT)를 답습하지 않도록 처음부터 SPRING_DATA_REDIS_* 사용.
 patches:
   - target:
       kind: Deployment
@@ -14,6 +17,61 @@ patches:
       - op: replace
         path: /spec/replicas
         value: 3
+  - target:
+      kind: ConfigMap
+      name: platform-svc-config
+    patch: |
+      - op: replace
+        path: /data/LOG_LEVEL
+        value: "INFO"
+      - op: replace
+        path: /data/SPRING_PROFILES_ACTIVE
+        value: "prod"
+      - op: add
+        path: /data/DATABASE_HOST
+        value: "REPLACE_ME_synapse-prod-postgres.ap-northeast-2.rds.amazonaws.com"
+      - op: add
+        path: /data/DATABASE_PORT
+        value: "5432"
+      - op: add
+        path: /data/DATABASE_NAME
+        value: "synapse"
+      - op: add
+        path: /data/DB_URL
+        value: "jdbc:postgresql://REPLACE_ME_synapse-prod-postgres.ap-northeast-2.rds.amazonaws.com:5432/synapse"
+      - op: add
+        path: /data/DB_USERNAME
+        value: "synapse_admin"
+      # ElastiCache: 앱은 spring.data.redis.* 만 읽음. transit_encryption 사용 시 SSL_ENABLED=true 필수.
+      - op: add
+        path: /data/SPRING_DATA_REDIS_HOST
+        value: "REPLACE_ME_synapse-prod-redis.apn2.cache.amazonaws.com"
+      - op: add
+        path: /data/SPRING_DATA_REDIS_PORT
+        value: "6379"
+      - op: add
+        path: /data/SPRING_DATA_REDIS_SSL_ENABLED
+        value: "true"
+      - op: add
+        path: /data/KAFKA_BROKERS
+        value: "REPLACE_ME_b-1.synapseprodkafka.kafka.ap-northeast-2.amazonaws.com:9094"
+      - op: add
+        path: /data/STRIPE_PRO_PRICE_ID
+        value: "REPLACE_ME_price_prod_pro"
+      - op: add
+        path: /data/STRIPE_TEAM_PRICE_ID
+        value: "REPLACE_ME_price_prod_team"
+      - op: add
+        path: /data/STRIPE_ENTERPRISE_PRICE_ID
+        value: "REPLACE_ME_price_prod_enterprise"
+
+  - target:
+      kind: ExternalSecret
+      name: platform-svc-external-secret
+    patch: |
+      - op: replace
+        path: /spec/secretStoreRef/name
+        value: aws-secrets-manager
 
 images:
   - name: ghcr.io/team-project-final/synapse-platform-svc
