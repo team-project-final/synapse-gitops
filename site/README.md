@@ -1,17 +1,24 @@
-# synapse_runbooks
+# Synapse Docs Portal
 
-A new Flutter project.
+synapse-gitops 문서(runbook / handoff / 개발 가이드)를 검색·브라우즈하는 Flutter Web 포털.
 
-## Getting Started
+## 구조
 
-This project is a starting point for a Flutter application.
+- `lib/pages/` — home / search / dashboard / doc / runbook / onboarding
+- `lib/widgets/` — 공통 위젯 (markdown viewer, sidebar, progress bar 등)
+- `scripts/build_docs.mjs` — Markdown → JSON + 검색 인덱스 + AI 요약 빌드 (Node)
 
-A few resources to get you started if this is your first Flutter project:
+## 로컬 실행
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```bash
+# 1) 문서 JSON 생성 (synapse-gitops + synapse-shared 문서 수집)
+cd scripts && npm ci && node build_docs.mjs
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+# 2) 포털 실행
+cd .. && flutter pub get && flutter run -d chrome
+```
+
+## 배포
+
+main 푸시 시 `.github/workflows/deploy-pages.yml`이 문서 JSON을 빌드하고
+Flutter Web을 GitHub Pages로 자동 배포한다.
