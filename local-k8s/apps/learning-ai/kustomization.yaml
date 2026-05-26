@@ -20,7 +20,7 @@ patches:
         DATABASE_NAME: synapse
         KAFKA_BROKERS: kafka:9092
         OPENSEARCH_URL: http://opensearch:9200
-        LEARNING_AI_DATABASE_URL: postgresql://synapse:synapse_local@postgres:5432/synapse
+        LEARNING_AI_DATABASE_URL: postgresql+asyncpg://synapse:synapse_local@postgres:5432/synapse
 images:
   - name: ghcr.io/team-project-final/synapse-learning-ai
     newName: synapse-learning-ai
