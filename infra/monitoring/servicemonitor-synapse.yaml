@@ -1,0 +1,46 @@
+# 공통 라벨 app.kubernetes.io/part-of=synapse, 포트명 http 기준
+# Spring 4앱: /actuator/prometheus, learning-ai(Python, 8090): /metrics
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: synapse-spring
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - synapse-dev
+      - synapse-staging
+  selector:
+    matchExpressions:
+      - key: app.kubernetes.io/part-of
+        operator: In
+        values: [synapse]
+      - key: app.kubernetes.io/name
+        operator: NotIn
+        values: [learning-ai]
+  endpoints:
+    - port: http
+      path: /actuator/prometheus
+      interval: 30s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: synapse-learning-ai
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - synapse-dev
+      - synapse-staging
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: learning-ai
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s

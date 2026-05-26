@@ -1,0 +1,66 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: synapse-staging
+  namespace: synapse-staging
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    # NOTE: 라이브 세션에서 ACM 와일드카드 인증서 ARN으로 치환 (Task B3 Step 2)
+    alb.ingress.kubernetes.io/certificate-arn: <ACM_ARN>
+    alb.ingress.kubernetes.io/healthcheck-path: /actuator/health/readiness
+spec:
+  rules:
+    # NOTE: <domain>을 프로젝트 도메인으로 치환
+    - host: staging-platform-svc.<domain>
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: platform-svc
+                port:
+                  number: 80
+    - host: staging-engagement-svc.<domain>
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: engagement-svc
+                port:
+                  number: 80
+    - host: staging-knowledge-svc.<domain>
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: knowledge-svc
+                port:
+                  number: 80
+    - host: staging-learning-card.<domain>
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: learning-card
+                port:
+                  number: 80
+    - host: staging-learning-ai.<domain>
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: learning-ai
+                port:
+                  number: 80
