@@ -23,8 +23,10 @@ patches:
         SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/synapse
         SPRING_DATASOURCE_USERNAME: synapse
         SPRING_JPA_HIBERNATE_DDL_AUTO: update   # 로컬: 빈 DB에 스키마 자동 생성(validate 대신)
-        REDIS_HOST: redis
-        REDIS_PORT: "6379"
+        # 앱이 spring.data.redis.* 만 읽으므로 relaxed-binding 키로 줘야 적용됨
+        # (REDIS_HOST/REDIS_PORT 는 어떤 yml에서도 참조되지 않아 무시되어 localhost 로 폴백됨)
+        SPRING_DATA_REDIS_HOST: redis
+        SPRING_DATA_REDIS_PORT: "6379"
         KAFKA_BROKERS: kafka:9092
 images:
   - name: ghcr.io/team-project-final/synapse-platform-svc
