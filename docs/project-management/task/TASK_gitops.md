@@ -139,14 +139,15 @@
   - [x] 리소스 한도 dev > staging 분리 (dev: replicas=1/DEBUG, staging: replicas=2/INFO)
   - [x] staging ApplicationSet 추가 — manual sync (PR #34, `argocd/applicationset-staging.yaml`)
   - [x] ArgoCD에서 staging 5개 앱 OutOfSync 확인 (manual sync 대기 정상)
-  - [ ] staging 전용 도메인 + Ingress + TLS
-  - [ ] dev → staging 승격 절차 문서화
-  - [ ] staging manual sync → 5/5 Healthy 검증
+  - [x] staging 공유 Ingress + TLS 매니페스트 작성 (PR #47, `infra/ingress/staging-ingress.yaml` — 적용은 ACM/도메인 확보 후, 검증은 port-forward로 대체)
+  - [x] dev → staging 승격 절차 문서화 (PR #47, `docs/runbooks/dev-to-staging-promotion.md`)
+  - [x] ApplicationSet **manual → auto sync 전환** (PR #47, FR-GO-301)
+  - [ ] staging sync → 5/5 Healthy 검증 (클러스터 재구축 후 — bare 상태)
 - **Duration**: 2일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [x] In Progress / [ ] Done (overlay + ApplicationSet 완료, 도메인/TLS/승격 문서 남음)
+**Status**: [ ] Not Started / [x] In Progress / [ ] Done (매니페스트·문서·auto-sync 완료(PR #47); 5/5 Healthy 검증은 W1/W2 재구축 후)
 
 ---
 
@@ -154,16 +155,16 @@
 
 - **Step Goal**: 모든 환경의 메트릭/로그가 한 곳에서 보이고 기본 알람이 동작한다.
 - **Done When**:
-  - [ ] kube-prometheus-stack 설치 (Prometheus + Grafana + Alertmanager)
-  - [ ] Loki + Promtail 또는 CloudWatch agent 설치
-  - [ ] 5개 앱 ServiceMonitor 정의
-  - [ ] 기본 알람 3개 이상 (앱 다운, 메모리 임계치, 5xx 비율)
-  - [ ] Grafana 대시보드 1개 이상 (Synapse 개요)
+  - [x] kube-prometheus-stack 설치 — 실 EKS Running 검증 (Prometheus/Grafana/Alertmanager, PR #47)
+  - [x] Loki + Promtail 설치 — 실 EKS Running (schemaConfig/SingleBinary 버그 수정, PR #47)
+  - [x] 5개 앱 ServiceMonitor 정의 — applied (메트릭 실수집은 앱 배포 후)
+  - [x] 기본 알람 3개 이상 — PrometheusRule 로드 + Watchdog 파이프라인 firing (실 Slack 도달은 real webhook 필요)
+  - [x] Grafana 대시보드 1개 이상 — Synapse 개요 ConfigMap 적재
 - **Duration**: 2일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [ ] In Progress / [ ] Done
+**Status**: [ ] Not Started / [x] In Progress / [ ] Done (스택+매니페스트 실 EKS 검증 완료(PR #47); 메트릭 E2E·실 Slack 도달은 앱 스택+webhook 후)
 
 ---
 
