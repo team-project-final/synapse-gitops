@@ -112,6 +112,31 @@ phase_eso() {
   run "kubectl -n external-secrets rollout status deploy external-secrets --timeout=180s"
 }
 
+phase_oidc_fix() {
+  local cur trust
+  cur=$(terraform -chdir=$TFDIR output -raw eks_oidc_id)
+  trust=$(aws iam get-role --role-name synapse-dev-eso-role \
+    --query 'Role.AssumeRolePolicyDocument' --output json 2>/dev/null | jq -r '.Statement[0].Principal.Federated' | awk -F'/' '{print $NF}')
+  if [ "$cur" = "$trust" ]; then
+    ok "ESO role OIDC 일치 ($cur)"
+    return
+  fi
+  warn "ESO role OIDC 불일치: trust=$trust, 현재=$cur → 갱신"
+  local pol="{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Federated\":\"arn:aws:iam::${ACCOUNT_ID}:oidc-provider/oidc.eks.${AWS_REGION}.amazonaws.com/id/${cur}\"},\"Action\":\"sts:AssumeRoleWithWebIdentity\",\"Condition\":{\"StringEquals\":{\"oidc.eks.${AWS_REGION}.amazonaws.com/id/${cur}:aud\":\"sts.amazonaws.com\",\"oidc.eks.${AWS_REGION}.amazonaws.com/id/${cur}:sub\":\"system:serviceaccount:external-secrets:external-secrets\"}}}]}"
+  run "aws iam update-assume-role-policy --role-name synapse-dev-eso-role --policy-document '$pol'"
+  run "kubectl -n external-secrets rollout restart deploy external-secrets"
+}
+
+phase_manifests() {
+  run "kubectl apply -f infra/external-secrets/cluster-secret-store.yaml"
+  run "kubectl apply -f argocd/projects.yaml"
+  run "kubectl apply -f argocd/applicationset.yaml"
+  run "kubectl apply -f argocd/applicationset-staging.yaml"
+  if $DRY_RUN; then return; fi
+  kubectl wait --for=condition=Ready clustersecretstore/aws-secrets-manager --timeout=120s || warn "ClusterSecretStore 미Ready"
+  kubectl -n synapse-dev wait --for=condition=Ready externalsecret --all --timeout=180s || warn "일부 ExternalSecret 미Synced"
+}
+
 # (phase 함수들은 후속 Task에서 추가)
 
 main() {
