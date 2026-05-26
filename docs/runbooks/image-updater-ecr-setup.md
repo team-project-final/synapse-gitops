@@ -39,10 +39,26 @@ image-updater write-back은 `git-branch: main`에 **직접 push**. main `main-pr
 | "5분 내 반영"(Step6) | 즉시(유리) | PR+CI 지연(auto-merge 필요) |
 | 감사성 | 약함 | 강함 |
 
-**권고**: dev/staging은 **A**(전용 최소권한 봇 bypass — 이미지 bump는 저위험 newTag), prod 자동화 도입(W4+) 시 **B**로 격상.
+## ✅ 결정 (2026-05-26)
 
-## 완료 절차 (결정 후)
-1. A 또는 B 적용
-2. dev overlay engagement-svc를 semver 태그로 핀
-3. ECR에 상위 semver push → image-updater 감지 → write-back → ArgoCD sync 확인
-4. ECR 토큰 갱신 CronJob 추가(운영)
+- **dev/staging = A** (전용 최소권한 봇 bypass — 이미지 bump는 저위험 newTag)
+- **prod (W4+) = B** (PR 기반 write-back — 감사·게이트)
+
+## A 실행 절차 (dev/staging) — 차기 라이브 세션
+
+> ⚠️ 라이브 클러스터 1사이클(과금) 필요. main 보호 변경 포함.
+
+1. **전용 봇 자격**: 개인 PAT 대신 dedicated 봇(GitHub App 또는 머신 계정)의 fine-grained PAT(`contents:write`만)를 `synapse/gitops/git-token`에 저장. (현재 개인 PAT면 교체 권장)
+2. **ruleset bypass**: `main-protection` ruleset `bypass_actors`에 그 봇만 추가:
+   ```bash
+   # 봇 actor_id 확인 후
+   gh api -X PUT repos/team-project-final/synapse-gitops/rulesets/16480319 \
+     --input <ruleset.json with bypass_actors=[{actor_id,actor_type:Integration/User,bypass_mode:always}]>
+   ```
+   (사람 직접 push는 계속 PR 필수 유지)
+3. **overlay semver 핀**: dev overlay engagement-svc `newTag: dev-latest` → `1.0.0` (semver 전략 호환). PR→merge.
+4. **검증**: bring-up `--to image-updater` (노드 ≥4) + ECR pull-secret/registries.conf → ECR에 상위 semver(예 `2.0.0`) push → image-updater 감지 → **write-back 커밋(main)** → ArgoCD sync → dev 반영 확인.
+5. **운영 보강**: ECR 토큰 12h 만료 → 갱신 CronJob; registries.conf/pull-secret을 bring-up phase로 자동화.
+
+## B 실행 (prod, W4+)
+`git-branch: main:image-updates-<app>` 별도 브랜치 + GH Action(PR 생성 + CI 후 auto-merge). main 보호 유지.
