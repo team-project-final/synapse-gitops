@@ -36,6 +36,11 @@ PHASES=(terraform eks-auth access-entry sg tunnel argocd eso oidc-fix manifests 
 
 # ─── phase 함수 ───────────────────────────────────────────────────────────
 phase_terraform() {
+  if [ ! -f "$TFDIR/terraform.tfvars" ] && [ -z "${TF_VAR_rds_password:-}" ]; then
+    err "$TFDIR/terraform.tfvars 없음(gitignored secrets: rds_password/redis_auth_token)."
+    err "  → 메인 체크아웃에서 복사하거나 TF_VAR_rds_password/TF_VAR_redis_auth_token 환경변수 설정."
+    exit 1
+  fi
   run "terraform -chdir=$TFDIR init -input=false"
   run "terraform -chdir=$TFDIR apply -auto-approve -input=false"
 }
