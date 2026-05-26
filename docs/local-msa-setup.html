@@ -502,5 +502,83 @@ curl http://localhost:8090/health            # learning-ai</div>
   });
 })();
 </script>
+<script>
+(function(){
+  var NS='http://www.w3.org/2000/svg';
+  var NODES=[
+    {id:'client',g:'entry',label:'Client',x:60,y:14,w:130,h:40,role:'브라우저/앱 진입점',tech:'-',p1:'-',p2:'-',check:'-',deps:['Gateway','platform-svc'],note:'경로①은 앱 포트 직접 호출, 경로②는 Gateway 경유'},
+    {id:'gateway',g:'entry',label:'Gateway',x:410,y:14,w:170,h:40,role:'외부 트래픽 라우팅',tech:'Spring Cloud Gateway / JDK 21',p1:'없음',p2:':8080',check:'curl http://localhost:8080/actuator/health',deps:['platform-svc','engagement-svc','knowledge-svc','learning-card','Redis'],note:'경로②(synapse-shared compose)에만 존재'},
+    {id:'platform',g:'app',label:'platform-svc',x:6,y:104,w:116,h:40,role:'인증·결제·알림',tech:'Spring Boot / JDK 21',p1:':8080',p2:'stub :8081',check:'curl http://localhost:8080/actuator/health',deps:['PostgreSQL','Redis','Kafka']},
+    {id:'engagement',g:'app',label:'engagement-svc',x:132,y:104,w:116,h:40,role:'참여·활동',tech:'Spring Boot / JDK 21',p1:':8082',p2:'stub :8082',check:'curl http://localhost:8082/actuator/health',deps:['PostgreSQL','Redis','Kafka','learning-card']},
+    {id:'knowledge',g:'app',label:'knowledge-svc',x:258,y:104,w:116,h:40,role:'노트·검색',tech:'Spring Boot / JDK 21',p1:':8083',p2:'stub :8083',check:'curl http://localhost:8083/actuator/health',deps:['PostgreSQL','Redis','Kafka','검색엔진']},
+    {id:'learningcard',g:'app',label:'learning-card',x:384,y:104,w:116,h:40,role:'학습 카드',tech:'Spring Boot / JDK 21',p1:':8084',p2:'stub :8084',check:'curl http://localhost:8084/actuator/health',deps:['PostgreSQL','Redis','Kafka']},
+    {id:'learningai',g:'app',label:'learning-ai',x:510,y:104,w:116,h:40,role:'AI 카드 생성',tech:'FastAPI / Python 3.12',p1:':8000',p2:':8090',check:'curl http://localhost:8000/health   (②: :8090)',deps:['Kafka','검색엔진']},
+    {id:'kafka',g:'msg',label:'Kafka',x:120,y:210,w:180,h:40,role:'이벤트 메시징 (+Zookeeper)',tech:'Confluent 7.6.1(①)/7.7.0(②)',p1:':9092',p2:':9092',check:'docker exec -it synapse-kafka kafka-topics --list --bootstrap-server localhost:9092',deps:['Zookeeper'],note:'kafka-init가 토픽 5개 자동 생성'},
+    {id:'schema',g:'msg',label:'Schema Registry',x:350,y:210,w:170,h:40,role:'Avro 스키마 관리',tech:'Confluent Schema Registry',p1:':8085',p2:':8086',check:'curl http://localhost:8085/subjects   (②: :8086)',deps:['Kafka']},
+    {id:'postgres',g:'data',label:'PostgreSQL',x:20,y:300,w:150,h:40,role:'관계형 DB',tech:'① pgvector-pg16 / ② postgres:16-alpine',p1:':5432',p2:':5432',check:'docker compose ps',deps:[]},
+    {id:'redis',g:'data',label:'Redis',x:200,y:300,w:140,h:40,role:'세션·캐시',tech:'redis:7',p1:':6379',p2:':6379',check:'docker exec -it synapse-redis redis-cli ping',deps:[]},
+    {id:'search',g:'data',label:'검색엔진',x:360,y:300,w:180,h:40,role:'전문 검색',tech:'① Elasticsearch 8.13 / ② OpenSearch 2.11',p1:':9200',p2:':9200',check:'curl http://localhost:9200/_cluster/health',deps:[]}
+  ];
+  var EDGES=[
+    ['client','gateway'],
+    ['gateway','platform'],['gateway','engagement'],['gateway','knowledge'],['gateway','learningcard'],['gateway','redis'],
+    ['platform','kafka'],['engagement','kafka'],['knowledge','kafka'],['learningcard','kafka'],['learningai','kafka'],['schema','kafka'],
+    ['platform','postgres'],['engagement','postgres'],['knowledge','postgres'],['learningcard','postgres'],
+    ['platform','redis'],['engagement','redis'],['learningcard','redis'],
+    ['knowledge','search'],['learningai','search']
+  ];
+  var edgesG=document.getElementById('topoEdges'), nodesG=document.getElementById('topoNodes'), panel=document.getElementById('topoPanel');
+  if(!edgesG||!nodesG||!panel) return;
+  var byId={}; NODES.forEach(function(n){byId[n.id]=n;});
+  function cx(n){return n.x+n.w/2;} function cy(n){return n.y+n.h/2;}
+  function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+  EDGES.forEach(function(e){
+    var a=byId[e[0]], b=byId[e[1]];
+    var ln=document.createElementNS(NS,'line');
+    ln.setAttribute('x1',cx(a));ln.setAttribute('y1',cy(a));ln.setAttribute('x2',cx(b));ln.setAttribute('y2',cy(b));
+    ln.setAttribute('class','edge'); ln.dataset.a=e[0]; ln.dataset.b=e[1];
+    edgesG.appendChild(ln);
+  });
+
+  NODES.forEach(function(n){
+    var hasPort = n.p1 && n.p1!=='-';
+    var g=document.createElementNS(NS,'g');
+    g.setAttribute('class','node g-'+n.g); g.setAttribute('tabindex','0'); g.setAttribute('role','button');
+    g.setAttribute('aria-label', n.label + (hasPort? (' 포트 '+(n.p1===n.p2?n.p1:n.p1+' 또는 '+n.p2)) : ''));
+    g.dataset.id=n.id;
+    var r=document.createElementNS(NS,'rect');
+    r.setAttribute('x',n.x);r.setAttribute('y',n.y);r.setAttribute('width',n.w);r.setAttribute('height',n.h);r.setAttribute('rx',6);
+    g.appendChild(r);
+    var t=document.createElementNS(NS,'text');
+    t.setAttribute('x',cx(n));t.setAttribute('y', n.y + (hasPort?17:24));t.setAttribute('text-anchor','middle');
+    t.textContent=n.label; g.appendChild(t);
+    if(hasPort){
+      var pt=document.createElementNS(NS,'text');
+      pt.setAttribute('x',cx(n));pt.setAttribute('y',n.y+32);pt.setAttribute('text-anchor','middle');pt.setAttribute('class','port');
+      pt.textContent=(n.p1===n.p2)?n.p1:(n.p1+' / '+n.p2);
+      g.appendChild(pt);
+    }
+    g.addEventListener('click',function(){select(n.id);});
+    g.addEventListener('keydown',function(ev){ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); select(n.id); }});
+    nodesG.appendChild(g);
+  });
+
+  function select(id){
+    var n=byId[id];
+    nodesG.querySelectorAll('.node').forEach(function(g){ g.classList.toggle('sel', g.dataset.id===id); });
+    edgesG.querySelectorAll('.edge').forEach(function(ln){ ln.classList.toggle('hl', ln.dataset.a===id||ln.dataset.b===id); });
+    var portRow = (n.p1===n.p2) ? esc(n.p1) : ('① '+esc(n.p1)+'  ·  ② '+esc(n.p2));
+    var deps = n.deps.length ? n.deps.map(esc).join(', ') : '—';
+    var html='<h4>'+esc(n.label)+'</h4><p class="role">'+esc(n.role)+'</p>'
+      +'<dl><dt>기술</dt><dd>'+esc(n.tech)+'</dd>'
+      +'<dt>포트</dt><dd>'+portRow+'</dd>'
+      +'<dt>의존</dt><dd>'+deps+'</dd></dl>';
+    if(n.note) html+='<p class="role" style="margin-top:8px">ℹ '+esc(n.note)+'</p>';
+    if(n.check && n.check!=='-') html+='<div class="cmd">'+esc(n.check)+'</div>';
+    panel.innerHTML=html;
+  }
+})();
+</script>
 </body>
 </html>
