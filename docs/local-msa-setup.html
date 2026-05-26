@@ -69,6 +69,31 @@
     .layout{grid-template-columns:1fr} nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--line)}
     main{padding:24px 18px}
   }
+  /* ── Topology diagram ── */
+  .topo{display:flex;gap:16px;align-items:flex-start;margin:14px 0}
+  .topo-svg{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+  .topo-svg svg{width:100%;height:auto;display:block}
+  .topo-panel{width:240px;flex:none;border:1px solid var(--line);border-radius:8px;background:#f8fafc;padding:14px;font-size:13.5px}
+  .topo-panel h4{margin:0 0 6px;font-size:15px}
+  .topo-panel .role{color:var(--muted);margin:0 0 10px}
+  .topo-panel dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 8px}
+  .topo-panel dt{color:var(--muted);font-size:12px} .topo-panel dd{margin:0}
+  .topo-panel .cmd{background:var(--code-bg);color:var(--code-ink);border-radius:5px;padding:6px 8px;
+    font-family:Consolas,monospace;font-size:12px;margin-top:8px;white-space:pre-wrap;word-break:break-all}
+  .topo-hint{color:var(--muted);font-style:italic;margin:0}
+  .topo .edge{stroke:#cbd5e1;stroke-width:1.5;opacity:.22;fill:none;transition:opacity .15s,stroke .15s}
+  .topo .edge.hl{opacity:1;stroke:var(--accent);stroke-width:2}
+  .topo .node{cursor:pointer}
+  .topo .node text{font-size:11px;font-family:sans-serif;pointer-events:none}
+  .topo .node .port{font-size:9px;fill:var(--muted)}
+  .topo .node.sel rect, .topo .node:focus rect{stroke:var(--accent);stroke-width:2.5}
+  .topo .node:focus{outline:none}
+  .topo .g-entry rect{fill:#dbeafe;stroke:#2563eb}
+  .topo .g-app rect{fill:#dcfce7;stroke:#16a34a}
+  .topo .g-msg rect{fill:#fef9c3;stroke:#ca8a04}
+  .topo .g-data rect{fill:#fee2e2;stroke:#dc2626}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+  @media(max-width:880px){ .topo{flex-direction:column} .topo-panel{width:100%} }
 </style>
 </head>
 <body>
