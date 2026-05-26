@@ -90,6 +90,7 @@ kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath='{.data.pas
 
 ### 시작하기
 
+- **[로컬 MSA 세팅 가이드 (HTML)](docs/local-msa-setup.html)** — 신규 팀원용 단계별 로컬 개발환경 세팅 (초보~준시니어, AWS 제외)
 - **[Synapse Developer Guide](docs/synapse-developer-guide.md)** — 올인원 개발자 가이드 (프로젝트 개요 → 로컬 개발 → 배포 → 트러블슈팅)
 - **[Bastion SSM 접근](docs/runbooks/bastion-ssm-access.md)** — EKS kubectl 접근 방법 (SSM Session Manager)
 
