@@ -33,12 +33,17 @@ patches:
       - op: add
         path: /data/DATABASE_NAME
         value: "synapse"
+      # 앱은 spring.data.redis.* 만 읽음 → relaxed-binding 키 사용 (REDIS_HOST/PORT 는 무시됨)
       - op: add
-        path: /data/REDIS_HOST
+        path: /data/SPRING_DATA_REDIS_HOST
         value: "master.synapse-dev-redis.v6lpdh.apn2.cache.amazonaws.com"
       - op: add
-        path: /data/REDIS_PORT
+        path: /data/SPRING_DATA_REDIS_PORT
         value: "6379"
+      # ElastiCache transit_encryption_enabled=true (infra/aws/dev/redis.tf) → TLS 필수
+      - op: add
+        path: /data/SPRING_DATA_REDIS_SSL_ENABLED
+        value: "true"
       - op: add
         path: /data/KAFKA_BROKERS
         value: "b-1.synapsedevkafka.dchj3l.c2.kafka.ap-northeast-2.amazonaws.com:9094,b-2.synapsedevkafka.dchj3l.c2.kafka.ap-northeast-2.amazonaws.com:9094"
