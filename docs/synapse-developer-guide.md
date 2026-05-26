@@ -130,6 +130,8 @@ learning-card ─ReviewCompleted─→ engagement-svc
 
 ## 3. 로컬 개발 환경 세팅
 
+> 🚀 처음이라면 단계별 HTML 가이드부터: **[로컬 MSA 세팅 가이드](local-msa-setup.html)**
+
 > 이 섹션에서 알 수 있는 것: 내 PC에서 서비스를 돌리려면 뭘 설치하고 어떤 명령을 실행하는가.
 
 ### 사전 요구사항
