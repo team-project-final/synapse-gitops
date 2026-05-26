@@ -44,9 +44,10 @@ users:
 EOF
   export KUBECONFIG="$TUNNEL_KUBECONFIG"
 
+  # EKS는 /readyz·/healthz를 클라이언트에 노출하지 않음(NotFound) → get nodes로 도달+인증 확인
   local i
   for i in $(seq 1 30); do
-    if kubectl get --raw='/readyz' >/dev/null 2>&1; then return 0; fi
+    if kubectl get nodes >/dev/null 2>&1; then return 0; fi
     sleep 2
   done
   echo "[ERR] 터널로 API 도달 실패 (포트 $TUNNEL_LOCAL_PORT)" >&2
