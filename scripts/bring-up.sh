@@ -208,8 +208,9 @@ verify_all() {
   warn "platform-svc/learning-ai 미Healthy는 app 레포 의존 — 조건부"
 
   echo "## 메트릭 타깃" | tee -a "$report"
-  kubectl -n monitoring exec sts/prometheus-kube-prometheus-stack-prometheus -c prometheus -- \
-    wget -qO- 'http://localhost:9090/api/v1/targets?state=active' 2>/dev/null |
+  # Prometheus 이미지에 wget/curl이 없어 exec 불가 → 임시 curl pod로 API 조회
+  kubectl -n monitoring run tmp-verify-targets --rm -i --restart=Never --image=curlimages/curl --command --timeout=90s -- \
+    curl -s 'http://kube-prometheus-stack-prometheus:9090/api/v1/targets?state=active' 2>/dev/null |
     jq -r '.data.activeTargets[] | select(.labels.namespace|test("synapse-")) | "\(.labels.job)\t\(.health)"' |
     tee -a "$report" || warn "타깃 조회 실패(앱 미배포/메트릭 미노출 가능)"
 
@@ -238,9 +239,9 @@ spec:
           annotations: {summary: "bring-up --verify Slack 도달 테스트"}
 YAML
   sleep 60
-  kubectl -n monitoring exec sts/alertmanager-kube-prometheus-stack-alertmanager -c alertmanager -- \
-    wget -qO- 'http://localhost:9093/api/v2/alerts?filter=alertname=TestSlackDelivery' 2>/dev/null |
-    jq -r '.[] | "firing=\(.status.state) receiver=\(.receivers[0].name)"' || echo "Alertmanager 조회 실패"
+  kubectl -n monitoring run tmp-verify-am --rm -i --restart=Never --image=curlimages/curl --command --timeout=90s -- \
+    curl -s 'http://kube-prometheus-stack-alertmanager:9093/api/v2/alerts?filter=alertname=TestSlackDelivery' 2>/dev/null |
+    jq -r '.[] | "state=\(.status.state) receiver=\(.receivers[0].name)"' || echo "Alertmanager 조회 실패"
   kubectl -n monitoring delete prometheusrule test-slack-delivery
   echo "→ Slack 채널 #synapse-gitops에서 TestSlackDelivery 수신 여부를 눈으로 확인하세요."
 }
