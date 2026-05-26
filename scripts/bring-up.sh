@@ -86,6 +86,32 @@ phase_sg() {
   _sg_ingress "$os" 443
 }
 
+phase_tunnel() {
+  source scripts/lib/eks-tunnel.sh
+  trap tunnel_down EXIT
+  if $DRY_RUN; then
+    echo "+ tunnel_up (SSM 포트포워딩 + 터널 kubeconfig)"
+    return
+  fi
+  tunnel_up && ok "터널 연결, kubectl 도달"
+}
+
+phase_argocd() {
+  run "kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -"
+  run "kubectl apply -n argocd --server-side -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml"
+  run "kubectl -n argocd patch deploy argocd-server --type=json -p='[{\"op\":\"add\",\"path\":\"/spec/template/spec/containers/0/args/-\",\"value\":\"--insecure\"}]' || true"
+  run "kubectl -n argocd rollout status deploy/argocd-server --timeout=300s"
+}
+
+phase_eso() {
+  run "helm repo add external-secrets https://charts.external-secrets.io >/dev/null 2>&1 || true"
+  run "helm repo update external-secrets >/dev/null"
+  run "helm upgrade --install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace --wait --timeout 5m"
+  run "kubectl -n external-secrets annotate sa external-secrets eks.amazonaws.com/role-arn=arn:aws:iam::${ACCOUNT_ID}:role/synapse-dev-eso-role --overwrite"
+  run "kubectl -n external-secrets rollout restart deploy external-secrets"
+  run "kubectl -n external-secrets rollout status deploy external-secrets --timeout=180s"
+}
+
 # (phase 함수들은 후속 Task에서 추가)
 
 main() {
