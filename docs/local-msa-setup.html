@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Synapse 로컬 MSA 개발환경 세팅 가이드</title>
+<style>
+  :root{
+    --bg:#f7f8fa; --panel:#fff; --ink:#1e293b; --muted:#64748b; --line:#e2e8f0;
+    --accent:#2563eb; --accent-soft:#eff6ff; --warn-bg:#fff7ed; --warn-line:#fb923c;
+    --code-bg:#0f172a; --code-ink:#e2e8f0; --code-key:#7dd3fc; --code-cmt:#94a3b8;
+    --ok:#16a34a; --maxw:860px; --tocw:260px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic",sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.7;font-size:16px}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  .layout{display:grid;grid-template-columns:var(--tocw) 1fr;align-items:start;max-width:1180px;margin:0 auto}
+  /* TOC */
+  nav.toc{position:sticky;top:0;height:100vh;overflow-y:auto;padding:24px 16px;border-right:1px solid var(--line);background:var(--panel)}
+  nav.toc h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 12px}
+  nav.toc a{display:block;padding:6px 10px;border-radius:6px;color:var(--muted);font-size:14px}
+  nav.toc a.active{background:var(--accent-soft);color:var(--accent);font-weight:600}
+  nav.toc .progress{margin-top:18px;font-size:13px;color:var(--muted)}
+  /* Main */
+  main{padding:40px 48px;max-width:calc(var(--maxw) + 96px)}
+  header.hero{margin-bottom:32px}
+  header.hero h1{font-size:30px;margin:0 0 8px}
+  header.hero p{color:var(--muted);margin:0}
+  section{padding:28px 0;border-top:1px solid var(--line);scroll-margin-top:20px}
+  section:first-of-type{border-top:none}
+  h2.sec{font-size:23px;margin:0 0 16px;display:flex;align-items:center;gap:10px}
+  h2.sec .num{background:var(--accent);color:#fff;width:30px;height:30px;border-radius:50%;
+    display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  h3{font-size:17px;margin:22px 0 8px}
+  /* Step (체크박스 진행) */
+  .step{display:flex;gap:10px;align-items:flex-start;margin:10px 0}
+  .step input{margin-top:5px;width:16px;height:16px;flex:none}
+  .step.done label{color:var(--muted);text-decoration:line-through}
+  /* Code block + copy */
+  .code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:8px;
+    padding:14px 16px;margin:12px 0;font-family:"SFMono-Regular",Consolas,monospace;font-size:13.5px;
+    overflow-x:auto;white-space:pre}
+  .code .copy{position:absolute;top:8px;right:8px;background:#1e293b;color:#cbd5e1;border:1px solid #334155;
+    border-radius:6px;padding:3px 9px;font-size:12px;cursor:pointer}
+  .code .copy:hover{background:#334155} .code .copy.copied{color:var(--ok);border-color:var(--ok)}
+  /* Callout (심화) */
+  details.deep{border:1px solid var(--line);border-radius:8px;padding:0 14px;margin:12px 0;background:var(--panel)}
+  details.deep>summary{cursor:pointer;padding:12px 0;font-weight:600;color:#b45309;list-style:none}
+  details.deep>summary::before{content:"▸ ";color:#f59e0b} details.deep[open]>summary::before{content:"▾ "}
+  details.deep .body{padding:0 0 14px;color:#334155}
+  /* Warn box */
+  .warn{background:var(--warn-bg);border-left:4px solid var(--warn-line);border-radius:6px;padding:12px 16px;margin:14px 0}
+  /* Tables */
+  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left} th{background:#f1f5f9}
+  /* OS tabs */
+  .tabs{display:flex;gap:6px;margin:12px 0 0}
+  .tabs button{border:1px solid var(--line);background:var(--panel);border-radius:6px 6px 0 0;
+    padding:6px 14px;cursor:pointer;font-size:13px;color:var(--muted)}
+  .tabs button.active{background:var(--accent-soft);color:var(--accent);font-weight:600;border-bottom-color:var(--accent-soft)}
+  .tab-panel{display:none} .tab-panel.active{display:block}
+  /* Badges */
+  .badge{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600}
+  .badge.path1{background:#dcfce7;color:#166534} .badge.path2{background:#dbeafe;color:#1e40af}
+  pre.ascii{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;
+    overflow-x:auto;font-family:"SFMono-Regular",Consolas,monospace;font-size:12.5px;line-height:1.45}
+  @media(max-width:880px){
+    .layout{grid-template-columns:1fr} nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--line)}
+    main{padding:24px 18px}
+  }
+  /* ── Topology diagram ── */
+  .topo{display:flex;gap:16px;align-items:flex-start;margin:14px 0}
+  .topo-svg{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+  .topo-svg svg{width:100%;height:auto;display:block}
+  .topo-panel{width:240px;flex:none;border:1px solid var(--line);border-radius:8px;background:#f8fafc;padding:14px;font-size:13.5px}
+  .topo-panel h4{margin:0 0 6px;font-size:15px}
+  .topo-panel .role{color:var(--muted);margin:0 0 10px}
+  .topo-panel dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 8px}
+  .topo-panel dt{color:var(--muted);font-size:12px} .topo-panel dd{margin:0}
+  .topo-panel .cmd{background:var(--code-bg);color:var(--code-ink);border-radius:5px;padding:6px 8px;
+    font-family:Consolas,monospace;font-size:12px;margin-top:8px;white-space:pre-wrap;word-break:break-all}
+  .topo-hint{color:var(--muted);font-style:italic;margin:0}
+  .topo .edge{stroke:#cbd5e1;stroke-width:1.5;opacity:.22;fill:none;transition:opacity .15s,stroke .15s}
+  .topo .edge.hl{opacity:1;stroke:var(--accent);stroke-width:2}
+  .topo .node{cursor:pointer}
+  .topo .node text{font-size:11px;font-family:sans-serif;pointer-events:none}
+  .topo .node .port{font-size:9px;fill:var(--muted)}
+  .topo .node.sel rect, .topo .node:focus rect{stroke:var(--accent);stroke-width:2.5}
+  .topo .node:focus{outline:none}
+  .topo .g-entry rect{fill:#dbeafe;stroke:#2563eb}
+  .topo .g-app rect{fill:#dcfce7;stroke:#16a34a}
+  .topo .g-msg rect{fill:#fef9c3;stroke:#ca8a04}
+  .topo .g-data rect{fill:#fee2e2;stroke:#dc2626}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+  @media(max-width:880px){ .topo{flex-direction:column} .topo-panel{width:100%} }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="toc" id="toc">
+    <h2>목차</h2>
+    <!-- TOC 링크는 Task 2의 JS에서 자동 생성 -->
+    <div class="progress" id="progress"></div>
+  </nav>
+  <main>
+    <header class="hero">
+      <h1>Synapse 로컬 MSA 개발환경 세팅 가이드</h1>
+      <p>처음부터 따라 하면 내 PC에서 Synapse가 돌아갑니다 · 초보 ~ 준시니어용</p>
+    </header>
+
+    <section id="overview"><h2 class="sec"><span class="num">0</span>개요</h2>
+      <p>이 가이드를 끝내면 <strong>내 PC에서 Synapse MSA 전체(또는 내가 맡은 서비스)가 돌아갑니다.</strong>
+         초보는 번호 단계만 위→아래로 따라가면 되고, 준시니어는 각 단계의 <strong>“▸ 심화”</strong> 박스를 펼쳐
+         원리와 트러블슈팅을 볼 수 있습니다. AWS/EKS 배포는 이 가이드의 범위가 아닙니다(→ <a href="#next">§7 더 깊이 보기</a>).</p>
+
+      <h3>전체 구성도</h3>
+      <p class="topo-hint" style="margin-bottom:8px">아래 구성도의 노드를 클릭하면 포트·헬스·확인 명령이 오른쪽(모바일은 아래)에 표시됩니다.</p>
+      <div class="topo">
+        <div class="topo-svg">
+          <svg id="topoSvg" viewBox="0 0 640 360" role="img" aria-labelledby="topoTitle topoDesc">
+            <title id="topoTitle">Synapse MSA 로컬 구성도</title>
+            <desc id="topoDesc">Client에서 Gateway를 거쳐 platform·engagement·knowledge·learning-card·learning-ai 5개 서비스로 이어지고, 서비스들은 Kafka·Schema Registry·PostgreSQL·Redis·검색엔진에 연결됩니다.</desc>
+            <g id="topoEdges"></g>
+            <g id="topoNodes"></g>
+          </svg>
+        </div>
+        <aside class="topo-panel" id="topoPanel" aria-live="polite">
+          <p class="topo-hint">노드를 클릭하면 포트·헬스·확인 명령이 표시됩니다.</p>
+        </aside>
+      </div>
+      <p class="sr-only">구성 요약: Client → Gateway(경로② 전용) → 서비스 5개(platform 8080, engagement 8082, knowledge 8083, learning-card 8084, learning-ai 8000/8090) → Kafka 9092, Schema Registry 8085/8086, PostgreSQL 5432, Redis 6379, 검색엔진 9200.</p>
+      <p>서비스 간 비동기 통신은 <strong>Kafka + Avro(Schema Registry)</strong> 이벤트로 이뤄집니다.
+         서비스는 도메인별로 분리된 독립 Spring Boot(JDK 21) 앱이며, AI 서비스(learning-ai)만 Python/FastAPI입니다.</p>
+
+      <h3>두 가지 실행 경로</h3>
+      <p>로컬 실행 경로는 두 가지이고, <strong>서로 다른 compose 파일/인프라 스택</strong>을 씁니다. 목적에 따라 하나를 고르세요.</p>
+      <table>
+        <thead><tr><th>항목</th>
+          <th><span class="badge path1">① 풀 컨테이너</span></th>
+          <th><span class="badge path2">② 하이브리드</span></th></tr></thead>
+        <tbody>
+          <tr><td>compose 파일</td><td><code>synapse-gitops/docker-compose.yml</code></td><td><code>synapse-shared/docker-compose.yml</code></td></tr>
+          <tr><td>앱 실행 방식</td><td>형제 레포에서 빌드 → 5개 모두 컨테이너 (<code>up -d --build</code>)</td><td>인프라만 컨테이너, 앱은 IDE/소스로 직접 실행 (compose 내 앱은 stub)</td></tr>
+          <tr><td>Gateway</td><td>없음 (앱 포트 직접 호출)</td><td>있음 (:8080, 빌드)</td></tr>
+          <tr><td>검색엔진</td><td>Elasticsearch 8.13</td><td>OpenSearch 2.11</td></tr>
+          <tr><td>Kafka / Postgres</td><td>7.6.1 / pgvector-pg16</td><td>7.7.0 / postgres:16-alpine</td></tr>
+          <tr><td>Schema Registry 포트</td><td>8085</td><td>8086</td></tr>
+          <tr><td>용도 · 대상</td><td>“일단 다 떠 있는 모습”을 빠르게 (초보·QA)</td><td>코드 수정→재기동 반복 (실제 개발)</td></tr>
+        </tbody>
+      </table>
+
+      <div class="warn">
+        ⚠️ <strong>두 경로를 동시에 실행하지 마세요.</strong> 두 스택은 5432·6379·9092·9200 등 포트가 겹칩니다.
+        한 번에 하나만 실행하고, 전환할 때는 먼저 <code>docker compose down</code> 후 다른 쪽을 올립니다.
+      </div>
+
+      <details class="deep"><summary>왜 스택이 둘로 갈렸나? (심화)</summary>
+        <div class="body">
+          두 compose는 검색엔진(Elasticsearch ↔ OpenSearch), Kafka(7.6.1 ↔ 7.7.0), Postgres(pgvector ↔ alpine),
+          Schema Registry 호스트 포트(8085 ↔ 8086)가 다릅니다. <code>synapse-gitops</code> compose는 “제품 전체를
+          컨테이너로 띄우는(빌드 또는 ghcr 이미지) 배포 지향” 구성이고, <code>synapse-shared</code> compose는
+          “로컬 개발용 인프라 + Gateway, 앱은 본인이 소스로 실행”하는 개발 지향 구성입니다. 이 분기는 레포가
+          각자 진화하며 생긴 <strong>알려진 기술부채</strong>이며, 본 문서는 현황을 반영만 합니다(통합은 별도 과제).
+        </div>
+      </details>
+    </section>
+    <section id="prereq"><h2 class="sec"><span class="num">1</span>사전 준비</h2>
+      <p>로컬 실행에 필요한 도구입니다. <strong>AWS CLI·kubectl은 로컬 개발에 필요하지 않습니다</strong>(EKS 접근은 별도 가이드 → <a href="#next">§7</a>).</p>
+      <table>
+        <thead><tr><th>도구</th><th>확인 명령</th><th>비고</th></tr></thead>
+        <tbody>
+          <tr><td>Docker Desktop</td><td><code>docker --version</code></td><td>Compose v2 포함</td></tr>
+          <tr><td>JDK 21 (Temurin)</td><td><code>java -version</code></td><td>모든 Spring 서비스가 Java 21</td></tr>
+          <tr><td>Git</td><td><code>git --version</code></td><td>—</td></tr>
+          <tr><td>Python 3.12+</td><td><code>python --version</code></td><td>learning-ai를 <em>소스로</em> 실행할 때만 (FastAPI)</td></tr>
+          <tr><td>(선택) Flutter</td><td><code>flutter --version</code></td><td>프론트엔드 작업 시에만</td></tr>
+        </tbody>
+      </table>
+
+      <h3>설치 여부 한 번에 확인</h3>
+      <div class="code">docker --version
+java -version
+git --version
+python --version</div>
+
+      <h3>설치 방법</h3>
+      <div class="tabs" data-group="install">
+        <button data-os="win" class="active">Windows</button><button data-os="nix">macOS / Linux</button>
+      </div>
+      <div class="tab-panel active" data-group="install" data-os="win">
+        <p>Chocolatey 사용 시:</p>
+        <div class="code">choco install docker-desktop temurin21 git python</div>
+        <p>또는 각 공식 페이지에서 설치: <a href="https://www.docker.com/products/docker-desktop/">Docker Desktop</a> ·
+           <a href="https://adoptium.net/temurin/releases/?version=21">Temurin 21</a> ·
+           <a href="https://git-scm.com/download/win">Git</a> ·
+           <a href="https://www.python.org/downloads/">Python</a></p>
+      </div>
+      <div class="tab-panel" data-group="install" data-os="nix">
+        <p>Homebrew 사용 시:</p>
+        <div class="code">brew install --cask docker temurin@21
+brew install git python@3.12</div>
+        <p>Linux는 배포판 패키지 매니저(<code>apt</code>/<code>dnf</code>) 또는 <a href="https://docs.docker.com/engine/install/">Docker Engine</a> + <a href="https://adoptium.net/temurin/releases/?version=21">Temurin 21</a>를 사용하세요.</p>
+      </div>
+
+      <details class="deep"><summary>AWS CLI·kubectl이 왜 없어도 되나? (심화)</summary>
+        <div class="body">
+          로컬 환경은 모든 것을 <strong>Docker 컨테이너 + 소스 실행</strong>으로 구성합니다. AWS CLI와 kubectl은
+          EKS(클라우드) 클러스터에 접근할 때 필요한 도구이고, 로컬에는 클러스터가 없습니다. EKS·ArgoCD·Bastion 접근은
+          <a href="synapse-developer-guide.md">개발자 가이드</a>와 런북이 담당합니다.
+        </div>
+      </details>
+    </section>
+    <section id="clone"><h2 class="sec"><span class="num">2</span>레포 클론</h2>
+      <p><strong>모든 레포를 같은 부모 폴더 아래 형제(sibling)로 클론해야 합니다.</strong>
+         compose가 <code>../synapse-*</code> 상대경로로 다른 레포의 소스를 빌드하기 때문입니다.</p>
+
+      <div class="step"><input type="checkbox" id="clone-1"><label for="clone-1">부모 폴더로 이동 후 7개 레포 클론</label></div>
+      <div class="code" data-cmd="cd C:\workspace\team-project-final
+git clone https://github.com/team-project-final/synapse-gitops.git
+git clone https://github.com/team-project-final/synapse-shared.git
+git clone https://github.com/team-project-final/synapse-gateway.git
+git clone https://github.com/team-project-final/synapse-platform-svc.git
+git clone https://github.com/team-project-final/synapse-engagement-svc.git
+git clone https://github.com/team-project-final/synapse-knowledge-svc.git
+git clone https://github.com/team-project-final/synapse-learning-svc.git">cd C:\workspace\team-project-final
+git clone https://github.com/team-project-final/synapse-gitops.git
+git clone https://github.com/team-project-final/synapse-shared.git
+git clone https://github.com/team-project-final/synapse-gateway.git
+git clone https://github.com/team-project-final/synapse-platform-svc.git
+git clone https://github.com/team-project-final/synapse-engagement-svc.git
+git clone https://github.com/team-project-final/synapse-knowledge-svc.git
+git clone https://github.com/team-project-final/synapse-learning-svc.git</div>
+      <p>(부모 폴더 경로는 자유입니다. 위 예시는 <code>C:\workspace\team-project-final</code>를 씁니다.)</p>
+
+      <h3>클론 후 폴더 구조</h3>
+      <pre class="ascii">
+team-project-final/
+├── synapse-gitops/          ← 경로① compose + 이 가이드(docs/)
+├── synapse-shared/          ← 경로② 인프라 compose + Avro 스키마/스크립트
+├── synapse-gateway/         ← API Gateway (경로②에서 빌드)
+├── synapse-platform-svc/    ← 인증/결제/알림
+├── synapse-engagement-svc/  ← 참여/활동
+├── synapse-knowledge-svc/   ← 노트/검색
+└── synapse-learning-svc/    ← learning-card(Spring) + learning-ai(FastAPI)</pre>
+
+      <details class="deep"><summary>경로별로 실제 필요한 레포는? (심화)</summary>
+        <div class="body">
+          <strong>경로① 풀 컨테이너</strong>는 <code>synapse-gitops</code> + 빌드 대상 서비스 레포
+          (<code>platform/engagement/knowledge-svc</code>, <code>learning-svc</code>)가 필요합니다(Gateway 없음).
+          <strong>경로② 하이브리드</strong>는 <code>synapse-shared</code> + <code>synapse-gateway</code> +
+          본인이 개발할 서비스 레포가 필요합니다. 처음엔 위 7개를 모두 받아두면 어느 경로든 바로 시작할 수 있습니다.
+        </div>
+      </details>
+    </section>
+    <section id="path1"><h2 class="sec"><span class="num">3</span>경로 ① 풀 컨테이너 (빠른 체험)</h2>
+      <p><span class="badge path1">①</span> <code>synapse-gitops/docker-compose.yml</code>로 <strong>인프라 + 5개 서비스를 한 번에</strong> 띄웁니다.
+         서비스는 형제 레포 소스에서 빌드됩니다. “일단 전부 떠 있는 모습”을 빠르게 보고 싶을 때 좋습니다.</p>
+
+      <div class="step"><input type="checkbox" id="p1-1"><label for="p1-1">1. <code>.env</code> 파일 생성</label></div>
+      <p>로컬 기본값으로 동작합니다(외부 API 키는 mock 기본값).</p>
+      <div class="code" data-cmd="cd C:\workspace\team-project-final\synapse-gitops
+cp .env.example .env">cd C:\workspace\team-project-final\synapse-gitops
+cp .env.example .env</div>
+
+      <div class="step"><input type="checkbox" id="p1-2"><label for="p1-2">2. 전체 빌드 + 기동</label></div>
+      <p>최초 실행은 모든 서비스 이미지를 빌드하므로 수 분 걸릴 수 있습니다(이후엔 빠름).</p>
+      <div class="code">docker compose up -d --build</div>
+
+      <div class="step"><input type="checkbox" id="p1-3"><label for="p1-3">3. 컨테이너 상태 확인</label></div>
+      <div class="code">docker compose ps</div>
+
+      <div class="step"><input type="checkbox" id="p1-4"><label for="p1-4">4. 헬스 체크</label></div>
+      <div class="code" data-cmd="curl http://localhost:8080/actuator/health
+curl http://localhost:8082/actuator/health
+curl http://localhost:8083/actuator/health
+curl http://localhost:8084/actuator/health
+curl http://localhost:8000/health
+curl http://localhost:8085/subjects">curl http://localhost:8080/actuator/health   # platform-svc
+curl http://localhost:8082/actuator/health   # engagement-svc
+curl http://localhost:8083/actuator/health   # knowledge-svc
+curl http://localhost:8084/actuator/health   # learning-card
+curl http://localhost:8000/health            # learning-ai (FastAPI)
+curl http://localhost:8085/subjects          # schema-registry</div>
+
+      <div class="step"><input type="checkbox" id="p1-5"><label for="p1-5">5. 종료</label></div>
+      <div class="code">docker compose down       # 데이터 유지
+docker compose down -v    # 볼륨까지 삭제 (완전 초기화)</div>
+
+      <details class="deep"><summary><code>--build</code>는 무슨 일을 하나? ghcr 이미지와의 관계 (심화)</summary>
+        <div class="body">
+          각 서비스는 compose에서 <code>build.context: ../synapse-*</code>로 정의되어 있어 <code>--build</code> 시
+          형제 레포의 <code>Dockerfile</code>로 로컬 빌드합니다. <code>build</code>를 생략하면 <code>image:</code>에 적힌
+          <code>ghcr.io/team-project-final/...</code> 이미지를 받으려 시도합니다(레지스트리 접근/발행 필요).
+          신규 팀원은 로컬 빌드(<code>--build</code>)가 가장 확실합니다.
+        </div>
+      </details>
+
+      <details class="deep"><summary>메모리가 부족하면 (심화)</summary>
+        <div class="body">
+          인프라 6개 + 앱 5개를 동시에 띄우면 메모리를 꽤 씁니다(권장 8GB+). Docker Desktop의
+          Settings → Resources에서 메모리를 올리세요. 검색엔진은 JVM 힙이 커서 가장 먼저 영향을 받습니다(→ <a href="#trouble">§6</a>).
+        </div>
+      </details>
+
+      <details class="deep"><summary>Gateway가 없는데 어떻게 호출하나? (심화)</summary>
+        <div class="body">
+          경로①의 compose에는 Gateway가 없고 각 앱 포트(8080/8082/8083/8084/8000)가 호스트에 직접 노출됩니다.
+          그래서 위 헬스 체크도 서비스 포트로 바로 호출합니다. Gateway 경유 라우팅을 보고 싶다면
+          경로②(<a href="#path2">하이브리드</a>)에서 Gateway(:8080)를 띄우세요.
+        </div>
+      </details>
+    </section>
+    <section id="path2"><h2 class="sec"><span class="num">4</span>경로 ② 하이브리드 (실제 개발)</h2>
+      <p><span class="badge path2">②</span> <strong>인프라는 컨테이너로, 내가 수정하는 서비스만 소스로 직접 실행</strong>합니다.
+         코드 수정 → 재기동 루프가 빨라 실제 개발에 적합합니다. <code>synapse-shared/docker-compose.yml</code>을 씁니다.</p>
+
+      <div class="step"><input type="checkbox" id="p2-1"><label for="p2-1">1. 인프라만 기동 (앱 stub·gateway 제외 → 포트 충돌 방지)</label></div>
+      <div class="code" data-cmd="cd C:\workspace\team-project-final\synapse-shared
+docker compose up -d postgres redis zookeeper kafka schema-registry opensearch kafka-init">cd C:\workspace\team-project-final\synapse-shared
+docker compose up -d postgres redis zookeeper kafka schema-registry opensearch kafka-init</div>
+
+      <div class="step"><input type="checkbox" id="p2-2"><label for="p2-2">2. 인프라 검증 (토픽 자동 생성 확인)</label></div>
+      <div class="code" data-cmd="docker compose ps
+docker exec -it synapse-kafka kafka-topics --list --bootstrap-server localhost:9092
+curl http://localhost:8086/subjects
+curl http://localhost:9200/_cluster/health">docker compose ps
+docker exec -it synapse-kafka kafka-topics --list --bootstrap-server localhost:9092
+curl http://localhost:8086/subjects                # schema-registry
+curl http://localhost:9200/_cluster/health         # opensearch</div>
+      <p><code>kafka-init</code>가 토픽 5개(<code>platform.auth.user-registered-v1</code>,
+         <code>knowledge.note.note-created-v1</code>, <code>knowledge.note.note-updated-v1</code>,
+         <code>learning.card.review-completed-v1</code>, <code>learning.ai.cards-generated-v1</code>)를 자동 생성합니다.</p>
+
+      <div class="step"><input type="checkbox" id="p2-3"><label for="p2-3">3a. Spring 서비스 소스 실행</label></div>
+      <p>내가 개발할 서비스 레포에서 Gradle 래퍼로 실행합니다(예: platform-svc). engagement / knowledge / learning-card도 같은 방식입니다.</p>
+      <div class="code" data-cmd="cd C:\workspace\team-project-final\synapse-platform-svc
+./gradlew bootRun">cd C:\workspace\team-project-final\synapse-platform-svc
+./gradlew bootRun</div>
+
+      <div class="step"><input type="checkbox" id="p2-4"><label for="p2-4">3b. learning-ai(FastAPI) 소스 실행</label></div>
+      <p>Python 3.12+가 필요합니다. 가상환경을 만들고 <code>pyproject.toml</code> 기준으로 설치합니다.</p>
+      <div class="code" data-cmd="cd C:\workspace\team-project-final\synapse-learning-svc\learning-ai
+python -m venv .venv
+.venv\Scripts\activate
+pip install -e .
+uvicorn app.main:app --reload --port 8090">cd C:\workspace\team-project-final\synapse-learning-svc\learning-ai
+python -m venv .venv
+.venv\Scripts\activate          # macOS/Linux: source .venv/bin/activate
+pip install -e .
+uvicorn app.main:app --reload --port 8090</div>
+
+      <div class="step"><input type="checkbox" id="p2-5"><label for="p2-5">4. 동작 확인 (실행한 서비스 기준)</label></div>
+      <div class="code" data-cmd="curl http://localhost:8080/actuator/health
+curl http://localhost:8090/health">curl http://localhost:8080/actuator/health   # Spring 서비스(예: platform-svc)
+curl http://localhost:8090/health            # learning-ai</div>
+
+      <details class="deep"><summary>왜 compose의 앱이 stub인가? (심화)</summary>
+        <div class="body">
+          <code>synapse-shared</code> compose의 앱 서비스(platform/engagement/knowledge/learning-card/learning-ai)는
+          <code>sleep infinity</code> 스텁입니다. 실제 앱은 IDE나 <code>./gradlew bootRun</code>으로 직접 실행해
+          코드 수정 → 재기동 루프를 빠르게 돌리는 것이 이 경로의 목적이기 때문입니다. 인프라(DB·Kafka·검색)만
+          컨테이너로 안정적으로 띄워두고, 앱은 본인이 잡습니다.
+        </div>
+      </details>
+
+      <details class="deep"><summary>포트가 충돌해요 (심화)</summary>
+        <div class="body">
+          <code>synapse-shared</code> compose의 Gateway가 <strong>:8080</strong>을 쓰는데 platform-svc 기본 포트도 8080이라
+          전체를 다 올리면 충돌할 수 있습니다. 그래서 1단계에서 <strong>인프라만</strong> 올립니다.
+          서비스를 다른 포트로 띄우려면 <code>./gradlew bootRun --args='--server.port=8181'</code>처럼 지정하세요.
+        </div>
+      </details>
+
+      <details class="deep"><summary><code>synapse-shared</code>를 mavenLocal에 publish해야 하나? (심화)</summary>
+        <div class="body">
+          <strong>아니요.</strong> platform-svc·knowledge-svc·gateway의 <code>build.gradle.kts</code>는 <code>mavenCentral()</code>만
+          쓰고 <code>com.synapse:shared</code> Maven 의존성이 없습니다. 즉 서비스는 단독으로 컴파일됩니다.
+          <code>synapse-shared</code>의 역할은 (1) 로컬 인프라 compose, (2) Avro 스키마 정의, (3) Schema Registry 등록
+          스크립트 제공입니다. “shared를 먼저 빌드해야 컴파일된다”는 말은 이 프로젝트엔 해당하지 않습니다.
+        </div>
+      </details>
+
+      <details class="deep"><summary>Kafka 토픽은 누가 만드나? (심화)</summary>
+        <div class="body">
+          <code>kafka-init</code> 컨테이너가 기동 시 위 5개 토픽을 <code>--if-not-exists</code>로 자동 생성하고 종료합니다.
+          수동 생성이나 Avro 스키마 등록은 <code>synapse-shared/scripts/</code>의 <code>create-kafka-topics.sh</code>,
+          <code>register-schema.ps1</code>을 참고하세요.
+        </div>
+      </details>
+    </section>
+    <section id="usage"><h2 class="sec"><span class="num">5</span>서비스 사용·확인하기</h2>
+      <p>설치(<a href="#path1">§3</a>/<a href="#path2">§4</a>)로 서비스가 떴다면, 이제 실제로 열어보고 호출하고 이벤트가 흐르는 걸 확인해 봅시다. 경로①은 포트를 직접, 경로②는 Gateway(:8080)를 경유합니다.</p>
+
+      <h3>5.1 브라우저로 열어보는 뷰</h3>
+      <p>⭐ <strong>learning-ai Swagger UI</strong> — 이 프로젝트에서 버튼으로 API를 직접 실행("Try it out")해볼 수 있는 유일한 GUI입니다.</p>
+      <div class="code">http://localhost:8000/docs     # 경로① Swagger UI
+http://localhost:8090/docs     # 경로② Swagger UI
+http://localhost:8000/redoc    # ReDoc (읽기용 문서)</div>
+      <p>브라우저로 바로 열리는 상태(JSON) 뷰:</p>
+      <div class="code">http://localhost:8080/actuator/health   # platform-svc 상태
+http://localhost:8085/subjects           # 등록된 Avro 스키마 (경로② :8086)
+http://localhost:9200/_cluster/health    # 검색엔진 상태</div>
+      <details class="deep"><summary>다른 서비스는 왜 Swagger UI가 없나? (심화)</summary>
+        <div class="body">Spring 서비스(platform·engagement·knowledge·learning-card)에는 springdoc이 적용돼 있지 않아 Swagger UI가 없습니다. 대신 <code>/actuator/health</code> 등 actuator 엔드포인트로 상태를 확인합니다. learning-ai만 FastAPI 기본 제공으로 <code>/docs</code>가 열립니다.</div>
+      </details>
+
+      <h3>5.2 API 호출해보기 — Gateway 경유 vs 직접</h3>
+      <p>경로②는 Gateway가 <code>/api/{서비스}/**</code> 요청을 받아 해당 서비스로 전달합니다(앞 2개 세그먼트 제거 후 전달).</p>
+      <div class="code">curl http://localhost:8080/api/platform/actuator/health     # → platform-svc
+curl http://localhost:8080/api/knowledge/actuator/health    # → knowledge-svc</div>
+      <p>경로①은 Gateway가 없으니 서비스 포트로 직접 호출합니다.</p>
+      <div class="code">curl http://localhost:8080/actuator/health   # platform-svc 직접
+curl http://localhost:8083/actuator/health   # knowledge-svc 직접</div>
+      <details class="deep"><summary>Gateway 라우팅 규칙 (심화)</summary>
+        <div class="body">Gateway(<code>synapse-gateway</code>)는 4개 경로를 stripPrefix(2)로 전달합니다: <code>/api/platform/**</code>→platform-svc, <code>/api/engagement/**</code>→engagement-svc, <code>/api/knowledge/**</code>→knowledge-svc, <code>/api/learning/**</code>→learning-card. 예: <code>/api/platform/actuator/health</code> → platform-svc의 <code>/actuator/health</code>. (Redis 기반 rate limit 적용)</div>
+      </details>
+
+      <h3>5.3 Kafka 이벤트가 흐르는 걸 보기</h3>
+      <p>한 터미널에서 토픽을 구독해 두고, 다른 터미널에서 액션을 일으키면 이벤트가 실시간으로 출력됩니다 — MSA가 이벤트로 도는 걸 눈으로 확인할 수 있습니다.</p>
+      <div class="code">docker exec -it synapse-kafka kafka-console-consumer --bootstrap-server localhost:9092 --topic knowledge.note.note-created-v1 --from-beginning</div>
+      <p>자동 생성되는 토픽 5개:</p>
+      <div class="code">platform.auth.user-registered-v1
+knowledge.note.note-created-v1
+knowledge.note.note-updated-v1
+learning.card.review-completed-v1
+learning.ai.cards-generated-v1</div>
+
+      <h3>5.4 저장된 데이터 직접 확인</h3>
+      <div class="code">docker exec -it synapse-postgres psql -U synapse -d synapse -c "\dt"</div>
+      <div class="code">docker exec -it synapse-redis redis-cli -a redis_local_pw keys '*'   # 경로② (경로①: -a redis_local)</div>
+      <div class="code">curl http://localhost:9200/_cat/indices?v</div>
+      <details class="deep"><summary>자격증명은 어디서 오나? (심화)</summary>
+        <div class="body">두 스택 모두 PostgreSQL 사용자/DB는 <code>synapse</code>/<code>synapse</code>이며 컨테이너 내부 로컬 접속은 비밀번호가 필요 없습니다. Redis 비밀번호만 다릅니다 — 경로②(synapse-shared)는 <code>redis_local_pw</code>, 경로①(synapse-gitops)는 <code>redis_local</code>. 값은 각 <code>docker-compose.yml</code>·<code>.env</code> 기본값입니다.</div>
+      </details>
+    </section>
+    <section id="data"><h2 class="sec"><span class="num">6</span>목업 · 시드 데이터 (선택)</h2>
+      <p>초기 데이터가 없어도 서비스는 정상 기동합니다. 화면 확인이나 통합 테스트를 위해 목업/시드 데이터가 필요하면 아래를 참고하세요.</p>
+      <ul>
+        <li><a href="../../moking-data-guide/index.html">목업 데이터 가이드 (moking-data-guide)</a> — 서비스별 목업 전략·이벤트 목업 HTML 가이드</li>
+        <li><code>synapse-shared/scripts/seed-test-data.sh</code> — 테스트 데이터 시딩 스크립트</li>
+      </ul>
+      <p class="" style="color:var(--muted);font-size:14px">※ 위 링크는 <a href="#clone">§2</a>의 표준 형제 폴더 구조를 기준으로 한 상대경로입니다.</p>
+    </section>
+    <section id="trouble"><h2 class="sec"><span class="num">7</span>트러블슈팅</h2>
+      <table>
+        <thead><tr><th>증상</th><th>원인</th><th>해결</th></tr></thead>
+        <tbody>
+          <tr><td>포트 충돌 (5432 / 9092 / 9200 등)</td><td>두 스택 동시 실행 또는 기존 프로세스 점유</td>
+              <td>한쪽을 <code>docker compose down</code> 후 단일 스택만 실행. 점유 확인: <code>netstat -ano | findstr 5432</code></td></tr>
+          <tr><td>검색엔진 컨테이너가 죽음 (OOM)</td><td>Elasticsearch/OpenSearch JVM 힙 부족</td>
+              <td>Docker Desktop 메모리 상향. Linux/WSL: <code>sudo sysctl -w vm.max_map_count=262144</code></td></tr>
+          <tr><td>Apple Silicon에서 Kafka 느림</td><td>Confluent 이미지 amd64 에뮬레이션</td>
+              <td>정상 동작이며 초기 기동만 느림</td></tr>
+          <tr><td><code>up --build</code> 실패: 빌드 컨텍스트 없음</td><td>형제 레포 미클론</td>
+              <td><a href="#clone">§2</a>의 7개 레포가 같은 부모 폴더에 형제로 있는지 확인</td></tr>
+          <tr><td><code>.env</code> 누락 경고</td><td><code>cp .env.example .env</code> 미실행</td>
+              <td><a href="#path1">§3</a> 1단계 수행</td></tr>
+          <tr><td>하이브리드에서 8080 충돌</td><td>Gateway(:8080)와 platform-svc 기본 포트 겹침</td>
+              <td>인프라만 올리거나 <code>./gradlew bootRun --args='--server.port=8181'</code>로 변경 (<a href="#path2">§4</a> 심화 참고)</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section id="next"><h2 class="sec"><span class="num">8</span>다음 단계 · 더 깊이 보기</h2>
+      <p>로컬 환경이 떴다면, 다음 문서로 프로젝트를 더 깊이 이해하거나 클라우드 배포로 넘어갈 수 있습니다.</p>
+      <ul>
+        <li><a href="synapse-developer-guide.md">Synapse Developer Guide</a> — 올인원 개발자 가이드(레포별 구조, GitOps 배포, AWS 인프라)</li>
+        <li><a href="docker-compose-workflow-guide.md">Docker Compose Workflow Guide</a> — compose 구성·헬스체크·메모리 설계 상세</li>
+        <li><a href="runbooks/bastion-ssm-access.md">Bastion SSM 접근</a> — (AWS) EKS kubectl 접근 방법</li>
+        <li><a href="../README.md">synapse-gitops README</a> — GitOps 레포 개요 + ArgoCD/Terraform</li>
+      </ul>
+      <div class="warn">
+        ℹ️ <strong>AWS / EKS 배포는 이 가이드의 범위 밖입니다.</strong> 위 개발자 가이드와 런북을 참고하세요.
+        이 문서는 로컬 개발환경 세팅까지만 다룹니다.
+      </div>
+    </section>
+  </main>
+</div>
+<script>
+(function(){
+  // 1) TOC 자동 생성 (섹션 제목에서)
+  var toc = document.getElementById('toc');
+  var progressEl = document.getElementById('progress');
+  var secs = Array.prototype.slice.call(document.querySelectorAll('main section[id]'));
+  secs.forEach(function(s){
+    var h = s.querySelector('h2.sec'); if(!h) return;
+    var a = document.createElement('a');
+    a.href = '#' + s.id; a.textContent = h.textContent.replace(/^\s*\d+/, '').trim() || h.textContent;
+    a.dataset.target = s.id;
+    toc.insertBefore(a, progressEl);
+  });
+  var tocLinks = Array.prototype.slice.call(toc.querySelectorAll('a'));
+
+  // 2) 스크롤 스파이 (IntersectionObserver)
+  var obs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        tocLinks.forEach(function(l){ l.classList.toggle('active', l.dataset.target === e.target.id); });
+      }
+    });
+  }, {rootMargin:'-40% 0px -55% 0px'});
+  secs.forEach(function(s){ obs.observe(s); });
+
+  // 3) 코드블록 복사 버튼 (.code 마다 추가)
+  document.querySelectorAll('.code').forEach(function(block){
+    var btn = document.createElement('button');
+    btn.className = 'copy'; btn.type = 'button'; btn.textContent = '복사';
+    btn.addEventListener('click', function(){
+      var text = block.getAttribute('data-cmd') || block.textContent.replace(/복사$/, '');
+      navigator.clipboard.writeText(text.trim()).then(function(){
+        btn.textContent = '복사됨'; btn.classList.add('copied');
+        setTimeout(function(){ btn.textContent='복사'; btn.classList.remove('copied'); }, 1500);
+      });
+    });
+    block.appendChild(btn);
+  });
+
+  // 4) 진행 체크박스 (localStorage)
+  var KEY = 'synapse-local-setup-progress';
+  var saved = JSON.parse(localStorage.getItem(KEY) || '{}');
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('.step input[type=checkbox]'));
+  function refresh(){
+    var done = boxes.filter(function(b){ return b.checked; }).length;
+    progressEl.textContent = boxes.length ? ('진행 ' + done + ' / ' + boxes.length) : '';
+  }
+  boxes.forEach(function(b){
+    if(saved[b.id]) { b.checked = true; b.closest('.step').classList.add('done'); }
+    b.addEventListener('change', function(){
+      b.closest('.step').classList.toggle('done', b.checked);
+      saved[b.id] = b.checked; localStorage.setItem(KEY, JSON.stringify(saved)); refresh();
+    });
+  });
+  refresh();
+
+  // 5) OS 탭 토글 (.tabs[data-group] 내 button[data-os], 같은 그룹 .tab-panel[data-os])
+  document.querySelectorAll('.tabs').forEach(function(tabs){
+    var group = tabs.dataset.group;
+    tabs.querySelectorAll('button[data-os]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var os = btn.dataset.os;
+        tabs.querySelectorAll('button').forEach(function(b){ b.classList.toggle('active', b===btn); });
+        document.querySelectorAll('.tab-panel[data-group="'+group+'"]').forEach(function(p){
+          p.classList.toggle('active', p.dataset.os === os);
+        });
+      });
+    });
+  });
+})();
+</script>
+<script>
+(function(){
+  var NS='http://www.w3.org/2000/svg';
+  var NODES=[
+    {id:'client',g:'entry',label:'Client',x:60,y:14,w:130,h:40,role:'브라우저/앱 진입점',tech:'-',p1:'-',p2:'-',check:'-',deps:['Gateway','platform-svc'],note:'경로①은 앱 포트 직접 호출, 경로②는 Gateway 경유'},
+    {id:'gateway',g:'entry',label:'Gateway',x:410,y:14,w:170,h:40,role:'외부 트래픽 라우팅',tech:'Spring Cloud Gateway / JDK 21',p1:'없음',p2:':8080',check:'curl http://localhost:8080/actuator/health',deps:['platform-svc','engagement-svc','knowledge-svc','learning-card','Redis'],note:'경로②(synapse-shared compose)에만 존재'},
+    {id:'platform',g:'app',label:'platform-svc',x:6,y:104,w:116,h:40,role:'인증·결제·알림',tech:'Spring Boot / JDK 21',p1:':8080',p2:'stub :8081',check:'curl http://localhost:8080/actuator/health',deps:['PostgreSQL','Redis','Kafka']},
+    {id:'engagement',g:'app',label:'engagement-svc',x:132,y:104,w:116,h:40,role:'참여·활동',tech:'Spring Boot / JDK 21',p1:':8082',p2:'stub :8082',check:'curl http://localhost:8082/actuator/health',deps:['PostgreSQL','Redis','Kafka','learning-card']},
+    {id:'knowledge',g:'app',label:'knowledge-svc',x:258,y:104,w:116,h:40,role:'노트·검색',tech:'Spring Boot / JDK 21',p1:':8083',p2:'stub :8083',check:'curl http://localhost:8083/actuator/health',deps:['PostgreSQL','Redis','Kafka','검색엔진']},
+    {id:'learningcard',g:'app',label:'learning-card',x:384,y:104,w:116,h:40,role:'학습 카드',tech:'Spring Boot / JDK 21',p1:':8084',p2:'stub :8084',check:'curl http://localhost:8084/actuator/health',deps:['PostgreSQL','Redis','Kafka']},
+    {id:'learningai',g:'app',label:'learning-ai',x:510,y:104,w:116,h:40,role:'AI 카드 생성',tech:'FastAPI / Python 3.12',p1:':8000',p2:':8090',check:'curl http://localhost:8000/health   (②: :8090)',deps:['Kafka','검색엔진']},
+    {id:'kafka',g:'msg',label:'Kafka',x:120,y:210,w:180,h:40,role:'이벤트 메시징 (+Zookeeper)',tech:'Confluent 7.6.1(①)/7.7.0(②)',p1:':9092',p2:':9092',check:'docker exec -it synapse-kafka kafka-topics --list --bootstrap-server localhost:9092',deps:['Zookeeper'],note:'kafka-init가 토픽 5개 자동 생성'},
+    {id:'schema',g:'msg',label:'Schema Registry',x:350,y:210,w:170,h:40,role:'Avro 스키마 관리',tech:'Confluent Schema Registry',p1:':8085',p2:':8086',check:'curl http://localhost:8085/subjects   (②: :8086)',deps:['Kafka']},
+    {id:'postgres',g:'data',label:'PostgreSQL',x:20,y:300,w:150,h:40,role:'관계형 DB',tech:'① pgvector-pg16 / ② postgres:16-alpine',p1:':5432',p2:':5432',check:'docker compose ps',deps:[]},
+    {id:'redis',g:'data',label:'Redis',x:200,y:300,w:140,h:40,role:'세션·캐시',tech:'redis:7',p1:':6379',p2:':6379',check:'docker exec -it synapse-redis redis-cli ping',deps:[]},
+    {id:'search',g:'data',label:'검색엔진',x:360,y:300,w:180,h:40,role:'전문 검색',tech:'① Elasticsearch 8.13 / ② OpenSearch 2.11',p1:':9200',p2:':9200',check:'curl http://localhost:9200/_cluster/health',deps:[]}
+  ];
+  var EDGES=[
+    ['client','gateway'],
+    ['gateway','platform'],['gateway','engagement'],['gateway','knowledge'],['gateway','learningcard'],['gateway','redis'],
+    ['platform','kafka'],['engagement','kafka'],['knowledge','kafka'],['learningcard','kafka'],['learningai','kafka'],['schema','kafka'],
+    ['platform','postgres'],['engagement','postgres'],['knowledge','postgres'],['learningcard','postgres'],
+    ['platform','redis'],['engagement','redis'],['learningcard','redis'],
+    ['knowledge','search'],['learningai','search']
+  ];
+  var edgesG=document.getElementById('topoEdges'), nodesG=document.getElementById('topoNodes'), panel=document.getElementById('topoPanel');
+  if(!edgesG||!nodesG||!panel) return;
+  var byId={}; NODES.forEach(function(n){byId[n.id]=n;});
+  function cx(n){return n.x+n.w/2;} function cy(n){return n.y+n.h/2;}
+  function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+  EDGES.forEach(function(e){
+    var a=byId[e[0]], b=byId[e[1]];
+    var ln=document.createElementNS(NS,'line');
+    ln.setAttribute('x1',cx(a));ln.setAttribute('y1',cy(a));ln.setAttribute('x2',cx(b));ln.setAttribute('y2',cy(b));
+    ln.setAttribute('class','edge'); ln.dataset.a=e[0]; ln.dataset.b=e[1];
+    edgesG.appendChild(ln);
+  });
+
+  NODES.forEach(function(n){
+    var hasPort = n.p1 && n.p1!=='-';
+    var g=document.createElementNS(NS,'g');
+    g.setAttribute('class','node g-'+n.g); g.setAttribute('tabindex','0'); g.setAttribute('role','button');
+    g.setAttribute('aria-label', n.label + (hasPort? (' 포트 '+(n.p1===n.p2?n.p1:n.p1+' 또는 '+n.p2)) : ''));
+    g.dataset.id=n.id;
+    var r=document.createElementNS(NS,'rect');
+    r.setAttribute('x',n.x);r.setAttribute('y',n.y);r.setAttribute('width',n.w);r.setAttribute('height',n.h);r.setAttribute('rx',6);
+    g.appendChild(r);
+    var t=document.createElementNS(NS,'text');
+    t.setAttribute('x',cx(n));t.setAttribute('y', n.y + (hasPort?17:24));t.setAttribute('text-anchor','middle');
+    t.textContent=n.label; g.appendChild(t);
+    if(hasPort){
+      var pt=document.createElementNS(NS,'text');
+      pt.setAttribute('x',cx(n));pt.setAttribute('y',n.y+32);pt.setAttribute('text-anchor','middle');pt.setAttribute('class','port');
+      pt.textContent=(n.p1===n.p2)?n.p1:(n.p1+' / '+n.p2);
+      g.appendChild(pt);
+    }
+    g.addEventListener('click',function(){select(n.id);});
+    g.addEventListener('keydown',function(ev){ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); select(n.id); }});
+    nodesG.appendChild(g);
+  });
+
+  function select(id){
+    var n=byId[id];
+    nodesG.querySelectorAll('.node').forEach(function(g){ g.classList.toggle('sel', g.dataset.id===id); });
+    edgesG.querySelectorAll('.edge').forEach(function(ln){ ln.classList.toggle('hl', ln.dataset.a===id||ln.dataset.b===id); });
+    var portRow = (n.p1===n.p2) ? esc(n.p1) : ('① '+esc(n.p1)+'  ·  ② '+esc(n.p2));
+    var deps = n.deps.length ? n.deps.map(esc).join(', ') : '—';
+    var html='<h4>'+esc(n.label)+'</h4><p class="role">'+esc(n.role)+'</p>'
+      +'<dl><dt>기술</dt><dd>'+esc(n.tech)+'</dd>'
+      +'<dt>포트</dt><dd>'+portRow+'</dd>'
+      +'<dt>의존</dt><dd>'+deps+'</dd></dl>';
+    if(n.note) html+='<p class="role" style="margin-top:8px">ℹ '+esc(n.note)+'</p>';
+    if(n.check && n.check!=='-') html+='<div class="cmd">'+esc(n.check)+'</div>';
+    panel.innerHTML=html;
+  }
+})();
+</script>
+</body>
+</html>
