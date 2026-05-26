@@ -94,6 +94,76 @@
     <section id="next"><h2 class="sec"><span class="num">7</span>다음 단계 · 더 깊이 보기</h2></section>
   </main>
 </div>
-<script>/* Task 2에서 채움 */</script>
+<script>
+(function(){
+  // 1) TOC 자동 생성 (섹션 제목에서)
+  var toc = document.getElementById('toc');
+  var progressEl = document.getElementById('progress');
+  var secs = Array.prototype.slice.call(document.querySelectorAll('main section[id]'));
+  secs.forEach(function(s){
+    var h = s.querySelector('h2.sec'); if(!h) return;
+    var a = document.createElement('a');
+    a.href = '#' + s.id; a.textContent = h.textContent.replace(/^\s*\d+/, '').trim() || h.textContent;
+    a.dataset.target = s.id;
+    toc.insertBefore(a, progressEl);
+  });
+  var tocLinks = Array.prototype.slice.call(toc.querySelectorAll('a'));
+
+  // 2) 스크롤 스파이 (IntersectionObserver)
+  var obs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        tocLinks.forEach(function(l){ l.classList.toggle('active', l.dataset.target === e.target.id); });
+      }
+    });
+  }, {rootMargin:'-40% 0px -55% 0px'});
+  secs.forEach(function(s){ obs.observe(s); });
+
+  // 3) 코드블록 복사 버튼 (.code 마다 추가)
+  document.querySelectorAll('.code').forEach(function(block){
+    var btn = document.createElement('button');
+    btn.className = 'copy'; btn.type = 'button'; btn.textContent = '복사';
+    btn.addEventListener('click', function(){
+      var text = block.getAttribute('data-cmd') || block.textContent.replace(/복사$/, '');
+      navigator.clipboard.writeText(text.trim()).then(function(){
+        btn.textContent = '복사됨'; btn.classList.add('copied');
+        setTimeout(function(){ btn.textContent='복사'; btn.classList.remove('copied'); }, 1500);
+      });
+    });
+    block.appendChild(btn);
+  });
+
+  // 4) 진행 체크박스 (localStorage)
+  var KEY = 'synapse-local-setup-progress';
+  var saved = JSON.parse(localStorage.getItem(KEY) || '{}');
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('.step input[type=checkbox]'));
+  function refresh(){
+    var done = boxes.filter(function(b){ return b.checked; }).length;
+    progressEl.textContent = boxes.length ? ('진행 ' + done + ' / ' + boxes.length) : '';
+  }
+  boxes.forEach(function(b){
+    if(saved[b.id]) { b.checked = true; b.closest('.step').classList.add('done'); }
+    b.addEventListener('change', function(){
+      b.closest('.step').classList.toggle('done', b.checked);
+      saved[b.id] = b.checked; localStorage.setItem(KEY, JSON.stringify(saved)); refresh();
+    });
+  });
+  refresh();
+
+  // 5) OS 탭 토글 (.tabs[data-group] 내 button[data-os], 같은 그룹 .tab-panel[data-os])
+  document.querySelectorAll('.tabs').forEach(function(tabs){
+    var group = tabs.dataset.group;
+    tabs.querySelectorAll('button[data-os]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var os = btn.dataset.os;
+        tabs.querySelectorAll('button').forEach(function(b){ b.classList.toggle('active', b===btn); });
+        document.querySelectorAll('.tab-panel[data-group="'+group+'"]').forEach(function(p){
+          p.classList.toggle('active', p.dataset.os === os);
+        });
+      });
+    });
+  });
+})();
+</script>
 </body>
 </html>
