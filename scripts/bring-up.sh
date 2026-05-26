@@ -171,6 +171,58 @@ phase_status() {
   kubectl -n monitoring get pods 2>/dev/null || true
 }
 
+verify_all() {
+  local report
+  report="verification-$(date +%Y%m%d-%H%M).md"
+  {
+    echo "# Bring-up 검증 $(date -u +%FT%TZ)"
+    echo
+  } >"$report"
+
+  echo "## staging Healthy" | tee -a "$report"
+  kubectl -n argocd get applications -o json |
+    jq -r '.items[] | select(.metadata.name|test("staging")) | "\(.metadata.name)\t\(.status.sync.status)/\(.status.health.status)"' |
+    tee -a "$report"
+  warn "platform-svc/learning-ai 미Healthy는 app 레포 의존 — 조건부"
+
+  echo "## 메트릭 타깃" | tee -a "$report"
+  kubectl -n monitoring exec sts/prometheus-kube-prometheus-stack-prometheus -c prometheus -- \
+    wget -qO- 'http://localhost:9090/api/v1/targets?state=active' 2>/dev/null |
+    jq -r '.data.activeTargets[] | select(.labels.namespace|test("synapse-")) | "\(.labels.job)\t\(.health)"' |
+    tee -a "$report" || warn "타깃 조회 실패(앱 미배포/메트릭 미노출 가능)"
+
+  echo "## Slack 도달" | tee -a "$report"
+  verify_slack | tee -a "$report"
+
+  ok "검증 리포트: $report"
+}
+
+verify_slack() {
+  kubectl apply -f - <<'YAML'
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: test-slack-delivery
+  namespace: monitoring
+  labels: {release: kube-prometheus-stack}
+spec:
+  groups:
+    - name: test.slack
+      rules:
+        - alert: TestSlackDelivery
+          expr: vector(1)
+          for: 0s
+          labels: {severity: critical}
+          annotations: {summary: "bring-up --verify Slack 도달 테스트"}
+YAML
+  sleep 60
+  kubectl -n monitoring exec sts/alertmanager-kube-prometheus-stack-alertmanager -c alertmanager -- \
+    wget -qO- 'http://localhost:9093/api/v2/alerts?filter=alertname=TestSlackDelivery' 2>/dev/null |
+    jq -r '.[] | "firing=\(.status.state) receiver=\(.receivers[0].name)"' || echo "Alertmanager 조회 실패"
+  kubectl -n monitoring delete prometheusrule test-slack-delivery
+  echo "→ Slack 채널 #synapse-gitops에서 TestSlackDelivery 수신 여부를 눈으로 확인하세요."
+}
+
 # (phase 함수들은 후속 Task에서 추가)
 
 main() {
