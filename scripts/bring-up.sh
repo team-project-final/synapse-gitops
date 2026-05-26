@@ -174,9 +174,10 @@ phase_image_updater() {
     -f https://raw.githubusercontent.com/argoproj-labs/argocd-image-updater/stable/manifests/install.yaml
   kubectl -n argocd annotate sa argocd-image-updater \
     eks.amazonaws.com/role-arn=arn:aws:iam::${ACCOUNT_ID}:role/synapse-dev-image-updater-role --overwrite
-  # git write-back은 ArgoCD repo write 자격(PAT)이 필요 — repository 타입 시크릿 존재 확인
-  if [ -z "$(kubectl -n argocd get secret -l argocd.argoproj.io/secret-type=repository -o name 2>/dev/null)" ]; then
-    warn "ArgoCD repo write 자격 시크릿 없음 → git write-back 불가. synapse-gitops PAT를 repository 시크릿으로 등록 필요(S6 E2E)."
+  # git write-back용 ArgoCD repo 자격 — AWS SM(synapse/gitops/git-token) → ESO → repository 시크릿
+  run "kubectl apply -f infra/external-secrets/argocd-repo-externalsecret.yaml"
+  if ! aws secretsmanager describe-secret --secret-id synapse/gitops/git-token --region "$AWS_REGION" >/dev/null 2>&1; then
+    warn "AWS SM 시크릿 없음: synapse/gitops/git-token → git write-back 불가. PAT 등록 필요(S6 E2E)."
   fi
   kubectl -n argocd rollout restart deploy argocd-image-updater
   kubectl -n argocd rollout status deploy argocd-image-updater --timeout=180s
