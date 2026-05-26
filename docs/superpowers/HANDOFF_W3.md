@@ -28,6 +28,16 @@ W2 이전 (1~9차 세션): → [HANDOFF_W2.md](./HANDOFF_W2.md) 참조
 - ⚠️ **클러스터는 destroy 후 bare 상태** — 이번 apply는 인프라만 생성(ArgoCD helm_release는 프라이빗 엔드포인트로 실패). staging 5/5·메트릭 실수집은 W1/W2 재구축 필요
 - 🐛 Loki 매니페스트 버그 2건 수정(schemaConfig, deploymentMode=SingleBinary) → PR #47
 
+### W3 추가 (2026-05-26) — bring-up 자동화 + A2 실 EKS 1사이클
+
+> PR **#50** (`scripts/bring-up.sh` 멱등 자동화, merged) + **#52** (A2 하드닝 6건, open).
+
+- ✅ **bring-up.sh 11/11 phase E2E 통과**: terraform(48리소스, EBS CSI addon) → eks-auth → SG(D-026 자동) → SSM 터널 → argocd → ESO → oidc-fix(trust 자동갱신) → manifests → observability → status
+- ✅ **W3 잔여 3항목 검증**: staging **4/5 Healthy**(platform-svc Degraded=cross-repo) · 메트릭 타깃 대부분 UP · Alertmanager→**slack receiver 라우팅**(실 webhook)
+- 🐛 A2 발견 6건 수정(PR #52): tfvars fail-fast, eks-auth 폴링, 터널 readiness(/readyz→get nodes), ExternalSecret v1, argocd --force-conflicts, --verify curl pod
+- 🔧 운영 전제 문서화: **ESO IAM 정책에 `synapse/monitoring/*` 필요**(수동 갱신함, terraform화 백로그) · **observability엔 노드 ≥4**(2노드 max-pods 초과)
+- 잔여(차기): platform-svc staging 프로필(app 레포), staging Ingress 도메인/ACM TLS, ESO 정책 terraform화
+
 ---
 
 ## 2. 인프라 상세 상태

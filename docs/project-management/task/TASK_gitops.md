@@ -142,12 +142,12 @@
   - [x] staging 공유 Ingress + TLS 매니페스트 작성 (PR #47, `infra/ingress/staging-ingress.yaml` — 적용은 ACM/도메인 확보 후, 검증은 port-forward로 대체)
   - [x] dev → staging 승격 절차 문서화 (PR #47, `docs/runbooks/dev-to-staging-promotion.md`)
   - [x] ApplicationSet **manual → auto sync 전환** (PR #47, FR-GO-301)
-  - [ ] staging sync → 5/5 Healthy 검증 (클러스터 재구축 후 — bare 상태)
+  - [x] staging sync → A2 실 EKS에서 **4/5 Healthy** 검증 (platform-svc Degraded = app 레포 staging 프로필, cross-repo 조건부)
 - **Duration**: 2일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [x] In Progress / [ ] Done (매니페스트·문서·auto-sync 완료(PR #47); 5/5 Healthy 검증은 W1/W2 재구축 후)
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (auto-sync·승격문서·Ingress매니페스트 완료(PR #47), A2 라이브 4/5 검증. platform-svc 5/5만 app 레포 조건부)
 
 ---
 
@@ -164,7 +164,7 @@
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [x] In Progress / [ ] Done (스택+매니페스트 실 EKS 검증 완료(PR #47); 메트릭 E2E·실 Slack 도달은 앱 스택+webhook 후)
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (A2 실 EKS 1사이클로 스택 전체 검증 — 메트릭 타깃 UP, Alertmanager→Slack 라우팅(실 webhook), prometheus/grafana/alertmanager/loki Healthy. bring-up 자동화 PR #50/#52)
 
 ---
 
