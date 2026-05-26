@@ -223,7 +223,10 @@ YAML
   echo "→ Slack 채널 #synapse-gitops에서 TestSlackDelivery 수신 여부를 눈으로 확인하세요."
 }
 
-# (phase 함수들은 후속 Task에서 추가)
+phase_destroy() {
+  warn "terraform destroy — dev 인프라 전체 삭제(비용 차단). S3 state/DynamoDB lock은 유지."
+  run "terraform -chdir=$TFDIR destroy -auto-approve -input=false"
+}
 
 main() {
   require aws
