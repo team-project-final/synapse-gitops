@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../apps/engagement-svc/base
+patches:
+  - patch: |
+      $patch: delete
+      apiVersion: external-secrets.io/v1
+      kind: ExternalSecret
+      metadata:
+        name: engagement-svc-external-secret
+  - patch: |
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: engagement-svc-config
+      data:
+        DATABASE_HOST: postgres
+        DATABASE_PORT: "5432"
+        DATABASE_NAME: synapse
+        SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/synapse
+        SPRING_DATASOURCE_USERNAME: synapse
+        REDIS_HOST: redis
+        REDIS_PORT: "6379"
+        KAFKA_BROKERS: kafka:9092
+images:
+  - name: ghcr.io/team-project-final/synapse-engagement-svc
+    newName: synapse-engagement-svc
+    newTag: local
