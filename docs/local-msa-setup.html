@@ -468,11 +468,43 @@ learning.ai.cards-generated-v1</div>
         <li><a href="docker-compose-workflow-guide.md">Docker Compose Workflow Guide</a> — compose 구성·헬스체크·메모리 설계 상세</li>
         <li><a href="runbooks/bastion-ssm-access.md">Bastion SSM 접근</a> — (AWS) EKS kubectl 접근 방법</li>
         <li><a href="../README.md">synapse-gitops README</a> — GitOps 레포 개요 + ArgoCD/Terraform</li>
+        <li><a href="#k8s">(고급) 로컬 k8s(minikube)로 띄우기 — §9</a> · docker compose 대신 쿠버네티스로 5개 서비스 기동</li>
       </ul>
       <div class="warn">
         ℹ️ <strong>AWS / EKS 배포는 이 가이드의 범위 밖입니다.</strong> 위 개발자 가이드와 런북을 참고하세요.
         이 문서는 로컬 개발환경 세팅까지만 다룹니다.
       </div>
+    </section>
+    <section id="k8s"><h2 class="sec"><span class="num">9</span>(고급) 로컬 k8s(minikube)로 띄우기</h2>
+      <p>docker compose(<a href="#path1">§3</a>/<a href="#path2">§4</a>) 대신 <strong>minikube 로컬 쿠버네티스</strong>에서 5개 서비스를 파드로 띄우는 경로입니다. <code>local-k8s/</code> kustomize가 EKS용 매니페스트를 로컬용으로 적응합니다(ExternalSecret 제거·인프라 인클러스터·로컬 이미지). <strong>Gateway는 포함되지 않습니다</strong>(매니페스트 없음 — 서비스 직접 접근).</p>
+
+      <div class="step"><input type="checkbox" id="k8s-1"><label for="k8s-1">1. 선행 도구</label></div>
+      <div class="code">minikube version
+kubectl version --client
+docker --version</div>
+
+      <div class="step"><input type="checkbox" id="k8s-2"><label for="k8s-2">2. 한 번에 기동(빌드+적재+적용)</label></div>
+      <p>형제 레포(<a href="#clone">§2</a>의 7개)가 클론돼 있어야 합니다. learning-card는 Dockerfile이 없어 스크립트가 <code>bootBuildImage</code>로 빌드합니다(최초 다소 느림).</p>
+      <div class="code">cd C:\workspace\team-project-final\synapse-gitops
+bash scripts/minikube-up.sh</div>
+
+      <div class="step"><input type="checkbox" id="k8s-3"><label for="k8s-3">3. 파드 상태 확인</label></div>
+      <div class="code">kubectl -n synapse-local get pods</div>
+
+      <div class="step"><input type="checkbox" id="k8s-4"><label for="k8s-4">4. 접근 — port-forward(서비스별 별도 터미널)</label></div>
+      <div class="code">kubectl -n synapse-local port-forward svc/platform-svc 8080:80
+kubectl -n synapse-local port-forward svc/learning-ai   8000:80</div>
+      <p>그 다음 <code>curl http://localhost:8080/actuator/health</code>, 브라우저로 <code>http://localhost:8000/docs</code>. 사용법은 <a href="#usage">§5</a>와 동일합니다(단 Gateway 없음 → 서비스 직접).</p>
+
+      <details class="deep"><summary>정적 렌더만 먼저 확인하려면 (심화)</summary>
+        <div class="body">클러스터 없이 매니페스트가 올바른지 보려면 <code>kubectl kustomize local-k8s</code>. 인프라 5개 + 앱 5개 Deployment가 <code>synapse-local</code> 네임스페이스로 렌더되고 ExternalSecret/ghcr/AWS 호스트가 없어야 정상입니다.</div>
+      </details>
+      <details class="deep"><summary>트러블슈팅 (심화)</summary>
+        <div class="body"><strong>ImagePullBackOff</strong>: 이미지가 minikube에 적재 안 됨 → <code>minikube image ls | grep synapse</code> 확인, 없으면 <code>minikube image load synapse-&lt;svc&gt;:local</code> 재실행. <strong>검색/카프카 OOM·CrashLoop</strong>: <code>minikube start</code> 메모리를 올리세요(예: <code>--memory=6144</code>). <strong>토픽 미생성</strong>: <code>kubectl -n synapse-local logs job/kafka-topics-init</code>. <strong>compose와 동시 실행 금지</strong>: 포트 충돌 — 한쪽을 내리세요.</div>
+      </details>
+      <details class="deep"><summary>compose 경로와 무엇이 다른가? (심화)</summary>
+        <div class="body">compose 경로(①/②)는 인프라를 호스트 컨테이너로 띄우지만, 이 경로는 인프라까지 <strong>클러스터 안</strong>에 띄워 파드가 서비스 DNS(<code>postgres</code>,<code>kafka</code> 등)로 통신합니다. 실 배포(EKS)와 더 가까운 형태를 로컬에서 체험할 수 있습니다.</div>
+      </details>
     </section>
   </main>
 </div>
