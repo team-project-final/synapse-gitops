@@ -365,9 +365,46 @@ curl http://localhost:8090/health            # learning-ai</div>
         </div>
       </details>
     </section>
-    <section id="data"><h2 class="sec"><span class="num">5</span>목업 · 시드 데이터 (선택)</h2></section>
-    <section id="trouble"><h2 class="sec"><span class="num">6</span>트러블슈팅</h2></section>
-    <section id="next"><h2 class="sec"><span class="num">7</span>다음 단계 · 더 깊이 보기</h2></section>
+    <section id="data"><h2 class="sec"><span class="num">5</span>목업 · 시드 데이터 (선택)</h2>
+      <p>초기 데이터가 없어도 서비스는 정상 기동합니다. 화면 확인이나 통합 테스트를 위해 목업/시드 데이터가 필요하면 아래를 참고하세요.</p>
+      <ul>
+        <li><a href="../../moking-data-guide/index.html">목업 데이터 가이드 (moking-data-guide)</a> — 서비스별 목업 전략·이벤트 목업 HTML 가이드</li>
+        <li><code>synapse-shared/scripts/seed-test-data.sh</code> — 테스트 데이터 시딩 스크립트</li>
+      </ul>
+      <p class="" style="color:var(--muted);font-size:14px">※ 위 링크는 <a href="#clone">§2</a>의 표준 형제 폴더 구조를 기준으로 한 상대경로입니다.</p>
+    </section>
+    <section id="trouble"><h2 class="sec"><span class="num">6</span>트러블슈팅</h2>
+      <table>
+        <thead><tr><th>증상</th><th>원인</th><th>해결</th></tr></thead>
+        <tbody>
+          <tr><td>포트 충돌 (5432 / 9092 / 9200 등)</td><td>두 스택 동시 실행 또는 기존 프로세스 점유</td>
+              <td>한쪽을 <code>docker compose down</code> 후 단일 스택만 실행. 점유 확인: <code>netstat -ano | findstr 5432</code></td></tr>
+          <tr><td>검색엔진 컨테이너가 죽음 (OOM)</td><td>Elasticsearch/OpenSearch JVM 힙 부족</td>
+              <td>Docker Desktop 메모리 상향. Linux/WSL: <code>sudo sysctl -w vm.max_map_count=262144</code></td></tr>
+          <tr><td>Apple Silicon에서 Kafka 느림</td><td>Confluent 이미지 amd64 에뮬레이션</td>
+              <td>정상 동작이며 초기 기동만 느림</td></tr>
+          <tr><td><code>up --build</code> 실패: 빌드 컨텍스트 없음</td><td>형제 레포 미클론</td>
+              <td><a href="#clone">§2</a>의 7개 레포가 같은 부모 폴더에 형제로 있는지 확인</td></tr>
+          <tr><td><code>.env</code> 누락 경고</td><td><code>cp .env.example .env</code> 미실행</td>
+              <td><a href="#path1">§3</a> 1단계 수행</td></tr>
+          <tr><td>하이브리드에서 8080 충돌</td><td>Gateway(:8080)와 platform-svc 기본 포트 겹침</td>
+              <td>인프라만 올리거나 <code>./gradlew bootRun --args='--server.port=8181'</code>로 변경 (<a href="#path2">§4</a> 심화 참고)</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section id="next"><h2 class="sec"><span class="num">7</span>다음 단계 · 더 깊이 보기</h2>
+      <p>로컬 환경이 떴다면, 다음 문서로 프로젝트를 더 깊이 이해하거나 클라우드 배포로 넘어갈 수 있습니다.</p>
+      <ul>
+        <li><a href="synapse-developer-guide.md">Synapse Developer Guide</a> — 올인원 개발자 가이드(레포별 구조, GitOps 배포, AWS 인프라)</li>
+        <li><a href="docker-compose-workflow-guide.md">Docker Compose Workflow Guide</a> — compose 구성·헬스체크·메모리 설계 상세</li>
+        <li><a href="runbooks/bastion-ssm-access.md">Bastion SSM 접근</a> — (AWS) EKS kubectl 접근 방법</li>
+        <li><a href="../README.md">synapse-gitops README</a> — GitOps 레포 개요 + ArgoCD/Terraform</li>
+      </ul>
+      <div class="warn">
+        ℹ️ <strong>AWS / EKS 배포는 이 가이드의 범위 밖입니다.</strong> 위 개발자 가이드와 런북을 참고하세요.
+        이 문서는 로컬 개발환경 세팅까지만 다룹니다.
+      </div>
+    </section>
   </main>
 </div>
 <script>
