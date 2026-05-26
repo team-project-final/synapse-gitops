@@ -84,7 +84,63 @@
       <p>처음부터 따라 하면 내 PC에서 Synapse가 돌아갑니다 · 초보 ~ 준시니어용</p>
     </header>
 
-    <section id="overview"><h2 class="sec"><span class="num">0</span>개요</h2></section>
+    <section id="overview"><h2 class="sec"><span class="num">0</span>개요</h2>
+      <p>이 가이드를 끝내면 <strong>내 PC에서 Synapse MSA 전체(또는 내가 맡은 서비스)가 돌아갑니다.</strong>
+         초보는 번호 단계만 위→아래로 따라가면 되고, 준시니어는 각 단계의 <strong>“▸ 심화”</strong> 박스를 펼쳐
+         원리와 트러블슈팅을 볼 수 있습니다. AWS/EKS 배포는 이 가이드의 범위가 아닙니다(→ <a href="#next">§7 더 깊이 보기</a>).</p>
+
+      <h3>전체 구성도</h3>
+      <pre class="ascii">
+                              ┌─────────────────────────────┐
+   브라우저 / 클라이언트  ──▶ │  (하이브리드 시) Gateway :8080 │
+                              └───────────────┬─────────────┘
+                                              │  라우팅
+        ┌─────────────────────────────────────┼─────────────────────────────────────┐
+        ▼                 ▼                    ▼                  ▼                    ▼
+  platform-svc      engagement-svc       knowledge-svc      learning-card        learning-ai
+     :8080             :8082                :8083              :8084               :8000  (FastAPI)
+        └─────────────────┴────────┬───────────┴──────────────────┴────────────────────┘
+                                    │  JDBC / Redis / Kafka(Avro) / 검색
+   ┌────────────────────────────────────────────────────────────────────────────────┐
+   │  PostgreSQL :5432   Redis :6379   Kafka :9092 (+Zookeeper)                       │
+   │  Schema Registry (Avro)   Elasticsearch/OpenSearch :9200                         │
+   │  kafka-init → 토픽 5개 자동 생성                                                  │
+   └────────────────────────────────────────────────────────────────────────────────┘</pre>
+      <p>서비스 간 비동기 통신은 <strong>Kafka + Avro(Schema Registry)</strong> 이벤트로 이뤄집니다.
+         서비스는 도메인별로 분리된 독립 Spring Boot(JDK 21) 앱이며, AI 서비스(learning-ai)만 Python/FastAPI입니다.</p>
+
+      <h3>두 가지 실행 경로</h3>
+      <p>로컬 실행 경로는 두 가지이고, <strong>서로 다른 compose 파일/인프라 스택</strong>을 씁니다. 목적에 따라 하나를 고르세요.</p>
+      <table>
+        <thead><tr><th>항목</th>
+          <th><span class="badge path1">① 풀 컨테이너</span></th>
+          <th><span class="badge path2">② 하이브리드</span></th></tr></thead>
+        <tbody>
+          <tr><td>compose 파일</td><td><code>synapse-gitops/docker-compose.yml</code></td><td><code>synapse-shared/docker-compose.yml</code></td></tr>
+          <tr><td>앱 실행 방식</td><td>형제 레포에서 빌드 → 5개 모두 컨테이너 (<code>up -d --build</code>)</td><td>인프라만 컨테이너, 앱은 IDE/소스로 직접 실행 (compose 내 앱은 stub)</td></tr>
+          <tr><td>Gateway</td><td>없음 (앱 포트 직접 호출)</td><td>있음 (:8080, 빌드)</td></tr>
+          <tr><td>검색엔진</td><td>Elasticsearch 8.13</td><td>OpenSearch 2.11</td></tr>
+          <tr><td>Kafka / Postgres</td><td>7.6.1 / pgvector-pg16</td><td>7.7.0 / postgres:16-alpine</td></tr>
+          <tr><td>Schema Registry 포트</td><td>8085</td><td>8086</td></tr>
+          <tr><td>용도 · 대상</td><td>“일단 다 떠 있는 모습”을 빠르게 (초보·QA)</td><td>코드 수정→재기동 반복 (실제 개발)</td></tr>
+        </tbody>
+      </table>
+
+      <div class="warn">
+        ⚠️ <strong>두 경로를 동시에 실행하지 마세요.</strong> 두 스택은 5432·6379·9092·9200 등 포트가 겹칩니다.
+        한 번에 하나만 실행하고, 전환할 때는 먼저 <code>docker compose down</code> 후 다른 쪽을 올립니다.
+      </div>
+
+      <details class="deep"><summary>왜 스택이 둘로 갈렸나? (심화)</summary>
+        <div class="body">
+          두 compose는 검색엔진(Elasticsearch ↔ OpenSearch), Kafka(7.6.1 ↔ 7.7.0), Postgres(pgvector ↔ alpine),
+          Schema Registry 호스트 포트(8085 ↔ 8086)가 다릅니다. <code>synapse-gitops</code> compose는 “제품 전체를
+          컨테이너로 띄우는(빌드 또는 ghcr 이미지) 배포 지향” 구성이고, <code>synapse-shared</code> compose는
+          “로컬 개발용 인프라 + Gateway, 앱은 본인이 소스로 실행”하는 개발 지향 구성입니다. 이 분기는 레포가
+          각자 진화하며 생긴 <strong>알려진 기술부채</strong>이며, 본 문서는 현황을 반영만 합니다(통합은 별도 과제).
+        </div>
+      </details>
+    </section>
     <section id="prereq"><h2 class="sec"><span class="num">1</span>사전 준비</h2></section>
     <section id="clone"><h2 class="sec"><span class="num">2</span>레포 클론</h2></section>
     <section id="path1"><h2 class="sec"><span class="num">3</span>경로 ① 풀 컨테이너 (빠른 체험)</h2></section>
