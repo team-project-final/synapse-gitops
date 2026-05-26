@@ -1,8 +1,10 @@
 # 로컬 k8s(minikube) 실행 경로 설계 스펙 (B)
 
 > **작성일**: 2026-05-26
-> **범위**: Synapse MSA 5개 서비스를 minikube 로컬 클러스터에 파드로 기동하는 kustomize 매니페스트 + 기동 스크립트 + HTML 문서
-> **산출물**: `synapse-gitops/local-k8s/` (신규), `synapse-gitops/scripts/minikube-up.sh` (신규), `synapse-gitops/docs/local-msa-setup.html` (§9 부록 추가)
+> **범위**: Synapse MSA 5개 서비스 + Gateway를 minikube 로컬 클러스터에 파드로 기동하는 kustomize 매니페스트 + 기동 스크립트 + HTML 문서
+> **산출물**: `synapse-gitops/local-k8s/` (신규), `synapse-gitops/scripts/minikube-up.sh` (신규), `synapse-gitops/docs/local-msa-setup.html` (§3 메인 경로)
+
+> **개정 (2026-05-26, 사용자 지시):** ① k8s(minikube)를 가이드의 **메인 경로(§3)** 로 승격(compose 경로는 §4/§5 **대안**으로 유지, 삭제하지 않음). ② **Gateway 포함** — `local-k8s/gateway.yaml`(Deployment+Service)을 신설하고 라우트 URI를 인클러스터 DNS(`http://platform-svc:80` 등)로, Redis는 `redis:6379`로 설정. `minikube-up.sh`에 gateway 이미지 빌드 추가. 따라서 아래 "Gateway 미포함"·"§9 부록" 기술은 본 개정으로 대체됨(인클러스터 Deployment 총 11 = 인프라 5 + Gateway + 앱 5).
 
 ---
 
