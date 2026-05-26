@@ -8,6 +8,7 @@ ACCOUNT_ID="${ACCOUNT_ID:-963773969059}"
 TFDIR="infra/aws/dev"
 DRY_RUN=false
 START_PHASE=""
+END_PHASE=""
 MODE="bringup" # bringup | verify | destroy
 
 log() { echo -e "\033[1;34m[*]\033[0m $*"; }
@@ -24,7 +25,8 @@ require() { command -v "$1" >/dev/null 2>&1 || {
 usage() {
   cat <<USAGE
 사용법: bring-up.sh [옵션]
-  --from <phase>   해당 phase부터 재개 (terraform|eks-auth|access-entry|sg|tunnel|argocd|eso|oidc-fix|manifests|observability|status)
+  --from <phase>   해당 phase부터 재개 (terraform|eks-auth|access-entry|sg|tunnel|argocd|eso|oidc-fix|manifests|image-updater|observability|status)
+  --to <phase>     해당 phase까지만 실행 (예: --to manifests = observability 제외 dev-only)
   --verify         bring-up 대신 W3 잔여 3항목 검증
   --destroy        terraform destroy (비용 차단)
   --dry-run        명령 출력만, 미실행
@@ -32,10 +34,19 @@ usage() {
 USAGE
 }
 
-PHASES=(terraform eks-auth access-entry sg tunnel argocd eso oidc-fix manifests observability status)
+PHASES=(terraform eks-auth access-entry sg tunnel argocd eso oidc-fix manifests image-updater observability status)
 
 # ─── phase 함수 ───────────────────────────────────────────────────────────
 phase_terraform() {
+  if $DRY_RUN; then
+    echo "+ terraform init + apply (인프라 + EBS CSI/IRSA)"
+    return
+  fi
+  if [ ! -f "$TFDIR/terraform.tfvars" ] && [ -z "${TF_VAR_rds_password:-}" ]; then
+    err "$TFDIR/terraform.tfvars 없음(gitignored secrets: rds_password/redis_auth_token)."
+    err "  → 메인 체크아웃에서 복사하거나 TF_VAR_rds_password/TF_VAR_redis_auth_token 환경변수 설정."
+    exit 1
+  fi
   run "terraform -chdir=$TFDIR init -input=false"
   run "terraform -chdir=$TFDIR apply -auto-approve -input=false"
 }
@@ -50,7 +61,19 @@ phase_eks_auth() {
     return
   fi
   run "aws eks update-cluster-config --name $CLUSTER_NAME --region $AWS_REGION --access-config authenticationMode=API_AND_CONFIG_MAP"
-  run "aws eks wait cluster-active --name $CLUSTER_NAME --region $AWS_REGION"
+  # cluster-active waiter는 auth-config 업데이트 완료를 기다리지 않음 → authenticationMode를 직접 폴링
+  local i m
+  for i in $(seq 1 30); do
+    m=$(aws eks describe-cluster --name "$CLUSTER_NAME" --region "$AWS_REGION" \
+      --query cluster.accessConfig.authenticationMode --output text 2>/dev/null || echo "")
+    if [ "$m" = "API_AND_CONFIG_MAP" ] || [ "$m" = "API" ]; then
+      ok "auth mode → $m"
+      return
+    fi
+    sleep 10
+  done
+  err "auth mode 변경이 시간 내 완료 안 됨"
+  exit 1
 }
 
 phase_access_entry() {
@@ -97,8 +120,13 @@ phase_tunnel() {
 
 phase_argocd() {
   run "kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -"
-  run "kubectl apply -n argocd --server-side -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml"
-  run "kubectl -n argocd patch deploy argocd-server --type=json -p='[{\"op\":\"add\",\"path\":\"/spec/template/spec/containers/0/args/-\",\"value\":\"--insecure\"}]' || true"
+  # --force-conflicts: 재실행 시 --insecure 패치(kubectl-patch 매니저)와의 field 충돌 방지
+  run "kubectl apply -n argocd --server-side --force-conflicts -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml"
+  if $DRY_RUN; then
+    echo "+ argocd-server --insecure patch (없을 때만)"
+  elif ! kubectl -n argocd get deploy argocd-server -o jsonpath='{.spec.template.spec.containers[0].args}' 2>/dev/null | grep -q -- '--insecure'; then
+    kubectl -n argocd patch deploy argocd-server --type=json -p='[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--insecure"}]'
+  fi
   run "kubectl -n argocd rollout status deploy/argocd-server --timeout=300s"
 }
 
@@ -135,6 +163,24 @@ phase_manifests() {
   if $DRY_RUN; then return; fi
   kubectl wait --for=condition=Ready clustersecretstore/aws-secrets-manager --timeout=120s || warn "ClusterSecretStore 미Ready"
   kubectl -n synapse-dev wait --for=condition=Ready externalsecret --all --timeout=180s || warn "일부 ExternalSecret 미Synced"
+}
+
+phase_image_updater() {
+  if $DRY_RUN; then
+    echo "+ image-updater: 컨트롤러 설치 + ECR IRSA(annotate) + git write-back 자격 확인"
+    return
+  fi
+  kubectl apply -n argocd --server-side --force-conflicts \
+    -f https://raw.githubusercontent.com/argoproj-labs/argocd-image-updater/v0.15.2/manifests/install.yaml
+  kubectl -n argocd annotate sa argocd-image-updater \
+    eks.amazonaws.com/role-arn=arn:aws:iam::${ACCOUNT_ID}:role/synapse-dev-image-updater-role --overwrite
+  # git write-back용 ArgoCD repo 자격 — AWS SM(synapse/gitops/git-token) → ESO → repository 시크릿
+  run "kubectl apply -f infra/external-secrets/argocd-repo-externalsecret.yaml"
+  if ! aws secretsmanager describe-secret --secret-id synapse/gitops/git-token --region "$AWS_REGION" >/dev/null 2>&1; then
+    warn "AWS SM 시크릿 없음: synapse/gitops/git-token → git write-back 불가. PAT 등록 필요(S6 E2E)."
+  fi
+  kubectl -n argocd rollout restart deploy argocd-image-updater
+  kubectl -n argocd rollout status deploy argocd-image-updater --timeout=180s
 }
 
 phase_observability() {
@@ -186,8 +232,9 @@ verify_all() {
   warn "platform-svc/learning-ai 미Healthy는 app 레포 의존 — 조건부"
 
   echo "## 메트릭 타깃" | tee -a "$report"
-  kubectl -n monitoring exec sts/prometheus-kube-prometheus-stack-prometheus -c prometheus -- \
-    wget -qO- 'http://localhost:9090/api/v1/targets?state=active' 2>/dev/null |
+  # Prometheus 이미지에 wget/curl이 없어 exec 불가 → 임시 curl pod로 API 조회
+  kubectl -n monitoring run tmp-verify-targets --rm -i --restart=Never --image=curlimages/curl --command --timeout=90s -- \
+    curl -s 'http://kube-prometheus-stack-prometheus:9090/api/v1/targets?state=active' 2>/dev/null |
     jq -r '.data.activeTargets[] | select(.labels.namespace|test("synapse-")) | "\(.labels.job)\t\(.health)"' |
     tee -a "$report" || warn "타깃 조회 실패(앱 미배포/메트릭 미노출 가능)"
 
@@ -216,9 +263,9 @@ spec:
           annotations: {summary: "bring-up --verify Slack 도달 테스트"}
 YAML
   sleep 60
-  kubectl -n monitoring exec sts/alertmanager-kube-prometheus-stack-alertmanager -c alertmanager -- \
-    wget -qO- 'http://localhost:9093/api/v2/alerts?filter=alertname=TestSlackDelivery' 2>/dev/null |
-    jq -r '.[] | "firing=\(.status.state) receiver=\(.receivers[0].name)"' || echo "Alertmanager 조회 실패"
+  kubectl -n monitoring run tmp-verify-am --rm -i --restart=Never --image=curlimages/curl --command --timeout=90s -- \
+    curl -s 'http://kube-prometheus-stack-alertmanager:9093/api/v2/alerts?filter=alertname=TestSlackDelivery' 2>/dev/null |
+    jq -r '.[] | "state=\(.status.state) receiver=\(.receivers[0].name)"' || echo "Alertmanager 조회 실패"
   kubectl -n monitoring delete prometheusrule test-slack-delivery
   echo "→ Slack 채널 #synapse-gitops에서 TestSlackDelivery 수신 여부를 눈으로 확인하세요."
 }
@@ -254,6 +301,10 @@ main() {
     $started || continue
     log "=== phase: $p ==="
     "phase_${p//-/_}"
+    [ "$p" = "$END_PHASE" ] && {
+      ok "phase '$END_PHASE'까지 완료"
+      return
+    }
   done
   ok "bring-up 완료. 검증: bring-up.sh --verify"
 }
@@ -262,6 +313,10 @@ while [ $# -gt 0 ]; do
   case "$1" in
   --from)
     START_PHASE="$2"
+    shift 2
+    ;;
+  --to)
+    END_PHASE="$2"
     shift 2
     ;;
   --verify)

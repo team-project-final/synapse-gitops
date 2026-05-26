@@ -82,7 +82,7 @@
   - [x] EKS 배포: 3/5 Healthy (engagement-svc, knowledge-svc, learning-card)
   - [ ] EKS 배포: platform-svc Healthy (앱 코드 수정 필요 — mfa_credentials 테이블)
   - [ ] EKS 배포: learning-ai Healthy (앱 코드 수정 필요 — Python 기동 문제)
-  - [ ] Pod에 트래픽 도달 확인 (Ingress 또는 port-forward)
+  - [x] Pod에 트래픽 도달 확인 (S4: knowledge-svc `/actuator/health` → HTTP 200/UP, port-forward, 2026-05-26)
 - **Duration**: 2일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
@@ -119,7 +119,7 @@
   - [x] ImageUpdater CR 작성 (`argocd/image-updater.yaml`)
   - [x] ECR 이미지 경로로 교체 완료 (ApplicationSet + dev overlay)
   - [x] write-back-method: git + write-back-target: kustomization 설정
-  - [ ] 새 이미지 푸시 → 5분 이내 dev에 반영 확인 — EKS 배포 후
+  - [~] 새 이미지 푸시 → dev 반영(S6 EKS): image-updater 설치(v0.15.2)+ECR IRSA+pullsecret 인증+git repo-cred **검증 완료**, ECR 태그 리스팅 성공. write-back E2E는 **2중 블록** — ① dev overlay가 `dev-latest`(semver 전략 불일치) ② **main 보호 ruleset이 직접 push 거부**(PR 필수, bypass 없음). **결정: dev/staging=A(전용 봇 bypass), prod(W4+)=B(PR write-back)** — 실행 절차·A/B: `docs/runbooks/image-updater-ecr-setup.md`. 라이브 완주는 차기 세션(과금).
   - [x] 태그 변경 이력이 git log에 남음 (git write-back 설정)
 - **Duration**: 1.5일
 - **Assignee**: @VelkaressiaBlutkrone
@@ -142,12 +142,12 @@
   - [x] staging 공유 Ingress + TLS 매니페스트 작성 (PR #47, `infra/ingress/staging-ingress.yaml` — 적용은 ACM/도메인 확보 후, 검증은 port-forward로 대체)
   - [x] dev → staging 승격 절차 문서화 (PR #47, `docs/runbooks/dev-to-staging-promotion.md`)
   - [x] ApplicationSet **manual → auto sync 전환** (PR #47, FR-GO-301)
-  - [ ] staging sync → 5/5 Healthy 검증 (클러스터 재구축 후 — bare 상태)
+  - [x] staging sync → A2 실 EKS에서 **4/5 Healthy** 검증 (platform-svc Degraded = app 레포 staging 프로필, cross-repo 조건부)
 - **Duration**: 2일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [x] In Progress / [ ] Done (매니페스트·문서·auto-sync 완료(PR #47); 5/5 Healthy 검증은 W1/W2 재구축 후)
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (auto-sync·승격문서·Ingress매니페스트 완료(PR #47), A2 라이브 4/5 검증. platform-svc 5/5만 app 레포 조건부)
 
 ---
 
@@ -164,7 +164,7 @@
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [x] In Progress / [ ] Done (스택+매니페스트 실 EKS 검증 완료(PR #47); 메트릭 E2E·실 Slack 도달은 앱 스택+webhook 후)
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (A2 실 EKS 1사이클로 스택 전체 검증 — 메트릭 타깃 UP, Alertmanager→Slack 라우팅(실 webhook), prometheus/grafana/alertmanager/loki Healthy. bring-up 자동화 PR #50/#52)
 
 ---
 

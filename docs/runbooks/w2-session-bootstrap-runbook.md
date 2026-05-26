@@ -11,6 +11,8 @@
 
 ```bash
 # 1) AWS 자격증명 + session-manager-plugin 준비
+#    + infra/aws/dev/terraform.tfvars 로컬 존재 (gitignored secrets: rds_password/redis_auth_token)
+#      — 신규 체크아웃/worktree면 기존 체크아웃에서 복사하거나 TF_VAR_* 설정
 # 2) (최초 1회) AWS SM에 monitoring 시크릿 등록 — 실 Slack/Grafana
 aws secretsmanager create-secret --name synapse/monitoring/grafana --region ap-northeast-2 \
   --secret-string '{"admin-user":"admin","admin-password":"<강한값>"}'
