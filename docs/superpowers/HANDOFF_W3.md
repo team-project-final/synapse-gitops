@@ -1,6 +1,6 @@
 # W3 핸드오프: synapse-gitops
 
-> **최종 갱신**: 2026-05-26 (W3 1일차 — observability 라이브 검증)
+> **최종 갱신**: 2026-05-26 (W3 1일차 — observability + bring-up 자동화 + W1/W2 carry-over)
 > **허브 참조**: [synapse-shared/docs/project-management/HANDOFF_HUB.md](https://github.com/team-project-final/synapse-shared/blob/main/docs/project-management/HANDOFF_HUB.md)
 > **담당**: @VelkaressiaBlutkrone
 
@@ -37,6 +37,15 @@ W2 이전 (1~9차 세션): → [HANDOFF_W2.md](./HANDOFF_W2.md) 참조
 - 🐛 A2 발견 6건 수정(PR #52): tfvars fail-fast, eks-auth 폴링, 터널 readiness(/readyz→get nodes), ExternalSecret v1, argocd --force-conflicts, --verify curl pod
 - 🔧 운영 전제 문서화: **ESO IAM 정책에 `synapse/monitoring/*` 필요**(수동 갱신함, terraform화 백로그) · **observability엔 노드 ≥4**(2노드 max-pods 초과)
 - 잔여(차기): platform-svc staging 프로필(app 레포), staging Ingress 도메인/ACM TLS, ESO 정책 terraform화
+
+### W1/W2 carry-over 처리 (2026-05-26)
+
+> PR **#54**(W1 S3, merged) + **#55**(W2 S4/S6, merged).
+
+- ✅ **W1 S3** PR diff 코멘트 — `validate-manifests`에 diff-comment 잡 추가(base→PR kustomize 렌더 diff를 PR 코멘트로 upsert). self-test 통과
+- ✅ **W2 S4** Pod 트래픽 도달 — knowledge-svc `/actuator/health` → HTTP 200/UP(port-forward). dev에서 platform-svc·learning-ai도 Running(단, 2노드 capacity로 engagement-svc Pending → 노드 ≥4 필요)
+- 🟡 **W2 S6** 이미지 sync — image-updater 컨트롤러(v0.15.2)+ECR IRSA+**ECR registry 인증(pullsecret)**+git repo-cred 실 EKS 검증, ECR 태그 리스팅 성공. write-back E2E는 ① overlay `dev-latest`↔semver 전략 ② main 보호 ruleset 직접 push 거부 **2중 블록** → **결정: dev/staging=A(전용 봇 bypass), prod(W4+)=B(PR write-back)**. 실행절차: `docs/runbooks/image-updater-ecr-setup.md`. 라이브 완주는 차기 세션(과금)
+- 🟢 미진행(사유 명확): W1 S1 webhook 외부도달(private 구조 → polling 운영), W1 S2 app-of-apps(ApplicationSet 단독 운영 결정), platform-svc/learning-ai Healthy(앱 레포)
 
 ---
 
@@ -85,6 +94,8 @@ W3에서 추가된 발견 사항은 아래에 기록:
 | D-033 | destroy 후 재apply한 bare 클러스터에 EBS CSI 드라이버/기본 SC 부재 (gp2는 in-tree provisioner, 1.30에서 미작동) | 동적 PVC 불가 → Loki persistence 블록. 재구축 시 aws-ebs-csi-driver 애드온 + IRSA 필요 |
 | D-034 | grafana/loki 차트는 `schemaConfig` 필수 + `deploymentMode: SingleBinary` 미설정 시 loki-0 미생성 | loki-values.yaml 수정 (PR #47) |
 | D-035 | ApplicationSet staging을 manual → auto sync로 전환 (PRD FR-GO-301 정합) | PR #47 |
+| D-036 | argocd-image-updater ECR 인증: IRSA만으론 레지스트리 Docker API 인증 불가("no basic auth"). `registries.conf` + `credentials: pullsecret:argocd/ecr-creds`(`aws ecr get-login-password` 토큰, 12h 만료→갱신 CronJob 필요). install URL은 `stable` 404 → v0.15.2 핀 | S6 write-back 전제 (PR #55) |
+| D-037 | image-updater git write-back(main 직접 push)이 main 보호 ruleset(PR 필수, bypass 없음)에 거부 | 결정: dev/staging=A(봇 bypass), prod=B(PR write-back). `image-updater-ecr-setup.md` |
 
 ---
 
