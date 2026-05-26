@@ -101,7 +101,7 @@
   - [x] dev overlay에서 secretStoreRef → `aws-secrets-manager` 교체 완료
   - [x] ESO 컨트롤러 EKS Helm 설치 + IRSA 완료 (Role: `synapse-dev-eso-role`, Policy: `synapse-dev-eso-secrets-read`)
   - [x] ClusterSecretStore Valid + 5개 ExternalSecret SecretSynced 확인 (8차 세션 재확인)
-  - [ ] git에 평문 시크릿 0건 확인 (`gitleaks`)
+  - [x] git에 평문 시크릿 0건 확인 (`gitleaks` 8.30.1 — 114 commits, no leaks, 2026-05-26)
   - [x] EKS 인증 모드 API_AND_CONFIG_MAP + access entry 설정 (D-027)
 - **Duration**: 1.5일
 - **Assignee**: @VelkaressiaBlutkrone
