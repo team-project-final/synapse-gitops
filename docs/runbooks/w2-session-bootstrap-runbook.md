@@ -7,6 +7,28 @@
 
 ---
 
+## 빠른 경로 (권장): bring-up.sh
+
+```bash
+# 1) AWS 자격증명 + session-manager-plugin 준비
+# 2) (최초 1회) AWS SM에 monitoring 시크릿 등록 — 실 Slack/Grafana
+aws secretsmanager create-secret --name synapse/monitoring/grafana --region ap-northeast-2 \
+  --secret-string '{"admin-user":"admin","admin-password":"<강한값>"}'
+aws secretsmanager create-secret --name synapse/monitoring/alertmanager --region ap-northeast-2 \
+  --secret-string '{"slack-webhook-url":"https://hooks.slack.com/services/..."}'
+
+# 3) 한 명령 기동
+bash scripts/bring-up.sh            # 전체 (terraform→…→observability)
+bash scripts/bring-up.sh --from eso # 중간 재개
+bash scripts/bring-up.sh --verify   # W3 잔여 3항목 검증
+bash scripts/bring-up.sh --destroy  # 비용 차단
+bash scripts/bring-up.sh --dry-run  # 명령 출력만(무비용 흐름 확인)
+```
+
+스크립트가 실패하면 아래 수동 12단계를 fallback으로 사용하세요.
+
+---
+
 ## 전체 흐름
 
 ```
@@ -281,6 +303,8 @@ kubectl -n synapse-dev get pods
 ---
 
 ## Step 11. staging sync (선택)
+
+> **갱신(W3)**: staging ApplicationSet은 이제 **auto-sync**다. main 머지 시 자동 반영되며, 아래 manual patch는 즉시 sync가 필요한 경우에만 사용.
 
 dev 5/5 Healthy 확인 후 staging sync를 진행할 수 있습니다.
 

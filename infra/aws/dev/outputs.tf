@@ -87,3 +87,34 @@ output "bastion_instance_id" {
   description = "Bastion EC2 instance ID (for SSM session)"
   value       = aws_instance.bastion.id
 }
+
+# ─── Bring-up automation outputs ──────────────────────────────────────────
+output "eks_cluster_security_group_id" {
+  description = "EKS 클러스터 auto-managed SG (D-026 source)"
+  value       = aws_eks_cluster.main.vpc_config[0].cluster_security_group_id
+}
+
+output "sg_rds_id" {
+  description = "RDS SG ID"
+  value       = aws_security_group.rds.id
+}
+
+output "sg_redis_id" {
+  description = "Redis SG ID"
+  value       = aws_security_group.redis.id
+}
+
+output "sg_msk_id" {
+  description = "MSK SG ID"
+  value       = aws_security_group.msk.id
+}
+
+output "sg_opensearch_id" {
+  description = "OpenSearch SG ID"
+  value       = aws_security_group.opensearch.id
+}
+
+output "eks_oidc_id" {
+  description = "EKS OIDC provider ID (마지막 path 세그먼트)"
+  value       = element(split("/", aws_iam_openid_connect_provider.eks.url), length(split("/", aws_iam_openid_connect_provider.eks.url)) - 1)
+}
