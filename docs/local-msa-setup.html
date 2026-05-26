@@ -187,7 +187,48 @@ brew install git python@3.11</div>
         </div>
       </details>
     </section>
-    <section id="clone"><h2 class="sec"><span class="num">2</span>레포 클론</h2></section>
+    <section id="clone"><h2 class="sec"><span class="num">2</span>레포 클론</h2>
+      <p><strong>모든 레포를 같은 부모 폴더 아래 형제(sibling)로 클론해야 합니다.</strong>
+         compose가 <code>../synapse-*</code> 상대경로로 다른 레포의 소스를 빌드하기 때문입니다.</p>
+
+      <div class="step"><input type="checkbox" id="clone-1"><label for="clone-1">부모 폴더로 이동 후 7개 레포 클론</label></div>
+      <div class="code" data-cmd="cd C:\workspace\team-project-final
+git clone https://github.com/team-project-final/synapse-gitops.git
+git clone https://github.com/team-project-final/synapse-shared.git
+git clone https://github.com/team-project-final/synapse-gateway.git
+git clone https://github.com/team-project-final/synapse-platform-svc.git
+git clone https://github.com/team-project-final/synapse-engagement-svc.git
+git clone https://github.com/team-project-final/synapse-knowledge-svc.git
+git clone https://github.com/team-project-final/synapse-learning-svc.git">cd C:\workspace\team-project-final
+git clone https://github.com/team-project-final/synapse-gitops.git
+git clone https://github.com/team-project-final/synapse-shared.git
+git clone https://github.com/team-project-final/synapse-gateway.git
+git clone https://github.com/team-project-final/synapse-platform-svc.git
+git clone https://github.com/team-project-final/synapse-engagement-svc.git
+git clone https://github.com/team-project-final/synapse-knowledge-svc.git
+git clone https://github.com/team-project-final/synapse-learning-svc.git</div>
+      <p>(부모 폴더 경로는 자유입니다. 위 예시는 <code>C:\workspace\team-project-final</code>를 씁니다.)</p>
+
+      <h3>클론 후 폴더 구조</h3>
+      <pre class="ascii">
+team-project-final/
+├── synapse-gitops/          ← 경로① compose + 이 가이드(docs/)
+├── synapse-shared/          ← 경로② 인프라 compose + Avro 스키마/스크립트
+├── synapse-gateway/         ← API Gateway (경로②에서 빌드)
+├── synapse-platform-svc/    ← 인증/결제/알림
+├── synapse-engagement-svc/  ← 참여/활동
+├── synapse-knowledge-svc/   ← 노트/검색
+└── synapse-learning-svc/    ← learning-card(Spring) + learning-ai(FastAPI)</pre>
+
+      <details class="deep"><summary>경로별로 실제 필요한 레포는? (심화)</summary>
+        <div class="body">
+          <strong>경로① 풀 컨테이너</strong>는 <code>synapse-gitops</code> + 빌드 대상 서비스 레포
+          (<code>platform/engagement/knowledge-svc</code>, <code>learning-svc</code>)가 필요합니다(Gateway 없음).
+          <strong>경로② 하이브리드</strong>는 <code>synapse-shared</code> + <code>synapse-gateway</code> +
+          본인이 개발할 서비스 레포가 필요합니다. 처음엔 위 7개를 모두 받아두면 어느 경로든 바로 시작할 수 있습니다.
+        </div>
+      </details>
+    </section>
     <section id="path1"><h2 class="sec"><span class="num">3</span>경로 ① 풀 컨테이너 (빠른 체험)</h2></section>
     <section id="path2"><h2 class="sec"><span class="num">4</span>경로 ② 하이브리드 (실제 개발)</h2></section>
     <section id="data"><h2 class="sec"><span class="num">5</span>목업 · 시드 데이터 (선택)</h2></section>
