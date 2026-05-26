@@ -141,7 +141,52 @@
         </div>
       </details>
     </section>
-    <section id="prereq"><h2 class="sec"><span class="num">1</span>사전 준비</h2></section>
+    <section id="prereq"><h2 class="sec"><span class="num">1</span>사전 준비</h2>
+      <p>로컬 실행에 필요한 도구입니다. <strong>AWS CLI·kubectl은 로컬 개발에 필요하지 않습니다</strong>(EKS 접근은 별도 가이드 → <a href="#next">§7</a>).</p>
+      <table>
+        <thead><tr><th>도구</th><th>확인 명령</th><th>비고</th></tr></thead>
+        <tbody>
+          <tr><td>Docker Desktop</td><td><code>docker --version</code></td><td>Compose v2 포함</td></tr>
+          <tr><td>JDK 21 (Temurin)</td><td><code>java -version</code></td><td>모든 Spring 서비스가 Java 21</td></tr>
+          <tr><td>Git</td><td><code>git --version</code></td><td>—</td></tr>
+          <tr><td>Python 3.11</td><td><code>python --version</code></td><td>learning-ai (FastAPI)</td></tr>
+          <tr><td>(선택) Flutter</td><td><code>flutter --version</code></td><td>프론트엔드 작업 시에만</td></tr>
+        </tbody>
+      </table>
+
+      <h3>설치 여부 한 번에 확인</h3>
+      <div class="code">docker --version
+java -version
+git --version
+python --version</div>
+
+      <h3>설치 방법</h3>
+      <div class="tabs" data-group="install">
+        <button data-os="win" class="active">Windows</button><button data-os="nix">macOS / Linux</button>
+      </div>
+      <div class="tab-panel active" data-group="install" data-os="win">
+        <p>Chocolatey 사용 시:</p>
+        <div class="code">choco install docker-desktop temurin21 git python</div>
+        <p>또는 각 공식 페이지에서 설치: <a href="https://www.docker.com/products/docker-desktop/">Docker Desktop</a> ·
+           <a href="https://adoptium.net/temurin/releases/?version=21">Temurin 21</a> ·
+           <a href="https://git-scm.com/download/win">Git</a> ·
+           <a href="https://www.python.org/downloads/">Python</a></p>
+      </div>
+      <div class="tab-panel" data-group="install" data-os="nix">
+        <p>Homebrew 사용 시:</p>
+        <div class="code">brew install --cask docker temurin@21
+brew install git python@3.11</div>
+        <p>Linux는 배포판 패키지 매니저(<code>apt</code>/<code>dnf</code>) 또는 <a href="https://docs.docker.com/engine/install/">Docker Engine</a> + <a href="https://adoptium.net/temurin/releases/?version=21">Temurin 21</a>를 사용하세요.</p>
+      </div>
+
+      <details class="deep"><summary>AWS CLI·kubectl이 왜 없어도 되나? (심화)</summary>
+        <div class="body">
+          로컬 환경은 모든 것을 <strong>Docker 컨테이너 + 소스 실행</strong>으로 구성합니다. AWS CLI와 kubectl은
+          EKS(클라우드) 클러스터에 접근할 때 필요한 도구이고, 로컬에는 클러스터가 없습니다. EKS·ArgoCD·Bastion 접근은
+          <a href="synapse-developer-guide.md">개발자 가이드</a>와 런북이 담당합니다.
+        </div>
+      </details>
+    </section>
     <section id="clone"><h2 class="sec"><span class="num">2</span>레포 클론</h2></section>
     <section id="path1"><h2 class="sec"><span class="num">3</span>경로 ① 풀 컨테이너 (빠른 체험)</h2></section>
     <section id="path2"><h2 class="sec"><span class="num">4</span>경로 ② 하이브리드 (실제 개발)</h2></section>
