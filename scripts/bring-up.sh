@@ -41,6 +41,7 @@ phase_terraform() {
 }
 
 phase_eks_auth() {
+  if $DRY_RUN; then echo "+ eks-auth: authenticationMode=API_AND_CONFIG_MAP (필요시)"; return; fi
   local mode
   mode=$(aws eks describe-cluster --name "$CLUSTER_NAME" --region "$AWS_REGION" \
     --query cluster.accessConfig.authenticationMode --output text 2>/dev/null || echo "")
@@ -53,6 +54,7 @@ phase_eks_auth() {
 }
 
 phase_access_entry() {
+  if $DRY_RUN; then echo "+ access-entry: 운영자 cluster-admin (필요시)"; return; fi
   local me
   me=$(aws sts get-caller-identity --query Arn --output text)
   if aws eks describe-access-entry --cluster-name "$CLUSTER_NAME" --region "$AWS_REGION" \
@@ -65,6 +67,7 @@ phase_access_entry() {
 }
 
 phase_sg() {
+  if $DRY_RUN; then echo "+ sg: EKS SG→rds:5432/redis:6379/msk:9094/os:443 ingress"; return; fi
   local eks_sg rds redis msk os
   eks_sg=$(terraform -chdir=$TFDIR output -raw eks_cluster_security_group_id)
   rds=$(terraform -chdir=$TFDIR output -raw sg_rds_id)
@@ -76,10 +79,6 @@ phase_sg() {
       --group-id "$1" --protocol tcp --port "$2" --source-group "$eks_sg" 2>&1 |
       grep -q "already exists" && ok "SG $1:$2 규칙 이미 존재" || ok "SG $1:$2 추가"
   }
-  if $DRY_RUN; then
-    echo "+ SG ingress: rds:5432 redis:6379 msk:9094 os:443 from $eks_sg"
-    return
-  fi
   _sg_ingress "$rds" 5432
   _sg_ingress "$redis" 6379
   _sg_ingress "$msk" 9094
@@ -113,6 +112,7 @@ phase_eso() {
 }
 
 phase_oidc_fix() {
+  if $DRY_RUN; then echo "+ oidc-fix: ESO role trust policy OIDC ID 비교/갱신"; return; fi
   local cur trust
   cur=$(terraform -chdir=$TFDIR output -raw eks_oidc_id)
   trust=$(aws iam get-role --role-name synapse-dev-eso-role \
@@ -135,6 +135,40 @@ phase_manifests() {
   if $DRY_RUN; then return; fi
   kubectl wait --for=condition=Ready clustersecretstore/aws-secrets-manager --timeout=120s || warn "ClusterSecretStore 미Ready"
   kubectl -n synapse-dev wait --for=condition=Ready externalsecret --all --timeout=180s || warn "일부 ExternalSecret 미Synced"
+}
+
+phase_observability() {
+  run "kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -"
+  run "kubectl apply -f infra/monitoring/storageclass-gp3.yaml"
+  run "kubectl patch storageclass gp2 -p '{\"metadata\":{\"annotations\":{\"storageclass.kubernetes.io/is-default-class\":\"false\"}}}' 2>/dev/null || true"
+  for s in synapse/monitoring/grafana synapse/monitoring/alertmanager; do
+    if ! aws secretsmanager describe-secret --secret-id "$s" --region "$AWS_REGION" >/dev/null 2>&1; then
+      warn "AWS SM 시크릿 없음: $s → aws secretsmanager create-secret로 1회 등록 필요(실 Slack/Grafana)"
+    fi
+  done
+  run "kubectl apply -f infra/monitoring/grafana-admin-externalsecret.yaml -f infra/monitoring/alertmanager-slack-externalsecret.yaml"
+  run "helm repo add prometheus-community https://prometheus-community.github.io/helm-charts >/dev/null 2>&1 || true"
+  run "helm repo add grafana https://grafana.github.io/helm-charts >/dev/null 2>&1 || true"
+  run "helm repo update >/dev/null"
+  run "helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack -n monitoring -f infra/monitoring/kube-prometheus-stack-values.yaml --timeout 8m"
+  run "kubectl apply -f infra/monitoring/servicemonitor-synapse.yaml -f infra/monitoring/prometheus-rules.yaml -f infra/monitoring/grafana-dashboard-synapse.yaml"
+  run "helm upgrade --install loki grafana/loki -n monitoring -f infra/monitoring/loki-values.yaml --timeout 6m"
+  run "helm upgrade --install promtail grafana/promtail -n monitoring --set 'config.clients[0].url=http://loki-gateway.monitoring.svc.cluster.local/loki/api/v1/push' --timeout 5m"
+}
+
+phase_status() {
+  if $DRY_RUN; then
+    echo "+ status 출력"
+    return
+  fi
+  echo "--- ArgoCD apps ---"
+  kubectl -n argocd get applications 2>/dev/null || true
+  echo "--- synapse-dev pods ---"
+  kubectl -n synapse-dev get pods 2>/dev/null || true
+  echo "--- synapse-staging pods ---"
+  kubectl -n synapse-staging get pods 2>/dev/null || true
+  echo "--- monitoring pods ---"
+  kubectl -n monitoring get pods 2>/dev/null || true
 }
 
 # (phase 함수들은 후속 Task에서 추가)
