@@ -1,0 +1,19 @@
+apiVersion: batch/v1
+kind: Job
+metadata: { name: kafka-topics-init }
+spec:
+  backoffLimit: 10
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: create-topics
+          image: confluentinc/cp-kafka:7.7.0
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              until kafka-topics --bootstrap-server kafka:9092 --list >/dev/null 2>&1; do echo "wait kafka..."; sleep 5; done
+              for t in platform.auth.user-registered-v1 knowledge.note.note-created-v1 knowledge.note.note-updated-v1 learning.card.review-completed-v1 learning.ai.cards-generated-v1; do
+                kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic "$t" --partitions 3 --replication-factor 1
+              done
+              kafka-topics --bootstrap-server kafka:9092 --list
