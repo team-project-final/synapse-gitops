@@ -26,8 +26,19 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Checkout
+      # build_docs.mjs는 synapse-gitops/와 synapse-shared/가 동일 부모 아래 있다고 가정한다
+      # (WORKSPACE = site/scripts 기준 ../../../). 두 레포를 서브디렉터리로 체크아웃.
+      - name: Checkout synapse-gitops
         uses: actions/checkout@v4
+        with:
+          path: synapse-gitops
+
+      - name: Checkout synapse-shared (sibling)
+        uses: actions/checkout@v4
+        with:
+          repository: team-project-final/synapse-shared
+          path: synapse-shared
+          token: ${{ secrets.SHARED_REPO_TOKEN }}
 
       - name: Setup Dart SDK
         uses: dart-lang/setup-dart@v1
@@ -35,7 +46,28 @@ jobs:
           sdk: stable
 
       - name: Parse runbooks (Markdown to JSON)
+        working-directory: synapse-gitops
         run: dart run scripts/parse-runbooks.dart
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # AI 요약 캐시를 런 간 유지 — 키 부재 시 build_docs.mjs가 요약을 건너뛴다(NO-OP)
+      - name: Cache doc summaries
+        uses: actions/cache@v4
+        with:
+          path: synapse-gitops/site/scripts/.summary-cache.json
+          key: doc-summaries-${{ hashFiles('synapse-gitops/docs/runbooks/**', 'synapse-shared/docs/**') }}
+          restore-keys: |
+            doc-summaries-
+
+      - name: Build docs JSON (build_docs.mjs)
+        working-directory: synapse-gitops/site/scripts
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: npm ci && node build_docs.mjs
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -43,11 +75,11 @@ jobs:
           channel: stable
 
       - name: Install dependencies
-        working-directory: site
+        working-directory: synapse-gitops/site
         run: flutter pub get
 
       - name: Build Flutter Web
-        working-directory: site
+        working-directory: synapse-gitops/site
         run: flutter build web --release --base-href /synapse-gitops/
 
       - name: Setup Pages
@@ -56,7 +88,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: site/build/web
+          path: synapse-gitops/site/build/web
 
       - name: Deploy to GitHub Pages
         id: deployment
