@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: kafka, labels: { app: kafka } }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: kafka } }
+  template:
+    metadata: { labels: { app: kafka } }
+    spec:
+      enableServiceLinks: false   # k8s가 주입하는 KAFKA_* 서비스 env가 cp-kafka 설정과 충돌하는 것 방지
+      containers:
+        - name: kafka
+          image: confluentinc/cp-kafka:7.7.0
+          env:
+            - { name: KAFKA_BROKER_ID, value: "1" }
+            - { name: KAFKA_ZOOKEEPER_CONNECT, value: "zookeeper:2181" }
+            - { name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP, value: "PLAINTEXT:PLAINTEXT" }
+            - { name: KAFKA_LISTENERS, value: "PLAINTEXT://0.0.0.0:9092" }
+            - { name: KAFKA_ADVERTISED_LISTENERS, value: "PLAINTEXT://kafka:9092" }
+            - { name: KAFKA_INTER_BROKER_LISTENER_NAME, value: "PLAINTEXT" }
+            - { name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR, value: "1" }
+          ports: [ { containerPort: 9092 } ]
+---
+apiVersion: v1
+kind: Service
+metadata: { name: kafka }
+spec:
+  selector: { app: kafka }
+  ports: [ { port: 9092, targetPort: 9092 } ]
