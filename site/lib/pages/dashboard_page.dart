@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:synapse_runbooks/models/doc.dart';
 import 'package:synapse_runbooks/widgets/progress_bar.dart';
 
@@ -13,8 +14,22 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
+  // 빌드 시 주입: flutter build web --dart-define=GRAFANA_URL=... --dart-define=ARGOCD_URL=...
+  static const String _grafanaUrl =
+      String.fromEnvironment('GRAFANA_URL', defaultValue: '');
+  static const String _argocdUrl =
+      String.fromEnvironment('ARGOCD_URL', defaultValue: '');
+
   List<DocIndex> _docs = [];
   bool _loading = true;
+
+  Future<void> _open(String url) async {
+    if (url.isEmpty) return;
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
 
   @override
   void initState() {
@@ -73,6 +88,28 @@ class _DashboardPageState extends State<DashboardPage> {
                 label: '전체',
                 value: '${_docs.length}개',
                 onTap: () => context.go('/search'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
+          Text('운영 링크',
+              style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _StatCard(
+                icon: '\u{1F4CA}',
+                label: 'Grafana',
+                value: '대시보드',
+                onTap: () => _open(_grafanaUrl),
+              ),
+              _StatCard(
+                icon: '\u{1F680}',
+                label: 'ArgoCD',
+                value: 'UI',
+                onTap: () => _open(_argocdUrl),
               ),
             ],
           ),

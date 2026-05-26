@@ -1,6 +1,6 @@
 # W3 핸드오프: synapse-gitops
 
-> **최종 갱신**: 2026-05-22 (W2 → W3 전환)
+> **최종 갱신**: 2026-05-26 (W3 1일차 — observability 라이브 검증)
 > **허브 참조**: [synapse-shared/docs/project-management/HANDOFF_HUB.md](https://github.com/team-project-final/synapse-shared/blob/main/docs/project-management/HANDOFF_HUB.md)
 > **담당**: @VelkaressiaBlutkrone
 
@@ -18,6 +18,15 @@ W2 이전 (1~9차 세션): → [HANDOFF_W2.md](./HANDOFF_W2.md) 참조
 - ✅ MSK 토픽 5개 생성, KAFKA_BROKERS 갱신 (PR #42)
 - ✅ ExternalSecret 11개 SecretSynced
 - ✅ 세션 기동 runbook + 트러블슈팅 가이드 22항목
+
+### W3 1일차 (2026-05-26) — observability 라이브 검증
+
+> 산출물 분리 PR: **#47** (`feat/w3-staging-observability`). staging/관측 매니페스트 + 포털 마감 + CI.
+
+- ✅ **리포 작업 전부 완료**: staging auto-sync 전환, 공유 Ingress, 승격 절차 문서, 관측 매니페스트 9종, gitleaks 0건, 포털 정리/CI(build_docs.mjs+sibling 체크아웃)/대시보드 링크
+- ✅ **observability 스택 실 EKS 검증** (SSM 터널 경유): Prometheus/Grafana/Alertmanager/Loki/Promtail 모두 Running, ServiceMonitor ×2 + PrometheusRule 3개 + 대시보드 적재, Watchdog 알람 파이프라인 firing
+- ⚠️ **클러스터는 destroy 후 bare 상태** — 이번 apply는 인프라만 생성(ArgoCD helm_release는 프라이빗 엔드포인트로 실패). staging 5/5·메트릭 실수집은 W1/W2 재구축 필요
+- 🐛 Loki 매니페스트 버그 2건 수정(schemaConfig, deploymentMode=SingleBinary) → PR #47
 
 ---
 
@@ -62,7 +71,10 @@ W3에서 추가된 발견 사항은 아래에 기록:
 
 | ID | 내용 | 영향 |
 |---|---|---|
-| — | (W3 시작 전, 추가 발견 없음) | — |
+| D-032 | EKS API 엔드포인트 프라이빗 전용(public=false) | 로컬 terraform의 helm_release.argocd 실패. kubectl/helm은 bastion SSM 포트포워딩 터널 경유 필요 (`bastion-ssm-access.md`) |
+| D-033 | destroy 후 재apply한 bare 클러스터에 EBS CSI 드라이버/기본 SC 부재 (gp2는 in-tree provisioner, 1.30에서 미작동) | 동적 PVC 불가 → Loki persistence 블록. 재구축 시 aws-ebs-csi-driver 애드온 + IRSA 필요 |
+| D-034 | grafana/loki 차트는 `schemaConfig` 필수 + `deploymentMode: SingleBinary` 미설정 시 loki-0 미생성 | loki-values.yaml 수정 (PR #47) |
+| D-035 | ApplicationSet staging을 manual → auto sync로 전환 (PRD FR-GO-301 정합) | PR #47 |
 
 ---
 

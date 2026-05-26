@@ -1,0 +1,36 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: synapse-alerts
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: synapse.rules
+      rules:
+        - alert: SynapsePodDown
+          expr: up{namespace=~"synapse-.*"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.pod }} 5분 이상 다운"
+        - alert: SynapseHighMemory
+          expr: |
+            sum by (pod,namespace) (container_memory_working_set_bytes{namespace=~"synapse-.*"})
+            / sum by (pod,namespace) (kube_pod_container_resource_limits{namespace=~"synapse-.*",resource="memory"}) > 0.9
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.pod }} 메모리 90% 초과"
+        - alert: SynapseHigh5xx
+          expr: |
+            sum by (namespace,app_kubernetes_io_name) (rate(http_server_requests_seconds_count{namespace=~"synapse-.*",status=~"5.."}[5m]))
+            / sum by (namespace,app_kubernetes_io_name) (rate(http_server_requests_seconds_count{namespace=~"synapse-.*"}[5m])) > 0.05
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "{{ $labels.app_kubernetes_io_name }} 5xx 비율 5% 초과"
