@@ -114,7 +114,7 @@ W3에서 추가된 발견 사항은 아래에 기록:
 | D-037 | image-updater git write-back(main 직접 push)이 main 보호 ruleset(PR 필수, bypass 없음)에 거부 | 결정: dev/staging=A(봇 bypass), prod=B(PR write-back). `image-updater-ecr-setup.md` |
 | D-038 | staging Ingress `certificate-arn: <ACM_ARN>` placeholder | 라이브 시 `terraform -chdir=infra/aws/dev output -raw staging_acm_certificate_arn`로 치환. `acm.tf`는 `domain_name` 빈값이면 count=0(검증 안전) |
 | D-039 | ESO/노드/ACM terraform화는 코드 완료, 라이브 검증은 조건부/W4. ESO `synapse-dev-eso-role`이 기존 수동 동명 role과 EntityAlreadyExists 충돌 가능 | 라이브 apply 전 `terraform import aws_iam_role.eso synapse-dev-eso-role` 또는 수동 role/policy 삭제 (`eso-irsa.tf` 상단 주석) |
-| D-040 | docs-portal 가치 콘텐츠는 이미 main 안착(PR #47 계열). 로컬 `feat/docs-portal-v2`(21 unique commit)는 content superseded(stale) | 0-unique 삭제 게이트 미충족 → 보존, 추후 폐기 검토 |
+| D-040 | docs-portal 가치 콘텐츠는 이미 main 안착(PR #47 계열). 로컬 `feat/docs-portal-v2`(21 unique commit)는 content superseded(stale) | content superseded 확인 → **2026-05-27 force-delete 완료**(tip `d82eb10`). 원격은 자동삭제로 이미 없음. 더 이상 docs-portal 작업 base 아님 |
 
 ---
 
