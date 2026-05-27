@@ -82,3 +82,15 @@ variable "opensearch_instance_type" {
   type        = string
   default     = "t3.small.search"
 }
+
+variable "domain_name" {
+  description = "Base domain for staging hosts (e.g. example.com). Empty disables ACM."
+  type        = string
+  default     = ""
+}
+
+variable "hosted_zone_id" {
+  description = "Route53 hosted zone ID for domain_name. Required if domain_name set."
+  type        = string
+  default     = ""
+}
