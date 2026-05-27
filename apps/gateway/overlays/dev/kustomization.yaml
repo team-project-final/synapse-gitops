@@ -1,0 +1,47 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+namespace: synapse-dev
+
+patches:
+  - target:
+      kind: Deployment
+      name: gateway
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1
+  - target:
+      kind: ConfigMap
+      name: gateway-config
+    patch: |
+      - op: replace
+        path: /data/LOG_LEVEL
+        value: "DEBUG"
+      - op: replace
+        path: /data/SPRING_PROFILES_ACTIVE
+        value: "dev"
+      - op: add
+        path: /data/SPRING_DATA_REDIS_HOST
+        value: "master.synapse-dev-redis.v6lpdh.apn2.cache.amazonaws.com"
+      - op: add
+        path: /data/SPRING_DATA_REDIS_PORT
+        value: "6379"
+      - op: add
+        path: /data/SPRING_DATA_REDIS_SSL_ENABLED
+        value: "true"
+  - target:
+      kind: ExternalSecret
+      name: gateway-external-secret
+    patch: |
+      - op: replace
+        path: /spec/secretStoreRef/name
+        value: aws-secrets-manager
+
+images:
+  - name: ghcr.io/team-project-final/synapse-gateway
+    newName: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/gateway
+    newTag: dev-latest
