@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-config
+  labels:
+    app.kubernetes.io/name: gateway
+    app.kubernetes.io/part-of: synapse
+data:
+  LOG_LEVEL: "INFO"
+  SERVER_PORT: "8080"
+  SPRING_PROFILES_ACTIVE: "default"
+  PLATFORM_SVC_URI: "http://platform-svc:80"
+  ENGAGEMENT_SVC_URI: "http://engagement-svc:80"
+  KNOWLEDGE_SVC_URI: "http://knowledge-svc:80"
+  LEARNING_SVC_URI: "http://learning-card:80"

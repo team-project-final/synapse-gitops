@@ -168,6 +168,17 @@
 
 ---
 
+### W3 정리·마감 (2026-05-27, Day2~3) — 비용 0 트랙
+
+> Step 7/8은 Day1 완료. 남은 3일을 정리·마감으로 운영(설계/플랜: `docs/superpowers/{specs,plans}/2026-05-27-w3-consolidation*`, 상세 결과: HANDOFF_W3 §1).
+
+- **잔여·이월(코드 완료, 라이브 조건부/W4)**: A1 cross-repo work order(PR #60·`synapse-platform-svc#37`) · A2 ESO IRSA terraform(PR #61) · A3 노드 3→4(PR #62) · A4 staging ACM/TLS terraform(PR #63) · A5 image-updater A안 준비(PR #64)
+- **문서·포털·로컬·위생**: C1 아티팩트 정리+가이드 안착 확인(PR #65) · C2 local-k8s README 정합(PR #66) · C3 브랜치 프루닝 · B1 docs-portal 콘텐츠 이미 안착 · C4 PM 정합
+- **W4 이월**: Step 9 prod+승인게이트 · Step 10 롤백/백업 · B2 포털 핸드오프 허브 뷰(파이프라인 확장 필요) · (조건부 미실행 시) A3/A4/A5 라이브 검증
+- **W2 S4 보강**: engagement-svc Pending → 노드 capacity terraform화(A3)로 해소 경로 확보, 라이브 5/5는 조건부 사이클
+
+---
+
 ## W4 (2026-06-01 ~ 2026-06-05, 4 영업일 — 6/3 지방선거 제외) — prod + 롤백
 
 ### Step 9: prod 환경 + 승인 게이트
