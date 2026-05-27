@@ -23,9 +23,9 @@ variable "eks_node_instance_type" {
 }
 
 variable "eks_node_count" {
-  description = "Number of EKS worker nodes"
+  description = "Number of EKS worker nodes (>=4 for observability + 5/5 app capacity)"
   type        = number
-  default     = 3
+  default     = 4
 }
 
 variable "rds_instance_class" {
