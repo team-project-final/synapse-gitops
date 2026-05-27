@@ -8,12 +8,13 @@ metadata:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
-    # NOTE: 라이브 세션에서 ACM 와일드카드 인증서 ARN으로 치환 (Task B3 Step 2)
+    # NOTE: 라이브 세션에서 ACM 와일드카드 인증서 ARN으로 치환
+    #   acm.tf 적용 후 `terraform -chdir=infra/aws/dev output -raw staging_acm_certificate_arn` 값
     alb.ingress.kubernetes.io/certificate-arn: <ACM_ARN>
     alb.ingress.kubernetes.io/healthcheck-path: /actuator/health/readiness
 spec:
   rules:
-    # NOTE: <domain>을 프로젝트 도메인으로 치환
+    # NOTE: <domain>을 프로젝트 도메인(terraform var.domain_name)으로 치환
     - host: staging-platform-svc.<domain>
       http:
         paths:
