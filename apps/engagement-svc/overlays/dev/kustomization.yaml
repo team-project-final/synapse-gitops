@@ -60,4 +60,6 @@ patches:
 images:
   - name: ghcr.io/team-project-final/synapse-engagement-svc
     newName: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/engagement-svc
-    newTag: dev-latest
+    # image-updater A안: semver update-strategy 호환 위해 semver 베이스라인으로 핀 (was dev-latest).
+    # 라이브(T12)에서 ECR에 상위 semver(2.0.0) push → write-back 검증. 베이스 1.0.0 ECR 존재 필요.
+    newTag: 1.0.0
