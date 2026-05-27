@@ -65,3 +65,21 @@
 - [x] 대시보드/알람 README (`infra/monitoring/README.md`)
 
 **Step 8 Status**: [ ] Not Started / [ ] In Progress / [x] Done (A2 실 EKS에서 스택 전체 검증 — metrics UP, Slack 라우팅, prometheus/grafana/alertmanager/loki Healthy)
+
+---
+
+## 정리·마감 (2026-05-27) — Day2~3 비용 0 트랙
+
+> Step 7/8(staging+observability)은 Day1 완료. 아래는 잔여·이월/문서·포털/로컬·PM 정리(상세: HANDOFF_W3 §1, `docs/superpowers/plans/2026-05-27-w3-consolidation.md`). 비용 0 항목 완료, 라이브 검증(A3/A4/A5)은 조건부/W4. *(아래는 진척 체크박스 아님 — 참고 목록)*
+
+- A1 cross-repo work order 발행 (PR #60, `synapse-platform-svc#37`)
+- A2 ESO IRSA terraform화 (PR #61)
+- A3 노드 capacity 3→4 (PR #62, 라이브 5/5 조건부)
+- A4 staging ACM/TLS terraform (PR #63, 라이브 Route53 zone 필요)
+- A5 image-updater A안 준비 (PR #64, write-back E2E 조건부)
+- C1 미추적 아티팩트 제거 + 가이드 안착 확인 (PR #65)
+- C2 local-k8s README 정합 (PR #66)
+- C3 브랜치 프루닝 (로컬 8 + 원격 자동삭제)
+- B1 docs-portal 콘텐츠 이미 main 안착 확인
+- C4 PM 문서 정합 (본 갱신)
+- W4 이월: Step 9 prod+승인게이트, Step 10 롤백/백업, B2 포털 핸드오프 허브 뷰, (조건부 미실행 시) A3/A4/A5 라이브 검증
