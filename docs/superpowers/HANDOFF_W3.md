@@ -47,6 +47,22 @@ W2 이전 (1~9차 세션): → [HANDOFF_W2.md](./HANDOFF_W2.md) 참조
 - 🟡 **W2 S6** 이미지 sync — image-updater 컨트롤러(v0.15.2)+ECR IRSA+**ECR registry 인증(pullsecret)**+git repo-cred 실 EKS 검증, ECR 태그 리스팅 성공. write-back E2E는 ① overlay `dev-latest`↔semver 전략 ② main 보호 ruleset 직접 push 거부 **2중 블록** → **결정: dev/staging=A(전용 봇 bypass), prod(W4+)=B(PR write-back)**. 실행절차: `docs/runbooks/image-updater-ecr-setup.md`. 라이브 완주는 차기 세션(과금)
 - 🟢 미진행(사유 명확): W1 S1 webhook 외부도달(private 구조 → polling 운영), W1 S2 app-of-apps(ApplicationSet 단독 운영 결정), platform-svc/learning-ai Healthy(앱 레포)
 
+### W3 정리·마감 (2026-05-27) — Day2~3 비용 0 트랙 (PR #59~#66)
+
+> 비용 게이트 배칭: 비용 0 작업 완료, 라이브 EKS 검증(A3/A4/A5)은 조건부 사이클/W4. 설계·플랜: `docs/superpowers/{specs,plans}/2026-05-27-w3-consolidation*`.
+
+- ✅ **A1 cross-repo work order** — platform-svc staging 프로필 요청. `docs/cross-repo/2026-05-27-platform-svc-staging-profile.md` + 앱 레포 이슈 `synapse-platform-svc#37` (PR #60)
+- ✅ **A2 ESO IRSA terraform화** — `infra/aws/dev/eso-irsa.tf`(`synapse/*` read, image-updater-irsa 패턴). 수동 생성분 코드화 (PR #61)
+- ✅ **A3 노드 capacity** — `eks_node_count` 3→4 (PR #62). 라이브 5/5는 조건부
+- ✅ **A4 staging ACM/TLS** — `infra/aws/dev/acm.tf`(`staging-*.<domain>` 와일드카드, `domain_name` 가드) + Ingress 출처 주석 (PR #63). 라이브는 실 Route53 zone 필요 → 조건부/W4
+- ✅ **A5 image-updater A안 준비** — engagement-svc overlay `dev-latest`→`1.0.0`(semver) + `docs/runbooks/image-updater-bot-bypass.md` (PR #64). write-back E2E는 조건부
+- ✅ **C1 가이드/아티팩트** — `docs/local-msa-setup.html`(691줄·10섹션) 이미 main 안착(PR #47 계열) 확인. 미추적 번들러 아티팩트 `synapse-local-setup.html` 삭제+gitignore (PR #65)
+- ✅ **C2 local-k8s/minikube** — README gotcha 표 정합(메모리 8GB/kafka enableServiceLinks/platform redis relaxed-binding/이미지 이슈). kustomize 34 리소스 (PR #66)
+- ✅ **C3 브랜치/레포 위생** — 원격 브랜치는 자동삭제로 origin/main만 잔존, 머지된 로컬 브랜치 8개 프루닝
+- ✅ **B1 docs-portal** — 가치 콘텐츠(가이드/대시보드 Grafana 링크/README 교차링크) 이미 main 안착 확인 → 신규 PR 불필요
+- ⏭️ **B2 포털 핸드오프 허브 뷰** — **W4 이월**. `build_docs.mjs`가 `docs/superpowers/` 미스캔 → `index.json`에 핸드오프 문서 부재. 유의미 구현엔 파이프라인 확장 필요(P2 범위 초과)
+- ✅ **C4 PM 문서 정합** — 본 갱신
+
 ---
 
 ## 2. 인프라 상세 상태
@@ -96,6 +112,9 @@ W3에서 추가된 발견 사항은 아래에 기록:
 | D-035 | ApplicationSet staging을 manual → auto sync로 전환 (PRD FR-GO-301 정합) | PR #47 |
 | D-036 | argocd-image-updater ECR 인증: IRSA만으론 레지스트리 Docker API 인증 불가("no basic auth"). `registries.conf` + `credentials: pullsecret:argocd/ecr-creds`(`aws ecr get-login-password` 토큰, 12h 만료→갱신 CronJob 필요). install URL은 `stable` 404 → v0.15.2 핀 | S6 write-back 전제 (PR #55) |
 | D-037 | image-updater git write-back(main 직접 push)이 main 보호 ruleset(PR 필수, bypass 없음)에 거부 | 결정: dev/staging=A(봇 bypass), prod=B(PR write-back). `image-updater-ecr-setup.md` |
+| D-038 | staging Ingress `certificate-arn: <ACM_ARN>` placeholder | 라이브 시 `terraform -chdir=infra/aws/dev output -raw staging_acm_certificate_arn`로 치환. `acm.tf`는 `domain_name` 빈값이면 count=0(검증 안전) |
+| D-039 | ESO/노드/ACM terraform화는 코드 완료, 라이브 검증은 조건부/W4. ESO `synapse-dev-eso-role`이 기존 수동 동명 role과 EntityAlreadyExists 충돌 가능 | 라이브 apply 전 `terraform import aws_iam_role.eso synapse-dev-eso-role` 또는 수동 role/policy 삭제 (`eso-irsa.tf` 상단 주석) |
+| D-040 | docs-portal 가치 콘텐츠는 이미 main 안착(PR #47 계열). 로컬 `feat/docs-portal-v2`(21 unique commit)는 content superseded(stale) | 0-unique 삭제 게이트 미충족 → 보존, 추후 폐기 검토 |
 
 ---
 
