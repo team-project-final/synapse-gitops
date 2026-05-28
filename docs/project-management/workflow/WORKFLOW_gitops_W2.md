@@ -12,7 +12,7 @@
 - [x] 5개 앱별 리소스 요구사항 수집 (메모리/CPU/replica)
 - [x] 환경 변수 / ConfigMap 목록 정리
 - [x] Service 포트 / Health endpoint 표준 합의
-- [ ] dev 전용 도메인 패턴 결정 (dev-<app>.<도메인>) — EKS 배포 후
+<!-- 2026-05-28 D-041로 W4 Step 9 (prod 도메인 흐름)로 이월: dev 전용 도메인 패턴 결정 (dev-<app>.<도메인>). 사유: 도메인 미확보, staging-<app> 패턴과 묶어 prod 도메인 확보 시 동시 결정. -->
 
 ### 1.2 base 매니페스트 작성
 - [x] apps/platform-svc/base/{deployment,service,configmap}.yaml
@@ -26,7 +26,7 @@
 - [x] apps/<app>/overlays/dev/kustomization.yaml × 5
 - [x] dev용 replicaCount=1, resources.requests 최소화
 - [x] dev 전용 ConfigMap patch (LOG_LEVEL=DEBUG 등)
-- [ ] Ingress 또는 Service LoadBalancer 정의 — EKS 배포 후
+<!-- 2026-05-28 D-041로 W4 Step 9로 이월: Ingress 또는 Service LoadBalancer 정의. 사유: ACM/도메인 확보 후. -->
 
 ### 1.4 적용 + 검증
 - [x] git push → ArgoCD 5개 앱 모두 Synced + Healthy 확인 (kind)
@@ -34,7 +34,7 @@
 - [x] EKS 배포: platform-svc 정상 기동 (9차 세션: PR #40 환경변수 14개 + Flyway V28 + AES 키 수정)
 - [x] EKS 배포: learning-ai 정상 기동 (9차 세션: 포트 8090 통일 PR #38 자동 해결)
 - [x] /actuator/health 200 응답 (5/5 — 9차 세션 5/5 Healthy 달성)
-- [ ] dev 도메인으로 5개 앱 도달 — Ingress 미설정
+<!-- 2026-05-28 D-041로 W4 Step 9로 이월: dev 도메인으로 5개 앱 도달. 사유: Ingress 미설정, ACM/도메인 확보 후. -->
 - [x] KAFKA_BROKERS endpoint 갱신 (PR #34, terraform re-apply 후 MSK 주소 변경)
 - [x] liveness probe initialDelaySeconds 30s → 90s (PR #35, D-028)
 - [x] EKS cluster SG를 RDS/Redis/MSK/OpenSearch SG에 추가 (D-026)

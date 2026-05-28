@@ -31,6 +31,9 @@
 - [ ] 권한 없는 계정으로 prod sync 시도 → 거부 확인
 - [ ] 권한 있는 계정으로 prod sync → 성공 확인
 - [ ] prod 도메인으로 5개 앱 응답 확인
+- [ ] dev 전용 도메인 패턴 적용 (dev-<app>.<도메인>) — W2 Step 4.1에서 이월 (D-041)
+- [ ] dev Ingress 또는 Service LoadBalancer 정의 + 적용 — W2 Step 4.3에서 이월 (D-041)
+- [ ] dev 도메인으로 5개 앱 도달 (HTTP 200) — W2 Step 4.4에서 이월 (D-041)
 
 ### 1.4 문서화 + 핸드오프
 - [ ] prod 배포 절차 README (PR → 리뷰 → 머지 → ArgoCD 승인 → 검증)
