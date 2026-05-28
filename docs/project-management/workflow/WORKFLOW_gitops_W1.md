@@ -18,15 +18,19 @@
 - [x] argocd 네임스페이스 매니페스트 (Helm `create_namespace=true`)
 - [x] ArgoCD Helm values 커스터마이즈 (`infra/aws/dev/argocd.tf` local.argocd_values)
 - [x] argocd-server Service 외부 노출 (LoadBalancer + AWS NLB annotation)
-- [ ] ACM 인증서 ARN 매핑 (HTTPS 종료)  <!-- W2 옵션1 마이그레이션으로 이월 (도메인 미확보) -->
-- [ ] DNS 레코드 정의 (argocd.<도메인>)  <!-- W2 옵션1 마이그레이션으로 이월 -->
+<!-- 2026-05-28 D-041로 W4 Step 9 (prod 도메인 흐름)로 이월:
+     - ACM 인증서 ARN 매핑 (HTTPS 종료)
+     - DNS 레코드 정의 (argocd.<도메인>)
+     사유: D-001 옵션2(self-signed) 채택 시점에 W2 마이그레이션으로 이월 표시했으나 도메인 미확보. W4 prod 도메인 확보와 함께 처리. -->
 
 ### 1.3 적용 + 검증
 - [x] 매니페스트 dev 클러스터 적용 (terraform apply, Task 14)
 - [x] argocd-server Pod Ready 확인 (bootstrap-argocd.sh 3/8)
 - [x] argocd CLI 로그인 성공 (bootstrap-argocd.sh 5/8)
-- [ ] 외부 도메인으로 UI 접속 + TLS 인증서 유효  <!-- W2 옵션1 마이그레이션으로 이월 (NLB DNS + self-signed 사용 중) -->
-- [ ] webhook endpoint 외부 도달 (curl 또는 GitHub webhook ping)  <!-- W2 외부 노출 마이그레이션과 함께 이월 -->
+<!-- 2026-05-28 D-041로 W4 Step 9 (prod 도메인 흐름)로 이월:
+     - 외부 도메인으로 UI 접속 + TLS 인증서 유효
+     - webhook endpoint 외부 도달 (curl 또는 GitHub webhook ping)
+     사유: 도메인 미확보. W4 prod 도메인 확보와 함께 처리. -->
 
 ### 1.4 보안 + 문서화
 - [x] admin 비밀번호 회전 + AWS Secrets Manager에 저장 (bootstrap-argocd.sh 5/8, secret: synapse/argocd/admin)

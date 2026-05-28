@@ -17,7 +17,7 @@
   - [x] argocd-server NLB로 외부 노출 + TLS (옵션 2: self-signed)
   - [x] admin 비밀번호 회전 + AWS Secrets Manager 저장
   - [x] CLI 로그인 성공
-  - [ ] webhook endpoint 외부 도달 확인  <!-- W2 옵션1 마이그레이션과 함께 이월 -->
+  <!-- 2026-05-28 D-041로 W4 Step 9 (prod 도메인 흐름)로 이월: webhook endpoint 외부 도달 확인 + ACM/DNS/외부 TLS (4항목) -->
 - **Scope**:
   - In Scope: ArgoCD 설치, HA 구성, 외부 노출, 인증
   - Out of Scope: 실제 앱 sync, ApplicationSet 구성
@@ -189,6 +189,9 @@
   - [ ] ArgoCD AppProject `prod`에 Manual Sync 정책
   - [ ] prod sync 권한이 별도 그룹/사용자에게만 부여
   - [ ] PR-merge → staging 자동 sync → prod 수동 승인 흐름 검증
+  - [ ] ACM 인증서 ARN 매핑 + DNS 레코드 (argocd + 5앱 prod 도메인) — W1 이월 (D-041)
+  - [ ] 외부 도메인으로 ArgoCD UI HTTPS 접속 + TLS valid — W1 이월 (D-041)
+  - [ ] webhook endpoint 외부 도달 확인 — W1 이월 (D-041)
 - **Duration**: 2일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead

@@ -13,6 +13,10 @@
 - [ ] 승인 게이트 방식 결정 (ArgoCD Manual Sync vs GH Environment Approval)
 - [ ] prod 접근 권한 분리 (별도 IAM/RBAC)
 - [ ] 변경 관리 절차 (PR 라벨 + 리뷰어 합의)
+- [ ] ACM 인증서 ARN 매핑 (HTTPS 종료) — W1 Step 1.2에서 이월 (D-041)
+- [ ] DNS 레코드 정의 (argocd.<도메인> + prod 앱 도메인) — W1 Step 1.2에서 이월 (D-041)
+- [ ] 외부 도메인으로 ArgoCD UI 접속 + TLS 인증서 유효 — W1 Step 1.3에서 이월 (D-041)
+- [ ] webhook endpoint 외부 도달 (curl 또는 GitHub webhook ping) — W1 Step 1.3에서 이월 (D-041)
 
 ### 1.2 prod overlay + 정책 작성
 - [ ] apps/<app>/overlays/prod/kustomization.yaml × 5
