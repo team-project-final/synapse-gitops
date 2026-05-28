@@ -31,9 +31,9 @@
 ### 1.4 적용 + 검증
 - [x] git push → ArgoCD 5개 앱 모두 Synced + Healthy 확인 (kind)
 - [x] EKS 배포: 3/5 Pod 정상 (engagement-svc, knowledge-svc, learning-card)
-- [ ] EKS 배포: platform-svc 정상 기동 (앱 코드 수정 필요 — mfa_credentials)
-- [ ] EKS 배포: learning-ai 정상 기동 (앱 코드 수정 필요 — Python 기동)
-- [ ] /actuator/health 200 응답 (3/5 확인, 2개 미확인)
+- [x] EKS 배포: platform-svc 정상 기동 (9차 세션: PR #40 환경변수 14개 + Flyway V28 + AES 키 수정)
+- [x] EKS 배포: learning-ai 정상 기동 (9차 세션: 포트 8090 통일 PR #38 자동 해결)
+- [x] /actuator/health 200 응답 (5/5 — 9차 세션 5/5 Healthy 달성)
 - [ ] dev 도메인으로 5개 앱 도달 — Ingress 미설정
 - [x] KAFKA_BROKERS endpoint 갱신 (PR #34, terraform re-apply 후 MSK 주소 변경)
 - [x] liveness probe initialDelaySeconds 30s → 90s (PR #35, D-028)

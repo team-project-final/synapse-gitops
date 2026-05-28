@@ -80,8 +80,8 @@
   - [x] Deployment / Service / ConfigMap 매니페스트 base 완성
   - [x] ArgoCD UI에서 5개 모두 Synced + Healthy (kind 검증)
   - [x] EKS 배포: 3/5 Healthy (engagement-svc, knowledge-svc, learning-card)
-  - [ ] EKS 배포: platform-svc Healthy (앱 코드 수정 필요 — mfa_credentials 테이블)
-  - [ ] EKS 배포: learning-ai Healthy (앱 코드 수정 필요 — Python 기동 문제)
+  - [x] EKS 배포: platform-svc Healthy (9차 세션: ExternalSecret 11개 + ConfigMap 3개 + Flyway V28 + AES Base64 32B — PR #40)
+  - [x] EKS 배포: learning-ai Healthy (9차 세션: 포트 8000→8090 통일 — PR #38)
   - [x] Pod에 트래픽 도달 확인 (S4: knowledge-svc `/actuator/health` → HTTP 200/UP, port-forward, 2026-05-26)
 - **Duration**: 2일
 - **Assignee**: @VelkaressiaBlutkrone
