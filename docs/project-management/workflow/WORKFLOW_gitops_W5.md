@@ -13,6 +13,8 @@
 - [ ] 각 장애의 신호(symptom) → 원인(cause) → 조치(action) 매핑
 - [ ] On-call 로테이션 합의 (W5 이후 운영)
 - [ ] 에스컬레이션 기준 (level 1 / 2 / 3)
+- [ ] PR 영향 범위(diff) 코멘트 도구 후보 비교 (Atlantis, kustomize-diff GH action) — W1 Step 3.1에서 이월 (D-041, 선택)
+- [ ] PR diff 코멘트 GitHub Action 도입 — W1 Step 3.2에서 이월 (D-041, 선택)
 
 ### 1.2 Runbook 작성
 - [ ] docs/runbook/pod-crashloop.md
@@ -57,6 +59,7 @@
 - [ ] 전체 환경 (dev/staging/prod) 헬스체크 통과 확인
 - [ ] CI/CD 평균 실행 시간 점검 (회귀 없는지)
 - [ ] 알람 false-positive 비율 점검 + 룰 조정
+- [ ] kustomize build 결과 캐싱 (CI 속도 개선) — W1 Step 3.2에서 이월 (D-041, 선택)
 
 ### 1.4 핸드오프 + 종료
 - [ ] 핸드오프 문서 최종 검토 (KICKOFF, TASK, Runbook, README)

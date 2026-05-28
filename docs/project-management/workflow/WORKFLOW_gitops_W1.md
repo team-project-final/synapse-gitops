@@ -76,14 +76,16 @@
 ### 1.1 사전 분석
 - [x] 현재 CI(`validate-manifests.yml`) 동작 범위 점검 (kustomize build + yamllint relaxed 확인 완료)
 - [x] 추가 검증 도구 후보 비교 (kubeconform vs kubeval — kubeconform 채택, D-005)
-- [ ] PR 영향 범위(diff) 코멘트 도구 후보 (Atlantis, kustomize-diff GH action 등)  <!-- W3 이월 (선택 항목) -->
+<!-- 2026-05-28 D-041로 W5 Step 11 (Runbook + 안정화)로 이월: PR 영향 범위(diff) 코멘트 도구 후보. 사유: 선택 항목, W3 이월 표시 후 W3에서 미진행. -->
 - [x] branch protection 룰 적용 범위 결정 (필수 status check + REVIEWS 토글, scripts/setup-branch-protection.sh)
 
 ### 1.2 워크플로우 보강
 - [x] yamllint 룰 강화 (`.yamllint` — line-length 160, indentation 2, truthy disable)
 - [x] kubeconform 단계 추가 (CRD-catalog schema 포함, `-strict -ignore-missing-schemas`)
-- [ ] kustomize build 결과 캐싱 (속도 개선, 선택)  <!-- 선택, W3 성능 개선 시 검토 -->
-- [ ] PR diff 코멘트 액션 추가 (선택)  <!-- 선택, W3 이월 -->
+<!-- 2026-05-28 D-041로 이월:
+     - kustomize build 결과 캐싱 (속도 개선) → W5 Step 12 (Cost 최적화 + 안정화)
+     - PR diff 코멘트 액션 추가 → W5 Step 11 (Runbook + 안정화)
+     사유: 선택 항목, W3 이월 표시 후 미진행. -->
 
 ### 1.3 적용 + 검증
 - [x] 의도적 오류 PR로 검증 (잘못된 apiVersion → CI 실패 확인 — Task 14 step 8 실행)

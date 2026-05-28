@@ -56,7 +56,7 @@
 - **Done When**:
   - [x] kubeconform 추가 (Kubernetes 스키마 + CRD 카탈로그 검증)
   - [x] yamllint 룰 보강 (`.yamllint`: line-length 160, indentation 2)
-  - [ ] PR 코멘트로 diff 요약 (선택)  <!-- W3 이월 (선택 항목) -->
+  <!-- 2026-05-28 D-041로 W5 Step 11/12로 이월: PR 코멘트로 diff 요약 (선택) — W3 이월 표시 후 미진행. -->
   - [x] CI 실패 시 머지 차단 (scripts/setup-branch-protection.sh, Task 13)
 - **Scope**:
   - In Scope: GitHub Actions 워크플로우 보강
@@ -226,6 +226,7 @@
   - [ ] 각 시나리오에 단계별 진단/조치/에스컬레이션 기준
   - [ ] team-lead가 Runbook 따라하기 1회 검증
   - [ ] On-call 연락처/Slack 채널 정리
+  - [ ] PR 코멘트로 diff 요약 GitHub Action 도입 (선택) — W1 이월 (D-041)
 - **Duration**: 2일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
@@ -243,6 +244,7 @@
   - [ ] HPA 동작 검증 (5개 앱 중 트래픽 변동 큰 2개)
   - [ ] P0/P1 이슈 목록 0건 (또는 fix 완료)
   - [ ] 핸드오프 문서 마지막 검토
+  - [ ] kustomize build 결과 캐싱 (CI 속도 개선, 선택) — W1 이월 (D-041)
 - **Duration**: 2일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
