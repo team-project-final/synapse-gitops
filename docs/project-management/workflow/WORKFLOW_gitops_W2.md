@@ -97,7 +97,7 @@
 
 ### 1.4 문서화 + 인수인계
 - [x] 이미지 태그 정책 문서화
-- [ ] 자동 sync 비활성화 절차 (긴급 상황 대비)
+- [x] 자동 sync 비활성화 절차 (긴급 상황 대비) — `docs/runbooks/image-updater-ecr-setup.md` "긴급 정지 / 자동 sync 비활성화 절차" 섹션
 - [ ] svc 팀에 새 이미지 푸시 → 배포 흐름 공유
 - [x] HISTORY 갱신
 

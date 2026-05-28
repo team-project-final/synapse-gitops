@@ -62,3 +62,39 @@ image-updater write-back은 `git-branch: main`에 **직접 push**. main `main-pr
 
 ## B 실행 (prod, W4+)
 `git-branch: main:image-updates-<app>` 별도 브랜치 + GH Action(PR 생성 + CI 후 auto-merge). main 보호 유지.
+
+## 긴급 정지 / 자동 sync 비활성화 절차
+
+장애 발생 시 image-updater의 write-back을 차단하거나 ArgoCD 자동 sync를 멈춰야 하는 경우 사용한다. 적용 범위(단일 앱 vs 전체)를 먼저 선택한다.
+
+### 단일 앱만 정지 (가장 빠름, 권장)
+
+```bash
+# 1) ArgoCD CLI로 자동 sync + self-heal 끄기
+argocd app set <app-name> --auto-prune=false --self-heal=false
+argocd app set <app-name> --sync-policy none
+
+# 2) (선택) Image Updater 대상에서 제외 — Application 또는 ApplicationSet annotation 제거
+kubectl -n argocd annotate application <app-name> argocd-image-updater.argoproj.io/image-list-
+```
+
+### 전체 앱 정지 (ApplicationSet 일시 중단)
+
+`argocd/applicationset.yaml` (또는 `applicationset-staging.yaml`)의 `spec.template.spec.syncPolicy.automated` 블록을 일시 주석 처리 후 git push. main 보호 룰 통과를 위해 PR 머지 필요.
+
+### Image Updater 컨트롤러 자체 정지 (가장 무거운 옵션)
+
+```bash
+kubectl -n argocd scale deploy argocd-image-updater --replicas=0
+```
+
+ECR 모니터링·write-back이 모두 멈춘다. 컨트롤러 정지 중에도 기존 ArgoCD sync는 계속 동작한다.
+
+### 복귀
+
+위 조치를 역순으로 적용한다. 컨트롤러 재기동 후 다음 polling 주기(기본 2분, ConfigMap `argocd-image-updater-config`의 `polling.interval`로 조정)에 정상 반영.
+
+### 운영 메모
+
+- 본 절차는 dev/staging(A안)에 적용 가능. prod(B안 — PR 기반 write-back)는 PR을 close하면 충분.
+- 단일 앱 정지 후 복귀 시 `argocd app sync <app-name>`으로 수동 sync 1회 후 자동 sync 재개를 권장.
