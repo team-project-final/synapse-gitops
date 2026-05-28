@@ -118,3 +118,14 @@ output "eks_oidc_id" {
   description = "EKS OIDC provider ID (마지막 path 세그먼트)"
   value       = element(split("/", aws_iam_openid_connect_provider.eks.url), length(split("/", aws_iam_openid_connect_provider.eks.url)) - 1)
 }
+
+# ─── Velero (백업) ──────────────────────────────────────────────────────────
+output "velero_role_arn" {
+  description = "Velero IRSA role ARN (annotate velero SA with this)"
+  value       = aws_iam_role.velero.arn
+}
+
+output "velero_bucket" {
+  description = "Velero backup S3 bucket"
+  value       = aws_s3_bucket.velero.id
+}

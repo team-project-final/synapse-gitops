@@ -1,0 +1,16 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: synapse-daily
+  namespace: velero
+spec:
+  # 매일 17:00 UTC = 02:00 KST
+  schedule: "0 17 * * *"
+  template:
+    includedNamespaces:
+      - synapse-prod
+      - synapse-staging
+    snapshotVolumes: true
+    # RPO 1시간 목표 대비 일일 스케줄은 캡스톤 비용 한계 — 필요 시 cron 단축(예: "0 */1 * * *").
+    # DB는 RDS 자동백업(PITR)이 RPO 1h를 별도 보장(runbook 참조).
+    ttl: 720h0m0s

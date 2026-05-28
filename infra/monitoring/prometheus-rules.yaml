@@ -34,3 +34,19 @@ spec:
             severity: critical
           annotations:
             summary: "{{ $labels.app_kubernetes_io_name }} 5xx 비율 5% 초과"
+    - name: velero.rules
+      rules:
+        - alert: VeleroBackupFailed
+          expr: increase(velero_backup_failure_total[1h]) > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Velero 백업 실패 (schedule {{ $labels.schedule }})"
+        - alert: VeleroBackupPartialFailure
+          expr: increase(velero_backup_partial_failure_total[1h]) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Velero 백업 부분 실패 (schedule {{ $labels.schedule }})"
