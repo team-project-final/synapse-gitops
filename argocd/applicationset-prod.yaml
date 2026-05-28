@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: synapse-apps-prod
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - service: platform-svc
+          - service: engagement-svc
+          - service: knowledge-svc
+          - service: learning-card
+          - service: learning-ai
+  template:
+    metadata:
+      name: "synapse-{{service}}-prod"
+      namespace: argocd
+      labels:
+        app.kubernetes.io/part-of: synapse
+        app.kubernetes.io/component: "{{service}}"
+        environment: prod
+    spec:
+      project: synapse-prod
+      source:
+        repoURL: https://github.com/team-project-final/synapse-gitops.git
+        targetRevision: main
+        path: "apps/{{service}}/overlays/prod"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: synapse-prod
+      # ⚠️ automated 없음 — main 머지 후 OutOfSync 대기 → gitops-admin 수동 sync (FR-GO-402 승인 게이트)
+      syncPolicy:
+        syncOptions:
+          - CreateNamespace=true
