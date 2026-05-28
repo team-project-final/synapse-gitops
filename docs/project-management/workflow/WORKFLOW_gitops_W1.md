@@ -50,7 +50,7 @@
 - [x] argocd/projects.yaml (AppProject 정의, synapse-* namespace 한정)
 - [x] argocd/applicationset.yaml (matrix: 5 svc × [dev] = 5 Application, C3)
 - [x] 각 app의 source/destination/syncPolicy 템플릿 (`spec.template`)
-- [ ] argocd/apps/root.yaml (선택, app-of-apps 진입점)  <!-- 선택 항목, W1 미사용. ApplicationSet 단독 운영 -->
+<!-- 2026-05-28 D-002로 ApplicationSet 단독 채택 — `argocd/apps/root.yaml` 항목 제거 (선택 항목, 채택 안 됨). -->
 
 ### 1.3 적용 + 검증
 - [x] ApplicationSet 매니페스트 적용 (bootstrap-argocd.sh 8/8)

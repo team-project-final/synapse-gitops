@@ -34,7 +34,7 @@
 
 - **Step Goal**: 5개 앱이 ApplicationSet 한 번의 정의로 dev 환경에 sync된다(빈 manifest라도 OK).
 - **Done When**:
-  - [ ] `argocd/apps/root.yaml` (app-of-apps) 정의  <!-- 선택 항목, ApplicationSet 단독 운영으로 결정 -->
+  <!-- 2026-05-28 D-002로 ApplicationSet 단독 채택 — `argocd/apps/root.yaml` (app-of-apps) 항목 제거. PRD FR-GO-103 충족 방식 결정됨. -->
   - [x] `argocd/applicationset.yaml` 정의 (matrix 5svc × [dev], C3)
   - [x] 5개 앱이 ArgoCD UI에 표시됨 (bootstrap-argocd.sh APP_COUNT 검증)
   - [x] git 푸시 → ArgoCD 자동 인식 확인 (polling 3분)
