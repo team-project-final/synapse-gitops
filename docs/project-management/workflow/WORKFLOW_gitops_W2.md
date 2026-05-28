@@ -66,7 +66,7 @@
 - [x] 기존 평문 Secret 모두 제거
 
 ### 1.4 보안 검증 + 문서화
-- [ ] gitleaks 또는 trufflehog로 git history 스캔 → 0건 — EKS 배포 후
+- [x] gitleaks 또는 trufflehog로 git history 스캔 → 0건 (gitleaks 8.30.1 / 114 commits / 0 leaks, 2026-05-26)
 - [ ] ESO sync 실패 시 알람 설정 — W3 Observability
 - [x] README에 새 시크릿 추가 절차 문서화
 - [x] HISTORY에 결정 배경 + 대안 비교 기록
