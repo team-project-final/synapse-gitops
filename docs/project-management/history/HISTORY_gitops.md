@@ -241,6 +241,35 @@ EKS 실증 실패 후 kind로 즉시 대체 실증:
 
 ---
 
+## 2026-05-28 (W4 Day -3) — W1/W2 PM 문서 100% 정합화
+
+### 의사결정
+- **D-041 W1/W2 PM 문서 100% 정합화 + 이월 정책 (2026-05-28)**:
+  - **결정**: W1/W2의 미해결 박스 14건을 다음 주차(W3/W4/W5)로 **물리적 라인 이동**. 원자리에는 HTML 주석으로 사유 + 결정 ID 흔적 유지. TASK 본문 미체크 박스 3건도 동일 정책. TASK_gitops.md W1/W2 Step Status는 모두 `[x] Done`으로 통일하고 각 라인에 "X항목 이월" 메모 첨부.
+  - **이유**: W4 prod 진입 시점에 PM 대시보드가 W2=In Progress(3/5)로 표시되어 실제(5/5 Healthy)와 불일치. WORKFLOW 파서가 `- [ ]` / `- [x]` 박스를 카운트하므로 W1/W2 = 100%를 위해 박스 자체를 이동.
+  - **대안 검토**:
+    - 원자리 `[x]` + 사유: 100% 즉시 달성하나 W3+ 박스도 추가 시 카운트 이중.
+    - 라인 제거 + 줄글 전환: 100% 달성하나 W1/W2에서 흔적 사라짐.
+  - **결과**:
+    - WORKFLOW W1 unchecked: 8 → 0 (1건 사실반영 + 7건 이월)
+    - WORKFLOW W2 unchecked: 13 → 0 (4건 사실반영 + 2건 신규 + 7건 이월)
+    - WORKFLOW W3 unchecked: 1 → 2 (+1 ESO 알람)
+    - WORKFLOW W4 unchecked: +10 (Step 9: +7, Step 10: +3)
+    - WORKFLOW W5 unchecked: +3 (Step 11: +2, Step 12: +1)
+    - TASK W1/W2 Status 6 Step 모두 `[x] Done`으로 통일
+
+### 산출물
+- 디자인 스펙: `docs/superpowers/specs/2026-05-28-w1-w2-100pct-design.md`
+- 구현 플랜: `docs/superpowers/plans/2026-05-28-w1-w2-100pct.md`
+- Runbook 패치: `docs/runbooks/image-updater-ecr-setup.md` (자동 sync 비활성화 절차 섹션 추가)
+- PM 문서 갱신: TASK_gitops.md, WORKFLOW_gitops_W1.md ~ W5.md
+
+### 이벤트
+- W2 Step 4 사실 갱신: 9차 세션(PR #40 + PR #38)에서 이미 5/5 Healthy 달성한 사실을 본 작업에서 PM 문서에 반영. TASK는 In Progress(3/5)로, WORKFLOW는 5/5 미반영 상태로 방치되어 있었음.
+- 단일 PR로 묶음: `chore/w1-w2-100pct-pm-consolidation` 브랜치.
+
+---
+
 ## 다음 항목 템플릿
 
 ### YYYY-MM-DD
