@@ -6,6 +6,7 @@ resources:
 
 namespace: synapse-prod
 
+# OpenSearch는 공유 dev 도메인 사용 — prod 인덱스/prefix 분리는 캡스톤 한계로 미적용(문서화).
 patches:
   - target:
       kind: Deployment
@@ -14,6 +15,50 @@ patches:
       - op: replace
         path: /spec/replicas
         value: 3
+  - target:
+      kind: ConfigMap
+      name: knowledge-svc-config
+    patch: |
+      - op: replace
+        path: /data/LOG_LEVEL
+        value: "INFO"
+      - op: replace
+        path: /data/SPRING_PROFILES_ACTIVE
+        value: "prod"
+      - op: add
+        path: /data/DATABASE_HOST
+        value: "synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com"
+      - op: add
+        path: /data/DATABASE_PORT
+        value: "5432"
+      - op: add
+        path: /data/DATABASE_NAME
+        value: "synapse_prod"
+      - op: add
+        path: /data/KAFKA_BROKERS
+        value: "b-1.synapsedevkafka.dchj3l.c2.kafka.ap-northeast-2.amazonaws.com:9094,b-2.synapsedevkafka.dchj3l.c2.kafka.ap-northeast-2.amazonaws.com:9094"
+      - op: add
+        path: /data/OPENSEARCH_URL
+        value: "https://vpc-synapse-dev-qm5l2xdch6nfmkqanpmipou74a.ap-northeast-2.es.amazonaws.com"
+      - op: add
+        path: /data/SPRING_DATASOURCE_URL
+        value: "jdbc:postgresql://synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com:5432/synapse_prod"
+      - op: add
+        path: /data/SPRING_DATASOURCE_USERNAME
+        value: "synapse_admin"
+  - target:
+      kind: ExternalSecret
+      name: knowledge-svc-external-secret
+    patch: |
+      - op: replace
+        path: /spec/secretStoreRef/name
+        value: aws-secrets-manager
+      - op: replace
+        path: /spec/data/0/remoteRef/key
+        value: synapse/prod/knowledge-svc/db-password
+      - op: replace
+        path: /spec/data/1/remoteRef/key
+        value: synapse/prod/knowledge-svc/s3-access-key
 
 images:
   - name: ghcr.io/team-project-final/synapse-knowledge-svc

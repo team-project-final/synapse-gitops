@@ -6,6 +6,8 @@ resources:
 
 namespace: synapse-prod
 
+# Python 서비스 — SPRING_PROFILES_ACTIVE 없음. DB는 LEARNING_AI_DATABASE_URL(asyncpg).
+# OpenSearch는 공유 dev 도메인(캡스톤 한계, 문서화).
 patches:
   - target:
       kind: Deployment
@@ -14,6 +16,44 @@ patches:
       - op: replace
         path: /spec/replicas
         value: 3
+  - target:
+      kind: ConfigMap
+      name: learning-ai-config
+    patch: |
+      - op: replace
+        path: /data/LOG_LEVEL
+        value: "INFO"
+      - op: add
+        path: /data/DATABASE_HOST
+        value: "synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com"
+      - op: add
+        path: /data/DATABASE_PORT
+        value: "5432"
+      - op: add
+        path: /data/DATABASE_NAME
+        value: "synapse_prod"
+      - op: add
+        path: /data/KAFKA_BROKERS
+        value: "b-1.synapsedevkafka.dchj3l.c2.kafka.ap-northeast-2.amazonaws.com:9094,b-2.synapsedevkafka.dchj3l.c2.kafka.ap-northeast-2.amazonaws.com:9094"
+      - op: add
+        path: /data/OPENSEARCH_URL
+        value: "https://vpc-synapse-dev-qm5l2xdch6nfmkqanpmipou74a.ap-northeast-2.es.amazonaws.com"
+      - op: add
+        path: /data/LEARNING_AI_DATABASE_URL
+        value: "postgresql+asyncpg://synapse_admin@synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com:5432/synapse_prod"
+  - target:
+      kind: ExternalSecret
+      name: learning-ai-external-secret
+    patch: |
+      - op: replace
+        path: /spec/secretStoreRef/name
+        value: aws-secrets-manager
+      - op: replace
+        path: /spec/data/0/remoteRef/key
+        value: synapse/prod/learning-ai/openai-api-key
+      - op: replace
+        path: /spec/data/1/remoteRef/key
+        value: synapse/prod/learning-ai/db-password
 
 images:
   - name: ghcr.io/team-project-final/synapse-learning-ai

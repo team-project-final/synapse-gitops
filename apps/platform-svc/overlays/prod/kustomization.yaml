@@ -6,9 +6,8 @@ resources:
 
 namespace: synapse-prod
 
-# ⚠️ 스캐폴드: prod 전용 인프라(RDS/ElastiCache/MSK)가 아직 없습니다(infra/aws 에는 dev 만 존재).
-#    아래 REPLACE_ME_* 호스트는 prod 인프라 프로비저닝 후 실제 엔드포인트로 교체해야 합니다.
-#    Redis 키는 dev/staging 의 버그(REDIS_HOST/PORT)를 답습하지 않도록 처음부터 SPRING_DATA_REDIS_* 사용.
+# prod = 공유 dev 데이터스토어 + 논리 분리(DB명 synapse_prod / Redis index 1 / 시크릿 synapse/prod/*).
+# 별도 prod 인프라 없음(W4 핵심은 거버넌스 증명). cf. specs/2026-05-27-w4-prod-design.md §3
 patches:
   - target:
       kind: Deployment
@@ -29,23 +28,23 @@ patches:
         value: "prod"
       - op: add
         path: /data/DATABASE_HOST
-        value: "REPLACE_ME_synapse-prod-postgres.ap-northeast-2.rds.amazonaws.com"
+        value: "synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com"
       - op: add
         path: /data/DATABASE_PORT
         value: "5432"
       - op: add
         path: /data/DATABASE_NAME
-        value: "synapse"
+        value: "synapse_prod"
       - op: add
         path: /data/DB_URL
-        value: "jdbc:postgresql://REPLACE_ME_synapse-prod-postgres.ap-northeast-2.rds.amazonaws.com:5432/synapse"
+        value: "jdbc:postgresql://synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com:5432/synapse_prod"
       - op: add
         path: /data/DB_USERNAME
         value: "synapse_admin"
-      # ElastiCache: 앱은 spring.data.redis.* 만 읽음. transit_encryption 사용 시 SSL_ENABLED=true 필수.
+      # 앱은 spring.data.redis.* 만 읽음 → relaxed-binding 키. dev=index 0, prod=index 1로 논리 분리.
       - op: add
         path: /data/SPRING_DATA_REDIS_HOST
-        value: "REPLACE_ME_synapse-prod-redis.apn2.cache.amazonaws.com"
+        value: "master.synapse-dev-redis.v6lpdh.apn2.cache.amazonaws.com"
       - op: add
         path: /data/SPRING_DATA_REDIS_PORT
         value: "6379"
@@ -53,18 +52,21 @@ patches:
         path: /data/SPRING_DATA_REDIS_SSL_ENABLED
         value: "true"
       - op: add
+        path: /data/SPRING_DATA_REDIS_DATABASE
+        value: "1"
+      - op: add
         path: /data/KAFKA_BROKERS
-        value: "REPLACE_ME_b-1.synapseprodkafka.kafka.ap-northeast-2.amazonaws.com:9094"
+        value: "b-1.synapsedevkafka.dchj3l.c2.kafka.ap-northeast-2.amazonaws.com:9094,b-2.synapsedevkafka.dchj3l.c2.kafka.ap-northeast-2.amazonaws.com:9094"
+      # ⚠️ prod Stripe price ID는 라이브 전 실제 prod price로 치환 필요(아래 placeholder는 렌더 통과용).
       - op: add
         path: /data/STRIPE_PRO_PRICE_ID
-        value: "REPLACE_ME_price_prod_pro"
+        value: "price_prod_pro_placeholder"
       - op: add
         path: /data/STRIPE_TEAM_PRICE_ID
-        value: "REPLACE_ME_price_prod_team"
+        value: "price_prod_team_placeholder"
       - op: add
         path: /data/STRIPE_ENTERPRISE_PRICE_ID
-        value: "REPLACE_ME_price_prod_enterprise"
-
+        value: "price_prod_enterprise_placeholder"
   - target:
       kind: ExternalSecret
       name: platform-svc-external-secret
@@ -72,6 +74,48 @@ patches:
       - op: replace
         path: /spec/secretStoreRef/name
         value: aws-secrets-manager
+      - op: replace
+        path: /spec/data/0/remoteRef/key
+        value: synapse/prod/platform-svc/db-password
+      - op: replace
+        path: /spec/data/1/remoteRef/key
+        value: synapse/prod/platform-svc/redis-auth-token
+      - op: replace
+        path: /spec/data/2/remoteRef/key
+        value: synapse/prod/platform-svc/jwt-secret
+      - op: replace
+        path: /spec/data/3/remoteRef/key
+        value: synapse/prod/platform-svc/aes-secret-key
+      - op: replace
+        path: /spec/data/4/remoteRef/key
+        value: synapse/prod/platform-svc/jwt-private-key
+      - op: replace
+        path: /spec/data/5/remoteRef/key
+        value: synapse/prod/platform-svc/jwt-public-key
+      - op: replace
+        path: /spec/data/6/remoteRef/key
+        value: synapse/prod/platform-svc/stripe-api-key
+      - op: replace
+        path: /spec/data/7/remoteRef/key
+        value: synapse/prod/platform-svc/stripe-webhook-secret
+      - op: replace
+        path: /spec/data/8/remoteRef/key
+        value: synapse/prod/platform-svc/google-client-id
+      - op: replace
+        path: /spec/data/9/remoteRef/key
+        value: synapse/prod/platform-svc/google-client-secret
+      - op: replace
+        path: /spec/data/10/remoteRef/key
+        value: synapse/prod/platform-svc/github-client-id
+      - op: replace
+        path: /spec/data/11/remoteRef/key
+        value: synapse/prod/platform-svc/github-client-secret
+      - op: replace
+        path: /spec/data/12/remoteRef/key
+        value: synapse/prod/platform-svc/apple-client-id
+      - op: replace
+        path: /spec/data/13/remoteRef/key
+        value: synapse/prod/platform-svc/apple-client-secret
 
 images:
   - name: ghcr.io/team-project-final/synapse-platform-svc
