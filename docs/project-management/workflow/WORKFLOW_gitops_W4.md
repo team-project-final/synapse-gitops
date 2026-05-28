@@ -58,6 +58,9 @@
 - [ ] git revert + 자동 sync로 롤백 절차 검증
 - [ ] Image Updater 사용 시 태그 강제 고정 절차
 - [ ] DB 마이그레이션이 포함된 경우 롤백 가이드 (forward-only 정책 등)
+- [ ] Image Updater 5개 앱 새 이미지 푸시 → dev 자동 반영 E2E 검증 — W2 Step 6.3에서 이월 (D-041, A안 실행 필요)
+- [ ] Image Updater 평균 반영 시간 측정 (목표 5분 이내) — W2 Step 6.3에서 이월 (D-041)
+- [ ] Image Updater 롤백 케이스: 잘못된 이미지 → 이전 태그 복귀 가능 — W2 Step 6.3에서 이월 (D-041)
 
 ### 1.3 백업 / 복구 시뮬레이션
 - [ ] Velero 설치 + S3 BackupStorageLocation 설정
