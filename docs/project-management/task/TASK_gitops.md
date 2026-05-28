@@ -17,7 +17,7 @@
   - [x] argocd-server NLB로 외부 노출 + TLS (옵션 2: self-signed)
   - [x] admin 비밀번호 회전 + AWS Secrets Manager 저장
   - [x] CLI 로그인 성공
-  - [ ] webhook endpoint 외부 도달 확인  <!-- W2 옵션1 마이그레이션과 함께 이월 -->
+  <!-- 2026-05-28 D-041로 W4 Step 9 (prod 도메인 흐름)로 이월: webhook endpoint 외부 도달 확인 + ACM/DNS/외부 TLS (4항목) -->
 - **Scope**:
   - In Scope: ArgoCD 설치, HA 구성, 외부 노출, 인증
   - Out of Scope: 실제 앱 sync, ApplicationSet 구성
@@ -26,7 +26,7 @@
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [ ] In Progress / [x] Done (옵션2 적용 + kind B-2 실증 완료, FR-GO-102 일부 W2 이월. 실 EKS B-1은 결제수단 verification 후)
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (옵션2 적용 + kind B-2 실증. FR-GO-102 4항목[ACM/DNS/외부TLS/webhook] W4 Step 9로 이월 — D-041)
 
 ---
 
@@ -34,7 +34,7 @@
 
 - **Step Goal**: 5개 앱이 ApplicationSet 한 번의 정의로 dev 환경에 sync된다(빈 manifest라도 OK).
 - **Done When**:
-  - [ ] `argocd/apps/root.yaml` (app-of-apps) 정의  <!-- 선택 항목, ApplicationSet 단독 운영으로 결정 -->
+  <!-- 2026-05-28 D-002로 ApplicationSet 단독 채택 — `argocd/apps/root.yaml` (app-of-apps) 항목 제거. PRD FR-GO-103 충족 방식 결정됨. -->
   - [x] `argocd/applicationset.yaml` 정의 (matrix 5svc × [dev], C3)
   - [x] 5개 앱이 ArgoCD UI에 표시됨 (bootstrap-argocd.sh APP_COUNT 검증)
   - [x] git 푸시 → ArgoCD 자동 인식 확인 (polling 3분)
@@ -46,7 +46,7 @@
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [ ] In Progress / [x] Done
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (root.yaml은 D-002로 채택 안 함, 선택 항목 정리 — D-041)
 
 ---
 
@@ -56,7 +56,7 @@
 - **Done When**:
   - [x] kubeconform 추가 (Kubernetes 스키마 + CRD 카탈로그 검증)
   - [x] yamllint 룰 보강 (`.yamllint`: line-length 160, indentation 2)
-  - [ ] PR 코멘트로 diff 요약 (선택)  <!-- W3 이월 (선택 항목) -->
+  <!-- 2026-05-28 D-041로 W5 Step 11/12로 이월: PR 코멘트로 diff 요약 (선택) — W3 이월 표시 후 미진행. -->
   - [x] CI 실패 시 머지 차단 (scripts/setup-branch-protection.sh, Task 13)
 - **Scope**:
   - In Scope: GitHub Actions 워크플로우 보강
@@ -66,7 +66,7 @@
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [ ] In Progress / [x] Done (PR diff 코멘트는 W3 이월)
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (PR diff 코멘트·kustomize 캐싱 3항목 W5 Step 11/12로 이월 — D-041)
 
 ---
 
@@ -80,14 +80,14 @@
   - [x] Deployment / Service / ConfigMap 매니페스트 base 완성
   - [x] ArgoCD UI에서 5개 모두 Synced + Healthy (kind 검증)
   - [x] EKS 배포: 3/5 Healthy (engagement-svc, knowledge-svc, learning-card)
-  - [ ] EKS 배포: platform-svc Healthy (앱 코드 수정 필요 — mfa_credentials 테이블)
-  - [ ] EKS 배포: learning-ai Healthy (앱 코드 수정 필요 — Python 기동 문제)
+  - [x] EKS 배포: platform-svc Healthy (9차 세션: ExternalSecret 11개 + ConfigMap 3개 + Flyway V28 + AES Base64 32B — PR #40)
+  - [x] EKS 배포: learning-ai Healthy (9차 세션: 포트 8000→8090 통일 — PR #38)
   - [x] Pod에 트래픽 도달 확인 (S4: knowledge-svc `/actuator/health` → HTTP 200/UP, port-forward, 2026-05-26)
 - **Duration**: 2일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [x] In Progress / [ ] Done (EKS 3/5 Healthy, 2개 앱 레벨 문제 잔존)
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (EKS 5/5 Healthy — PR #38 + PR #40. dev 도메인 패턴/Ingress/도메인 도달 3항목 W4 Step 9로 이월 — D-041)
 
 ---
 
@@ -107,7 +107,7 @@
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [ ] In Progress / [x] Done (EKS 실배포 완료: ESO Helm + IRSA + ClusterSecretStore Valid + 5개 SecretSynced)
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (EKS 실배포 완료: ESO Helm + IRSA + ClusterSecretStore Valid + 5개 SecretSynced. ESO sync 실패 알람 1항목 W3 Step 8로 이월 — D-041)
 
 ---
 
@@ -125,7 +125,7 @@
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [ ] In Progress / [x] Done (매니페스트 + ECR 교체 완료, E2E 검증은 EKS 배포 후)
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (매니페스트 + ECR 교체 + 자동 sync 비활성화·svc팀 공유 문서화 완료. 이미지 E2E 3항목 W4 Step 10으로 이월 — D-041)
 
 ---
 
@@ -189,6 +189,9 @@
   - [ ] ArgoCD AppProject `prod`에 Manual Sync 정책
   - [ ] prod sync 권한이 별도 그룹/사용자에게만 부여
   - [ ] PR-merge → staging 자동 sync → prod 수동 승인 흐름 검증
+  - [ ] ACM 인증서 ARN 매핑 + DNS 레코드 (argocd + 5앱 prod 도메인) — W1 이월 (D-041)
+  - [ ] 외부 도메인으로 ArgoCD UI HTTPS 접속 + TLS valid — W1 이월 (D-041)
+  - [ ] webhook endpoint 외부 도달 확인 — W1 이월 (D-041)
 - **Duration**: 2일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
@@ -223,6 +226,7 @@
   - [ ] 각 시나리오에 단계별 진단/조치/에스컬레이션 기준
   - [ ] team-lead가 Runbook 따라하기 1회 검증
   - [ ] On-call 연락처/Slack 채널 정리
+  - [ ] PR 코멘트로 diff 요약 GitHub Action 도입 (선택) — W1 이월 (D-041)
 - **Duration**: 2일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
@@ -240,6 +244,7 @@
   - [ ] HPA 동작 검증 (5개 앱 중 트래픽 변동 큰 2개)
   - [ ] P0/P1 이슈 목록 0건 (또는 fix 완료)
   - [ ] 핸드오프 문서 마지막 검토
+  - [ ] kustomize build 결과 캐싱 (CI 속도 개선, 선택) — W1 이월 (D-041)
 - **Duration**: 2일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead

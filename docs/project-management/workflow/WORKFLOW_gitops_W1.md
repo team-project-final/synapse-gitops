@@ -18,15 +18,19 @@
 - [x] argocd 네임스페이스 매니페스트 (Helm `create_namespace=true`)
 - [x] ArgoCD Helm values 커스터마이즈 (`infra/aws/dev/argocd.tf` local.argocd_values)
 - [x] argocd-server Service 외부 노출 (LoadBalancer + AWS NLB annotation)
-- [ ] ACM 인증서 ARN 매핑 (HTTPS 종료)  <!-- W2 옵션1 마이그레이션으로 이월 (도메인 미확보) -->
-- [ ] DNS 레코드 정의 (argocd.<도메인>)  <!-- W2 옵션1 마이그레이션으로 이월 -->
+<!-- 2026-05-28 D-041로 W4 Step 9 (prod 도메인 흐름)로 이월:
+     - ACM 인증서 ARN 매핑 (HTTPS 종료)
+     - DNS 레코드 정의 (argocd.<도메인>)
+     사유: D-001 옵션2(self-signed) 채택 시점에 W2 마이그레이션으로 이월 표시했으나 도메인 미확보. W4 prod 도메인 확보와 함께 처리. -->
 
 ### 1.3 적용 + 검증
 - [x] 매니페스트 dev 클러스터 적용 (terraform apply, Task 14)
 - [x] argocd-server Pod Ready 확인 (bootstrap-argocd.sh 3/8)
 - [x] argocd CLI 로그인 성공 (bootstrap-argocd.sh 5/8)
-- [ ] 외부 도메인으로 UI 접속 + TLS 인증서 유효  <!-- W2 옵션1 마이그레이션으로 이월 (NLB DNS + self-signed 사용 중) -->
-- [ ] webhook endpoint 외부 도달 (curl 또는 GitHub webhook ping)  <!-- W2 외부 노출 마이그레이션과 함께 이월 -->
+<!-- 2026-05-28 D-041로 W4 Step 9 (prod 도메인 흐름)로 이월:
+     - 외부 도메인으로 UI 접속 + TLS 인증서 유효
+     - webhook endpoint 외부 도달 (curl 또는 GitHub webhook ping)
+     사유: 도메인 미확보. W4 prod 도메인 확보와 함께 처리. -->
 
 ### 1.4 보안 + 문서화
 - [x] admin 비밀번호 회전 + AWS Secrets Manager에 저장 (bootstrap-argocd.sh 5/8, secret: synapse/argocd/admin)
@@ -50,7 +54,7 @@
 - [x] argocd/projects.yaml (AppProject 정의, synapse-* namespace 한정)
 - [x] argocd/applicationset.yaml (matrix: 5 svc × [dev] = 5 Application, C3)
 - [x] 각 app의 source/destination/syncPolicy 템플릿 (`spec.template`)
-- [ ] argocd/apps/root.yaml (선택, app-of-apps 진입점)  <!-- 선택 항목, W1 미사용. ApplicationSet 단독 운영 -->
+<!-- 2026-05-28 D-002로 ApplicationSet 단독 채택 — `argocd/apps/root.yaml` 항목 제거 (선택 항목, 채택 안 됨). -->
 
 ### 1.3 적용 + 검증
 - [x] ApplicationSet 매니페스트 적용 (bootstrap-argocd.sh 8/8)
@@ -72,14 +76,16 @@
 ### 1.1 사전 분석
 - [x] 현재 CI(`validate-manifests.yml`) 동작 범위 점검 (kustomize build + yamllint relaxed 확인 완료)
 - [x] 추가 검증 도구 후보 비교 (kubeconform vs kubeval — kubeconform 채택, D-005)
-- [ ] PR 영향 범위(diff) 코멘트 도구 후보 (Atlantis, kustomize-diff GH action 등)  <!-- W3 이월 (선택 항목) -->
+<!-- 2026-05-28 D-041로 W5 Step 11 (Runbook + 안정화)로 이월: PR 영향 범위(diff) 코멘트 도구 후보. 사유: 선택 항목, W3 이월 표시 후 W3에서 미진행. -->
 - [x] branch protection 룰 적용 범위 결정 (필수 status check + REVIEWS 토글, scripts/setup-branch-protection.sh)
 
 ### 1.2 워크플로우 보강
 - [x] yamllint 룰 강화 (`.yamllint` — line-length 160, indentation 2, truthy disable)
 - [x] kubeconform 단계 추가 (CRD-catalog schema 포함, `-strict -ignore-missing-schemas`)
-- [ ] kustomize build 결과 캐싱 (속도 개선, 선택)  <!-- 선택, W3 성능 개선 시 검토 -->
-- [ ] PR diff 코멘트 액션 추가 (선택)  <!-- 선택, W3 이월 -->
+<!-- 2026-05-28 D-041로 이월:
+     - kustomize build 결과 캐싱 (속도 개선) → W5 Step 12 (Cost 최적화 + 안정화)
+     - PR diff 코멘트 액션 추가 → W5 Step 11 (Runbook + 안정화)
+     사유: 선택 항목, W3 이월 표시 후 미진행. -->
 
 ### 1.3 적용 + 검증
 - [x] 의도적 오류 PR로 검증 (잘못된 apiVersion → CI 실패 확인 — Task 14 step 8 실행)

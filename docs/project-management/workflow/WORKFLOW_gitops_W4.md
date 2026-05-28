@@ -13,6 +13,10 @@
 - [ ] 승인 게이트 방식 결정 (ArgoCD Manual Sync vs GH Environment Approval)
 - [ ] prod 접근 권한 분리 (별도 IAM/RBAC)
 - [ ] 변경 관리 절차 (PR 라벨 + 리뷰어 합의)
+- [ ] ACM 인증서 ARN 매핑 (HTTPS 종료) — W1 Step 1.2에서 이월 (D-041)
+- [ ] DNS 레코드 정의 (argocd.<도메인> + prod 앱 도메인) — W1 Step 1.2에서 이월 (D-041)
+- [ ] 외부 도메인으로 ArgoCD UI 접속 + TLS 인증서 유효 — W1 Step 1.3에서 이월 (D-041)
+- [ ] webhook endpoint 외부 도달 (curl 또는 GitHub webhook ping) — W1 Step 1.3에서 이월 (D-041)
 
 ### 1.2 prod overlay + 정책 작성
 - [ ] apps/<app>/overlays/prod/kustomization.yaml × 5
@@ -27,6 +31,9 @@
 - [ ] 권한 없는 계정으로 prod sync 시도 → 거부 확인
 - [ ] 권한 있는 계정으로 prod sync → 성공 확인
 - [ ] prod 도메인으로 5개 앱 응답 확인
+- [ ] dev 전용 도메인 패턴 적용 (dev-<app>.<도메인>) — W2 Step 4.1에서 이월 (D-041)
+- [ ] dev Ingress 또는 Service LoadBalancer 정의 + 적용 — W2 Step 4.3에서 이월 (D-041)
+- [ ] dev 도메인으로 5개 앱 도달 (HTTP 200) — W2 Step 4.4에서 이월 (D-041)
 
 ### 1.4 문서화 + 핸드오프
 - [ ] prod 배포 절차 README (PR → 리뷰 → 머지 → ArgoCD 승인 → 검증)
@@ -51,6 +58,9 @@
 - [ ] git revert + 자동 sync로 롤백 절차 검증
 - [ ] Image Updater 사용 시 태그 강제 고정 절차
 - [ ] DB 마이그레이션이 포함된 경우 롤백 가이드 (forward-only 정책 등)
+- [ ] Image Updater 5개 앱 새 이미지 푸시 → dev 자동 반영 E2E 검증 — W2 Step 6.3에서 이월 (D-041, A안 실행 필요)
+- [ ] Image Updater 평균 반영 시간 측정 (목표 5분 이내) — W2 Step 6.3에서 이월 (D-041)
+- [ ] Image Updater 롤백 케이스: 잘못된 이미지 → 이전 태그 복귀 가능 — W2 Step 6.3에서 이월 (D-041)
 
 ### 1.3 백업 / 복구 시뮬레이션
 - [ ] Velero 설치 + S3 BackupStorageLocation 설정
