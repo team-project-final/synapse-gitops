@@ -98,7 +98,7 @@
 ### 1.4 문서화 + 인수인계
 - [x] 이미지 태그 정책 문서화
 - [x] 자동 sync 비활성화 절차 (긴급 상황 대비) — `docs/runbooks/image-updater-ecr-setup.md` "긴급 정지 / 자동 sync 비활성화 절차" 섹션
-- [ ] svc 팀에 새 이미지 푸시 → 배포 흐름 공유
+- [x] svc 팀에 새 이미지 푸시 → 배포 흐름 공유 — `docs/synapse-developer-guide.md` §5 "GitOps 배포 흐름" (PR #28, 808줄 통합 가이드)
 - [x] HISTORY 갱신
 
 **Step 6 Status**: [ ] Not Started / [ ] In Progress / [x] Done (매니페스트 + ECR 교체 완료)
