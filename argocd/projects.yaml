@@ -16,3 +16,22 @@ spec:
   namespaceResourceWhitelist:
     - group: "*"
       kind: "*"
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: synapse-prod
+  namespace: argocd
+spec:
+  description: Synapse prod (manual sync, restricted)
+  sourceRepos:
+    - https://github.com/team-project-final/synapse-gitops.git
+  destinations:
+    - namespace: synapse-prod
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
