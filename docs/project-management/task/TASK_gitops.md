@@ -26,7 +26,7 @@
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [ ] In Progress / [x] Done (옵션2 적용 + kind B-2 실증 완료, FR-GO-102 일부 W2 이월. 실 EKS B-1은 결제수단 verification 후)
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (옵션2 적용 + kind B-2 실증. FR-GO-102 4항목[ACM/DNS/외부TLS/webhook] W4 Step 9로 이월 — D-041)
 
 ---
 
@@ -46,7 +46,7 @@
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [ ] In Progress / [x] Done
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (root.yaml은 D-002로 채택 안 함, 선택 항목 정리 — D-041)
 
 ---
 
@@ -66,7 +66,7 @@
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [ ] In Progress / [x] Done (PR diff 코멘트는 W3 이월)
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (PR diff 코멘트·kustomize 캐싱 3항목 W5 Step 11/12로 이월 — D-041)
 
 ---
 
@@ -87,7 +87,7 @@
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [x] In Progress / [ ] Done (EKS 3/5 Healthy, 2개 앱 레벨 문제 잔존)
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (EKS 5/5 Healthy — PR #38 + PR #40. dev 도메인 패턴/Ingress/도메인 도달 3항목 W4 Step 9로 이월 — D-041)
 
 ---
 
@@ -107,7 +107,7 @@
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [ ] In Progress / [x] Done (EKS 실배포 완료: ESO Helm + IRSA + ClusterSecretStore Valid + 5개 SecretSynced)
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (EKS 실배포 완료: ESO Helm + IRSA + ClusterSecretStore Valid + 5개 SecretSynced. ESO sync 실패 알람 1항목 W3 Step 8로 이월 — D-041)
 
 ---
 
@@ -125,7 +125,7 @@
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [ ] In Progress / [x] Done (매니페스트 + ECR 교체 완료, E2E 검증은 EKS 배포 후)
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (매니페스트 + ECR 교체 + 자동 sync 비활성화·svc팀 공유 문서화 완료. 이미지 E2E 3항목 W4 Step 10으로 이월 — D-041)
 
 ---
 
