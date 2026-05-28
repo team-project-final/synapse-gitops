@@ -67,7 +67,7 @@
 
 ### 1.4 보안 검증 + 문서화
 - [x] gitleaks 또는 trufflehog로 git history 스캔 → 0건 (gitleaks 8.30.1 / 114 commits / 0 leaks, 2026-05-26)
-- [ ] ESO sync 실패 시 알람 설정 — W3 Observability
+<!-- 2026-05-28 D-041로 W3 Step 8 (Observability)로 이월: ESO sync 실패 시 알람 설정. 사유: W3 PrometheusRule + Alertmanager 스택에 알람 룰 추가가 자연스러움. -->
 - [x] README에 새 시크릿 추가 절차 문서화
 - [x] HISTORY에 결정 배경 + 대안 비교 기록
 

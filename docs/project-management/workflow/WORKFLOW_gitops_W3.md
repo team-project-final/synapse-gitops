@@ -63,6 +63,7 @@
 - [x] Alertmanager → Slack 라우팅 (실 webhook, A2 라우팅 확인)
 - [x] 알람 발화 → slack receiver 라우팅 확인 (채널 수신은 눈 확인)
 - [x] 대시보드/알람 README (`infra/monitoring/README.md`)
+- [ ] ESO sync 실패 PrometheusRule 추가 (`external_secrets_sync_calls_error{}` rate) — W2 Step 5.4에서 이월 (D-041)
 
 **Step 8 Status**: [ ] Not Started / [ ] In Progress / [x] Done (A2 실 EKS에서 스택 전체 검증 — metrics UP, Slack 라우팅, prometheus/grafana/alertmanager/loki Healthy)
 
