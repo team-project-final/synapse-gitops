@@ -17,7 +17,7 @@ bash scripts/minikube-up.sh
 ## 정적 렌더 확인 (클러스터 불필요)
 
 ```bash
-kubectl kustomize local-k8s    # 34 리소스 렌더
+kubectl kustomize local-k8s    # 36 리소스 렌더
 ```
 
 ## 알려진 gotcha (모두 매니페스트/스크립트에 반영됨)
