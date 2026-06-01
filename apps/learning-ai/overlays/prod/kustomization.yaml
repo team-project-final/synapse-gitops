@@ -57,4 +57,5 @@ patches:
 
 images:
   - name: ghcr.io/team-project-final/synapse-learning-ai
+    newName: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/learning-ai
     newTag: prod-latest
