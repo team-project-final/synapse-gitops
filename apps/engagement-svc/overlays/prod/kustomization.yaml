@@ -23,7 +23,7 @@ patches:
     patch: |
       - op: replace
         path: /data/LOG_LEVEL
-        value: "INFO"
+        value: "DEBUG"
       - op: replace
         path: /data/SPRING_PROFILES_ACTIVE
         value: "prod"
