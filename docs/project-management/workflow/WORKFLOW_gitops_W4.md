@@ -40,6 +40,7 @@
 - [x] prod 권한 신청 절차 문서화 — `argocd/README.md` RBAC/계정 섹션 (PR #74)
 - [ ] team-lead와 권한 모델 검토 + 합의 — 사인오프 대기
 - [x] HISTORY에 prod 첫 배포 일자 기록 — HISTORY 2026-05-28(거버넌스) + 2026-06-01(5/5 재현, D-043)
+- [x] docs-portal 배포 복구 — deploy-pages 익명 체크아웃 전환(PR #83)으로 6일간 끊겼던 포털 정상화, W4 런북(롤백/백업/라이브 재현)이 https://team-project-final.github.io/synapse-gitops/ 에 실제 공개 (HISTORY 2026-06-01 CI 참조)
 
 **Step 9 Status**: [ ] Not Started / [ ] In Progress / [x] Done (FR-401~404 전부 라이브 증명 — 2026-06-01 prod 5/5 Healthy. 실 도메인 3항목만 W1 이월 잔존(port-forward 대체), team-lead 합의 대기 — D-043)
 
