@@ -38,7 +38,7 @@ jobs:
         with:
           repository: team-project-final/synapse-shared
           path: synapse-shared
-          token: ${{ secrets.SHARED_REPO_TOKEN }}
+          # synapse-shared는 public → 익명 체크아웃. (이전 SHARED_REPO_TOKEN 미등록으로 전 배포 실패, 2026-05-26~)
 
       - name: Setup Dart SDK
         uses: dart-lang/setup-dart@v1
