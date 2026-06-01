@@ -20,8 +20,6 @@ patches:
         DATABASE_NAME: synapse
         SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/synapse
         SPRING_DATASOURCE_USERNAME: synapse
-        REDIS_HOST: redis
-        REDIS_PORT: "6379"
         KAFKA_BROKERS: kafka:9092
 images:
   - name: ghcr.io/team-project-final/synapse-engagement-svc
