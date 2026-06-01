@@ -64,4 +64,5 @@ patches:
 
 images:
   - name: ghcr.io/team-project-final/synapse-engagement-svc
+    newName: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/engagement-svc
     newTag: prod-latest

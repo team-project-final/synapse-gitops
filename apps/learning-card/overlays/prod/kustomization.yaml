@@ -60,4 +60,5 @@ patches:
 
 images:
   - name: ghcr.io/team-project-final/synapse-learning-card
+    newName: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/learning-card
     newTag: prod-latest

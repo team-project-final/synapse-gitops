@@ -119,4 +119,5 @@ patches:
 
 images:
   - name: ghcr.io/team-project-final/synapse-platform-svc
+    newName: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/platform-svc
     newTag: prod-latest
