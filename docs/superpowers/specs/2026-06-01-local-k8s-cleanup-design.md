@@ -85,7 +85,8 @@ images:
 standalone과 **완전 동일**. base 채택의 유일한 실질 변화는 liveness probe + resource limits 추가(개선, 허용).
 
 **검증**: 렌더된 gateway Deployment의 env 라우트 4개 동일 + redis 3키 주입 유지, Service `80→8080` 동일,
-ExternalSecret 미포함, 전체 리소스 수 34 유지.
+ExternalSecret 미포함. **리소스 수 34 → 36**: base 패턴 채택으로 `gateway-config` ConfigMap +
+`gateway-secret` Secret 2개가 추가됨(다른 5개 앱과 동일 구조 — 의도된 증가).
 
 **확인됨**: base ExternalSecret name = `gateway-external-secret`, apiVersion = `external-secrets.io/v1` (위 delete 패치에 반영).
 
@@ -117,7 +118,7 @@ diff → **0 diff**(완전 동일) 확인. selector 보존을 증명하여 live 
 
 1. 각 단계 커밋 전: 해당 overlay 렌더 변경 전/후 저장 → `diff`로 의도한 변화만 확인.
 2. A 단계: 4개 overlay(local/dev/staging/prod) 모두 0 diff 확인.
-3. 최종: `kubectl kustomize local-k8s` 리소스 수 34 유지, deprecation 경고 0.
+3. 최종: `kubectl kustomize local-k8s` 리소스 수 36(B 후 34 유지 → C 후 36 → A 0변동), deprecation 경고 0.
 4. (선택) minikube 가용 시 `bash scripts/minikube-up.sh`로 gateway 라우팅 스모크.
 
 ## 영향받는 파일
