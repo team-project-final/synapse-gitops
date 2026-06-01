@@ -5,7 +5,7 @@ resources:
   - namespace.yaml
   - infra
   - secrets.yaml
-  - gateway.yaml
+  - apps/gateway
   - apps/platform-svc
   - apps/engagement-svc
   - apps/knowledge-svc

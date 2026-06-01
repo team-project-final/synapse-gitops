@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../apps/gateway/base
+patches:
+  - patch: |
+      $patch: delete
+      apiVersion: external-secrets.io/v1
+      kind: ExternalSecret
+      metadata:
+        name: gateway-external-secret
+  - patch: |
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: gateway-config
+      data:
+        SPRING_DATA_REDIS_HOST: redis
+        SPRING_DATA_REDIS_PORT: "6379"
+images:
+  - name: ghcr.io/team-project-final/synapse-gateway
+    newName: synapse-gateway
+    newTag: local
