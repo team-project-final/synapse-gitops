@@ -322,6 +322,16 @@ EKS 실증 실패 후 kind로 즉시 대체 실증:
 
 ---
 
+## 2026-06-01 (W4) — docs-portal 배포 복구 (CI)
+
+### 이벤트 — deploy-pages 익명 체크아웃 전환 (PR #83)
+- **증상**: `deploy-pages` 워크플로우가 **2026-05-26부터 전부 실패** — `Checkout synapse-shared` 스텝에서 `Input required and not supplied: token`. `SHARED_REPO_TOKEN` 시크릿 미등록이 원인.
+- **수정**: synapse-shared는 **public** 레포 → 토큰 불필요. `deploy-pages.yml`의 `token:` 라인 제거(익명 체크아웃 — 시크릿 불요, full 콘텐츠 그대로).
+- **효과**: 머지 후 deploy-pages 재실행 → 약 6일간 끊겼던 문서 포털이 정상화되고, 누적된 런북(W4 prod 롤백·백업·라이브 재현 등) + shared 문서 전부 https://team-project-final.github.io/synapse-gitops/ 에 반영. **W4 Step 9/10 핸드오프 산출물이 실제로 공개됨.**
+- **분류**: W1~W5 FR에 매핑되지 않는 CI/운영 이벤트(의사결정 ID 없음). 단일 파일 변경(`deploy-pages.yml`, 1줄).
+
+---
+
 ## 다음 항목 템플릿
 
 ### YYYY-MM-DD
