@@ -5,3 +5,17 @@ aws_region       = "ap-northeast-2"
 environment      = "dev"
 rds_password     = "<CHANGE_ME>"
 redis_auth_token = "<CHANGE_ME>"
+
+# ── 용량 프로파일 ─────────────────────────────────────────────
+# A) 비용 절감 (dev/staging 검증용) — prod 5/5는 수용 불가
+#   eks_node_count     = 2
+#   rds_instance_class = "db.t3.micro"   # max_connections ~112
+#   msk_broker_count   = 2
+#
+# B) 라이브 재현 (W4 prod 5/5, FR-404/405/406 — D-042)
+#   dev(5)+staging(10)+prod(15)=30 앱 파드 + 시스템 ~30-40 동시 수용.
+#   eks_node_count         = 4
+#   eks_node_instance_type = "t3.large"   # 2vCPU/8GB, ENI ~35파드/노드
+#   rds_instance_class     = "db.t3.small" # 2GB, max_connections ~225
+#   msk_broker_count       = 2
+# (미설정 시 variables.tf 기본값: node_count=4 / t3.medium / db.t3.medium)
