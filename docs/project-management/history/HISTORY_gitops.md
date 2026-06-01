@@ -270,6 +270,32 @@ EKS 실증 실패 후 kind로 즉시 대체 실증:
 
 ---
 
+## 2026-05-28 ~ 2026-06-01 (W4) — prod 거버넌스 + 롤백/백업
+
+### prod 비용0 구현 (2026-05-28)
+- Step 9 비용0(Task 1~8)+문서 → **PR #74** 머지: prod overlay ×5(논리분리 `synapse_prod`/Redis idx1/`synapse/prod/*` 시크릿), `synapse-prod` AppProject, `applicationset-prod.yaml`(manual, image-updater 없음), RBAC `role:prod-deployer`+`gitops-admin` 로컬 계정, `argocd/README.md`.
+- Step 10 비용0(Task 1·3·4·5) → **PR #75** 머지: Velero S3+IRSA(terraform), 일일 `Schedule`(synapse-prod/staging ns+PV), `velero.rules` PrometheusRule, 롤백·백업 runbook.
+
+### W4 라이브 사이클 1회 (2026-05-28, destroy로 종료)
+> 비용 batching: W3 이월 검증 + W4 prod를 1 사이클로 묶어 과금 1회. 종료 시 `terraform destroy`.
+- 실행: dev→prod 시크릿 21개 복사 · D-039(eso role/policy 삭제 후 재생성) · `terraform apply`(58리소스) · `bring-up.sh`(ArgoCD/ESO/SSM터널/dev·staging) · prod 매니페스트 apply · Velero 설치(IRSA+S3, BSL Available).
+- **거버넌스 FR 증명**: FR-402 ✅ prod 5개 OutOfSync(수동 게이트) · FR-403 ✅ `argocd admin settings rbac can`(gitops-admin→prod sync Yes / 비-prod·기본→No) · FR-407 ✅ Schedule+백업 Completed+S3 · FR-408 ✅ 격리 ns 백업→삭제→restore 복구.
+- **미충족(라이브 기동 후 확인 대상)**: FR-404 prod 5/5·도메인 200 — 노드 maxSize=3(prod 15파드 수용불가)·RDS 연결 슬롯 고갈(`synapse_prod` DB 생성 실패)·prod 이미지·실 도메인 부재. FR-405/406 롤백 — runbook 문서화 완료, 1-step·revert 라이브 검증은 미실시.
+- **한계는 거버넌스 아닌 자원**: prod 5/5 Healthy만 자원/이미지로 막힘, 승인 게이트·권한 분리·백업/복구는 전부 증명. 종료 시 destroy(1차 VPC DependencyViolation→수동 SG 삭제 후 성공). 방치된 별개 synapse-dev VPC(NAT GW, ~$13) 수동 정리.
+
+### 의사결정
+- **D-042 W4 PM 문서 진척 정합화 + prod 이미지 레지스트리 ECR 통일 (2026-06-01)**:
+  - **결정**: ① prod 이미지 레지스트리를 ECR로 통일(보류됐던 ghcr vs ECR 결정 확정) → **PR #77** 머지(overlay 5개 `newName` ECR 추가). ② W4 일정 문서(TASK/WORKFLOW_W4)를 "증명된 것만 Done" 원칙으로 정합화 — FR-401/402/403/407/408 = `[x]`, FR-404/405/406 = 미체크 유지 + "라이브 기동 후 확인" 메모. Step 9/10 Status = `In Progress`.
+  - **이유**: 비용0 구현+라이브 거버넌스 검증은 끝났으나 TASK/WORKFLOW가 `Not Started`로 방치돼 실제와 불일치. 단 FR-404(prod 5/5·도메인 200)·405/406(롤백 라이브 검증)은 자원/도메인 차단으로 미충족이라 "전부 Done"은 과장 → 증명된 항목만 체크.
+  - **대안 검토**: 전부 Done(404/405/406 미충족 과장) / 코드만 Done·라이브 전부 W5 이월(거버넌스 라이브 증명을 누락).
+  - **결과**: 정합성 재검증(`kubectl kustomize`+`terraform validate`)으로 머지본 전수 통과 확인. 레지스트리 불일치 1건 발견·수정. 라이브 재현 시 남은 선반영: 노드 maxSize↑·RDS max_connections↑.
+
+### 산출물
+- 이미지 수정: PR #77 (`fix/w4-prod-image-registry-ecr`)
+- PM 문서 갱신: TASK_gitops.md(W4 Step 9/10), WORKFLOW_gitops_W4.md, 본 HISTORY 섹션 — 브랜치 `docs/w4-pm-progress-reconcile`
+
+---
+
 ## 다음 항목 템플릿
 
 ### YYYY-MM-DD
