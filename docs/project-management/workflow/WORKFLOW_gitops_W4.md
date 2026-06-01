@@ -29,8 +29,8 @@
 - [x] prod 매니페스트 적용 (단, Application은 syncPolicy 없음) — 라이브 apply, 5개 OutOfSync 확인 (FR-402)
 - [x] dev/staging → prod 승격 PR 1회 시뮬레이션 — prod 이미지=명시적 PR 승격 경로 결정 (D-042)
 - [x] 권한 없는 계정으로 prod sync 시도 → 거부 확인 — `argocd admin settings rbac can` 평가 No (FR-403)
-- [x] 권한 있는 계정으로 prod sync → 성공 확인 — gitops-admin can sync Yes (FR-403). ※ 워크로드 5/5 기동은 자원 차단 (FR-404)
-- [ ] prod 도메인으로 5개 앱 응답 확인 — **FR-404 미충족**: 노드 maxSize=3·RDS 연결·이미지 자원 차단 + 실 도메인 부재. 라이브 기동 후 확인
+- [x] 권한 있는 계정으로 prod sync → 성공 확인 — gitops-admin can sync Yes, 2026-06-01 라이브 5/5 기동 (FR-403/404)
+- [x] prod 도메인으로 5개 앱 응답 확인 — 2026-06-01 라이브 재현: synapse-prod 15/15 Healthy, readiness probe(=/actuator/health 200)로 충족(실 도메인 미적용은 W1 이월). 인프라 증설(t3.large×4/db.t3.small) 적용 (FR-404, D-043)
 - [ ] dev 전용 도메인 패턴 적용 (dev-<app>.<도메인>) — W2 Step 4.1에서 이월 (D-041). 실 도메인 부재
 - [ ] dev Ingress 또는 Service LoadBalancer 정의 + 적용 — W2 Step 4.3에서 이월 (D-041)
 - [ ] dev 도메인으로 5개 앱 도달 (HTTP 200) — W2 Step 4.4에서 이월 (D-041). 실 도메인 부재
@@ -39,9 +39,9 @@
 - [x] prod 배포 절차 README (PR → 리뷰 → 머지 → ArgoCD 승인 → 검증) — `argocd/README.md` (PR #74)
 - [x] prod 권한 신청 절차 문서화 — `argocd/README.md` RBAC/계정 섹션 (PR #74)
 - [ ] team-lead와 권한 모델 검토 + 합의 — 사인오프 대기
-- [x] HISTORY에 prod 첫 배포 일자 기록 — HISTORY 2026-05-28 W4 라이브 사이클 섹션 (D-042)
+- [x] HISTORY에 prod 첫 배포 일자 기록 — HISTORY 2026-05-28(거버넌스) + 2026-06-01(5/5 재현, D-043)
 
-**Step 9 Status**: [ ] Not Started / [x] In Progress / [ ] Done (거버넌스 401/402/403 + 매니페스트 + 문서 Done. **404 prod 5/5·도메인 200은 자원·도메인 차단으로 라이브 기동 후 확인**, team-lead 합의 대기)
+**Step 9 Status**: [ ] Not Started / [ ] In Progress / [x] Done (FR-401~404 전부 라이브 증명 — 2026-06-01 prod 5/5 Healthy. 실 도메인 3항목만 W1 이월 잔존(port-forward 대체), team-lead 합의 대기 — D-043)
 
 ---
 
@@ -54,8 +54,8 @@
 - [x] 백업 저장소 결정 (S3 + 별도 리전) — 전용 S3 버킷 (별도 리전 미적용, 캡스톤 한계)
 
 ### 1.2 롤백 절차 구현
-- [ ] ArgoCD History rollback 절차 검증 (UI에서 1 step 이전 sync) — 절차 runbook 문서화 완료. **1-step 검증은 라이브 기동 후 (FR-405)**
-- [ ] git revert + 자동 sync로 롤백 절차 검증 — 플로우 runbook 문서화 완료. **검증은 라이브 기동 후 (FR-406)**
+- [x] ArgoCD History rollback 절차 검증 (UI에서 1 step 이전 sync) — 2026-06-01 라이브: prod engagement-svc `argocd app rollback` 1-step → Synced/Healthy (FR-405)
+- [x] git revert + 자동 sync로 롤백 절차 검증 — 2026-06-01 라이브: PR #80(DEBUG)→sync→PR #81(git revert)→sync→INFO 복원 (FR-406)
 - [x] Image Updater 사용 시 태그 강제 고정 절차 — prod=명시적 PR 승격(image-updater 어노테이션 없음), runbook
 - [x] DB 마이그레이션이 포함된 경우 롤백 가이드 (forward-only 정책 등) — runbook §4 (Flyway forward-only, 데이터=RDS PITR)
 - [ ] Image Updater 5개 앱 새 이미지 푸시 → dev 자동 반영 E2E 검증 — W2 Step 6.3에서 이월 (D-041, A안 실행 필요)
@@ -72,6 +72,6 @@
 - [x] Runbook 초안에 롤백 절차 포함 — `docs/runbooks/w4-prod-rollback-backup-runbook.md`
 - [x] 백업 모니터링 알람 (백업 실패 시 알림) — `velero.rules` PrometheusRule (W3 Alertmanager 재사용)
 - [ ] team-lead와 RTO/RPO 합의 + 사인오프 — 사인오프 대기
-- [x] HISTORY 갱신 — HISTORY 2026-05-28 W4 라이브 사이클 섹션 (D-042)
+- [x] HISTORY 갱신 — HISTORY 2026-05-28 + 2026-06-01 라이브 재현 섹션 (D-043)
 
-**Step 10 Status**: [ ] Not Started / [x] In Progress / [ ] Done (백업/복구(407/408) + 알람 + 매니페스트 + 런북 Done. **롤백 405/406은 라이브 기동 후 검증**, image-updater E2E 3항목 이월, team-lead 사인오프 대기)
+**Step 10 Status**: [ ] Not Started / [ ] In Progress / [x] Done (롤백 405/406 라이브 검증(2026-06-01) + 백업/복구(407/408) + 알람 + 런북 Done. image-updater E2E 3항목만 W2 이월 잔존, team-lead 사인오프 대기 — D-043)

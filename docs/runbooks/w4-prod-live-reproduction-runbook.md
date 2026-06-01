@@ -28,9 +28,13 @@
   - engagement-svc 1 (db-password) · knowledge-svc 2 (db-password·s3-access-key)
   - learning-card 2 (api-key·**공유** knowledge-svc/db-password) · learning-ai 2 (openai-api-key·db-password)
   - ⚠️ platform-svc Stripe price ID는 prod price로 치환 (overlay placeholder)
-- [ ] **`synapse_prod` DB 생성**: 공유 RDS에 `CREATE DATABASE synapse_prod;` (db.t3.small ~225 conn 확보 후 → 연결 슬롯 고갈 회피)
-- [ ] **prod 이미지 ECR push**: 5개 svc `prod-latest` 태그를 `963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/<svc>` 에 push (overlay는 ECR 통일됨 — PR #77)
-- [ ] (선택) 실 Route53 도메인/ACM — 없으면 FR-404는 port-forward 대체
+- [ ] **`synapse_prod` DB 생성**: 공유 RDS에 `CREATE DATABASE synapse_prod;` (클러스터 내 `kubectl run --image=postgres:16` psql 파드로 — 노드 SG가 RDS:5432 접근)
+- [ ] **prod 이미지 ECR push**: 5개 svc `prod-latest` 태그. **빠른 방법(검증됨)**: dev-latest 서버사이드 리태그 — `aws ecr batch-get-image --image-ids imageTag=dev-latest` → `aws ecr put-image --image-tag prod-latest --image-manifest <manifest>` (Docker 불필요, prod=동일 이미지+overlay config)
+- [ ] (선택) 실 Route53 도메인/ACM — 없으면 FR-404는 port-forward/readiness probe 대체
+
+> **⚠️ 라이브 재현 학습 (2026-06-01, D-043) — 반드시 선처리:**
+> 1. **platform-svc 스키마 시드**: prod 프로파일이 Hibernate `ddl-auto: validate`(Flyway 미실행)라 빈 `synapse_prod`에서 `missing table` 크래시. → DB 생성 직후 `pg_dump --schema-only --no-owner synapse | psql -d synapse_prod -v ON_ERROR_STOP=0`로 스키마 시드(다른 4개 svc는 auto-create라 무관). 또는 platform-svc Flyway를 prod에서 활성화.
+> 2. **RDS 연결 용량**: db.t3.small(~225 conn)은 dev(5)+staging(10)+prod(15) **동시 운용 시 부족**(`remaining connection slots reserved` FATAL). → 셋 다 띄우려면 **db.t3.medium**(~450) 권장, 아니면 prod 데모 시 dev/staging ApplicationSet 일시 제거(`kubectl delete applicationset synapse-apps synapse-apps-staging`)로 연결 확보(재적용으로 복원).
 
 ## 3. prod 배포 + 검증 (FR-404)
 

@@ -296,6 +296,32 @@ EKS 실증 실패 후 kind로 즉시 대체 실증:
 
 ---
 
+## 2026-06-01 (W4) — prod 라이브 재현 성공 (FR-404/405/406 완주)
+
+### 이벤트 — 라이브 사이클 (인프라 증설 프로파일)
+- **착수 사전조건**: prod 시크릿 21개 SM 잔존(이전 사이클)·D-039 ESO role 부재(해소됨)·EKS clean slate 확인. prod 이미지 부재 → ECR 서버사이드 리태그 `dev-latest`→`prod-latest` ×5(PR #79 결정대로 ECR 통일).
+- **terraform apply**: 58리소스, 증설 프로파일(`eks_node_count=4`/`t3.large`/`db.t3.small`). EKS ACTIVE, 노드 4×t3.large Ready.
+- **bring-up `--from eks-auth --to manifests`**: ArgoCD HA + ESO(IRSA, OIDC 일치) + dev/staging ApplicationSet. (observability/velero/image-updater 단계는 이번 사이클 생략 — 404/405/406 집중)
+- **`synapse_prod` DB 생성**: 클러스터 내 psql 파드로 공유 RDS에 `CREATE DATABASE`.
+- **FR-403**: `argocd admin settings rbac can` — gitops-admin sync prod=Yes / 일반(alice)=No / readonly get=Yes / gitops-admin 비-prod sync=No(스코프 정확).
+- **FR-404 ✅ prod 5/5 Healthy(15/15 파드)** — core sync. 2건 블로커 해소: ① **platform-svc 스키마** — prod 프로파일이 Hibernate `validate`라 빈 `synapse_prod`에서 `missing table device_tokens` 크래시 → `synapse`(dev) 스키마를 `pg_dump --schema-only`로 시드. ② **RDS 연결 고갈** — db.t3.small(~225 conn)이 dev+staging+prod 동시 부족(`remaining connection slots reserved`) → 데모 위해 dev/staging ApplicationSet 제거로 연결 확보.
+- **FR-405 ✅**: prod engagement-svc `argocd app rollback`(kustomize-image 오버라이드로 리비전2 생성 → ID0 롤백) → Synced/Healthy.
+- **FR-406 ✅**: PR #80(LOG_LEVEL INFO→DEBUG)→수동 sync(DEBUG 적용)→PR #81(`git revert`)→수동 sync→**INFO 복원**.
+- **종료**: `terraform destroy`. 1차 VPC `DependencyViolation`(EKS 자동생성 SG `eks-cluster-sg-*` 잔재) → 수동 SG 삭제 후 재시도 → **Destroy complete(전 리소스)**. orphan 스윕 clean(NAT/VPC/EKS/RDS/Redis/MSK 0). **과금 완전 차단.**
+
+### 의사결정
+- **D-043 W4 prod 라이브 재현 완주 (2026-06-01)**:
+  - **결정**: 인프라 증설 프로파일로 FR-404(prod 5/5 Healthy)·FR-405(History 롤백)·FR-406(git revert 롤백)을 라이브 증명. TASK/WORKFLOW_W4 Step 9/10 = **Done**. 단 실 도메인 3항목(ACM/DNS/UI HTTPS·webhook)은 도메인 부재로 W1 이월 유지(port-forward/probe로 대체 검증), team-lead 사인오프 대기.
+  - **근거**: 이전(2026-05-28) 사이클은 거버넌스만 증명하고 5/5는 자원 차단으로 미달(D-042). 이번엔 노드 t3.large×4·RDS db.t3.small로 증설해 5/5 달성.
+  - **발견(런북 반영)**: ① prod 빈 DB에는 외부 스키마 마이그레이션 필요(prod 프로파일 Flyway 미실행, Hibernate validate). ② db.t3.small은 3개 환경 동시 운용 시 연결 부족 — 4개 환경 동시면 db.t3.medium 권장 또는 환경 분리 기동.
+  - **대안 검토**: db.t3.medium 증설(연결 여유, 비용·RDS 리부팅) vs dev/staging 축소(채택, 데모는 prod 집중) / prod replicas 3→1(운영급 가정 훼손, 미채택).
+
+### 산출물
+- ECR 리태그 ×5(prod-latest), PR #80/#81(FR-406 데모·revert)
+- PM 문서: TASK_gitops.md(W4 Step 9/10 Done), WORKFLOW_gitops_W4.md, 본 HISTORY 섹션, `docs/runbooks/w4-prod-live-reproduction-runbook.md`(학습 반영) — 브랜치 `docs/w4-live-reproduction-results`
+
+---
+
 ## 다음 항목 템플릿
 
 ### YYYY-MM-DD
