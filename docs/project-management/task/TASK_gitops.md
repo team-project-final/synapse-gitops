@@ -185,18 +185,19 @@
 
 - **Step Goal**: prod는 자동 sync가 아닌 수동 승인 후 sync되며, 권한이 분리된다.
 - **Done When**:
-  - [ ] `apps/{app}/overlays/prod/kustomization.yaml` 5개 작성
-  - [ ] ArgoCD AppProject `prod`에 Manual Sync 정책
-  - [ ] prod sync 권한이 별도 그룹/사용자에게만 부여
-  - [ ] PR-merge → staging 자동 sync → prod 수동 승인 흐름 검증
-  - [ ] ACM 인증서 ARN 매핑 + DNS 레코드 (argocd + 5앱 prod 도메인) — W1 이월 (D-041)
-  - [ ] 외부 도메인으로 ArgoCD UI HTTPS 접속 + TLS valid — W1 이월 (D-041)
-  - [ ] webhook endpoint 외부 도달 확인 — W1 이월 (D-041)
+  - [x] `apps/{app}/overlays/prod/kustomization.yaml` 5개 작성 (PR #74, 렌더 5/5 OK, 이미지 ECR 통일 PR #77)
+  - [x] ArgoCD AppProject `prod`에 Manual Sync 정책 (`synapse-prod` AppProject + `applicationset-prod.yaml` automated 없음, FR-402)
+  - [x] prod sync 권한이 별도 그룹/사용자에게만 부여 (`role:prod-deployer`/`gitops-admin`, 라이브 rbac can 평가, FR-403)
+  - [x] PR-merge → staging 자동 sync → prod 수동 승인 흐름 검증 (라이브 OutOfSync → gitops-admin 수동 sync. ※ prod 5/5 기동은 자원 차단)
+  <!-- 2026-05-28 라이브 사이클: 거버넌스(402/403) 증명. FR-404 prod 5/5·도메인 200은 노드 maxSize=3·RDS 연결·이미지·실 도메인 부재로 미충족 → 라이브 기동 후 확인 (D-042) -->
+  - [ ] ACM 인증서 ARN 매핑 + DNS 레코드 (argocd + 5앱 prod 도메인) — W1 이월 (D-041). 실 도메인 부재, FR-404 라이브 기동 후
+  - [ ] 외부 도메인으로 ArgoCD UI HTTPS 접속 + TLS valid — W1 이월 (D-041). 실 도메인 부재
+  - [ ] webhook endpoint 외부 도달 확인 — W1 이월 (D-041). 실 도메인 부재
 - **Duration**: 2일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [ ] In Progress / [ ] Done
+**Status**: [ ] Not Started / [x] In Progress / [ ] Done (거버넌스 401/402/403 + 매니페스트 + 문서 Done(PR #74/#77). FR-404 prod 5/5·도메인은 자원·도메인 차단으로 라이브 기동 후 확인 — D-042)
 
 ---
 
@@ -204,15 +205,15 @@
 
 - **Step Goal**: 롤백 절차가 문서화되고 staging에서 1회 이상 실제 검증된다.
 - **Done When**:
-  - [ ] ArgoCD History rollback 절차 문서화 + 검증
-  - [ ] Helm/Kustomize 매니페스트 git revert 절차 검증
-  - [ ] Velero 또는 etcd snapshot 백업 스케줄 설정
-  - [ ] 백업에서 복구 1회 시뮬레이션 통과
+  - [ ] ArgoCD History rollback 절차 문서화 + 검증 — 절차 runbook 완료, **1-step 검증은 라이브 기동 후 (FR-405)**
+  - [ ] Helm/Kustomize 매니페스트 git revert 절차 검증 — 플로우 runbook 완료, **검증은 라이브 기동 후 (FR-406)**
+  - [x] Velero 또는 etcd snapshot 백업 스케줄 설정 — Velero S3+IRSA(terraform)+일일 Schedule, 라이브 백업 Completed+S3 (PR #75, FR-407)
+  - [x] 백업에서 복구 1회 시뮬레이션 통과 — 격리 ns 삭제 → velero restore 복구 확인 (FR-408)
 - **Duration**: 2일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [ ] In Progress / [ ] Done
+**Status**: [ ] Not Started / [x] In Progress / [ ] Done (백업/복구 407/408 + 매니페스트/런북/알람 Done(PR #75). 롤백 405/406은 라이브 기동 후 검증, team-lead 사인오프 대기 — D-042)
 
 ---
 
