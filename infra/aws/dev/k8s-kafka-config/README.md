@@ -3,6 +3,11 @@
 EKS 엔드포인트가 private-only → **bastion에서 실행**(로컬 terraform 도달 불가).
 #87(access entry) 적용 + bastion `update-kubeconfig` 완료가 전제.
 
+## 비고
+
+- provider `config_path = ~/.kube/config` → **bastion 사용자(SSM 기본 ec2-user)로 실행**. user_data의 `update-kubeconfig`로 채워짐.
+- 네임스페이스는 terraform 소유(순서 보장) + `prevent_destroy` → 이 모듈 단독 `terraform destroy`는 ns 보호로 차단됨(정리는 클러스터(main) destroy로).
+
 ## 절차
 
 1. 로컬에서 브로커 주소 확보:

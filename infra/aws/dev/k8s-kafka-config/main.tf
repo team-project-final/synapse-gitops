@@ -5,7 +5,8 @@ resource "kubernetes_namespace" "app" {
   }
   lifecycle {
     # ArgoCD CreateNamespace=true와 공존 — 라벨/주석 드리프트 무시
-    ignore_changes = [metadata[0].labels, metadata[0].annotations]
+    ignore_changes  = [metadata[0].labels, metadata[0].annotations]
+    prevent_destroy = true
   }
 }
 
