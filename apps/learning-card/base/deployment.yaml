@@ -21,6 +21,12 @@ spec:
           image: ghcr.io/team-project-final/synapse-learning-card:latest
           ports:
             - containerPort: 8080
+          env:
+            - name: KAFKA_BROKERS
+              valueFrom:
+                configMapKeyRef:
+                  name: kafka-brokers
+                  key: KAFKA_BROKERS
           envFrom:
             - configMapRef:
                 name: learning-card-config

@@ -51,7 +51,20 @@ resource "aws_iam_role_policy" "bastion_eks" {
         Effect   = "Allow"
         Action   = "sts:GetCallerIdentity"
         Resource = "*"
-      }
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["kafka:ListClustersV2"]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "kafka:GetBootstrapBrokers",
+          "kafka:DescribeClusterV2"
+        ]
+        Resource = aws_msk_cluster.main.arn
+      },
     ]
   })
 }

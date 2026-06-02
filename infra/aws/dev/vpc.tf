@@ -99,6 +99,11 @@ resource "aws_route_table_association" "private" {
 
 # ─── Security Groups ────────────────────────────────────────────────────────
 
+# EKS 자동생성 cluster SG (managed node group 파드 트래픽 출처) — D-026
+locals {
+  eks_cluster_sg = aws_eks_cluster.main.vpc_config[0].cluster_security_group_id
+}
+
 resource "aws_security_group" "eks_nodes" {
   name_prefix = "${local.project}-${local.environment}-eks-nodes-"
   vpc_id      = aws_vpc.main.id
@@ -137,6 +142,14 @@ resource "aws_security_group" "rds" {
     security_groups = [aws_security_group.eks_nodes.id]
   }
 
+  ingress {
+    description     = "Postgres from EKS cluster SG (D-026)"
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [local.eks_cluster_sg]
+  }
+
   tags = { Name = "${local.project}-${local.environment}-rds-sg" }
 
   lifecycle { create_before_destroy = true }
@@ -155,6 +168,14 @@ resource "aws_security_group" "redis" {
     security_groups = [aws_security_group.eks_nodes.id]
   }
 
+  ingress {
+    description     = "Redis from EKS cluster SG (D-026)"
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    security_groups = [local.eks_cluster_sg]
+  }
+
   tags = { Name = "${local.project}-${local.environment}-redis-sg" }
 
   lifecycle { create_before_destroy = true }
@@ -171,6 +192,14 @@ resource "aws_security_group" "msk" {
     to_port         = 9094
     protocol        = "tcp"
     security_groups = [aws_security_group.eks_nodes.id]
+  }
+
+  ingress {
+    description     = "Kafka TLS from EKS cluster SG (managed node group, D-026)"
+    from_port       = 9094
+    to_port         = 9094
+    protocol        = "tcp"
+    security_groups = [local.eks_cluster_sg]
   }
 
   ingress {
@@ -205,6 +234,14 @@ resource "aws_security_group" "opensearch" {
     to_port         = 443
     protocol        = "tcp"
     security_groups = [aws_security_group.eks_nodes.id]
+  }
+
+  ingress {
+    description     = "HTTPS from EKS cluster SG (D-026)"
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
+    security_groups = [local.eks_cluster_sg]
   }
 
   tags = { Name = "${local.project}-${local.environment}-opensearch-sg" }
