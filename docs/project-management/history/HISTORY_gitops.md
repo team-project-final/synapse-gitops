@@ -332,6 +332,33 @@ EKS 실증 실패 후 kind로 즉시 대체 실증:
 
 ---
 
+## 2026-06-02 (W4) — MSK 토픽·인증 terraform 편입 (TLS-only)
+
+브랜치/일정 점검에서 도출된 본격 작업. spec `2026-06-02-w4-remaining-msk-terraform-tls-design.md` → plan 13 tasks. 브랜치 `docs/w4-remaining-msk-terraform-tls`.
+
+### 무엇을 했는지
+- **git 정리**: 머지된 로컬 4개 삭제, main ff, `infra/aws/dev/*.log` gitignore.
+- **토픽 terraform화**: `infra/aws/dev/kafka-topics/`(Mongey/kafka provider) 신설 — 9개 토픽 선언. 기존 bastion 수동 `create-kafka-topics.sh` 대체.
+- **라이브 검증(재기동 window)**: `terraform apply`(58 리소스) → 브로커 `…4ki14g…:9094` → **토픽 TF를 bastion에서 apply → 9/9 생성 입증**(TLS, RF=2) → service overlay 브로커 주소 15개(5×3) `dchj3l→4ki14g` 갱신 → `terraform destroy`로 과금 차단.
+- **shared 정합**: `KAFKA_AUTH_MATRIX` B(TLS-only)로 §1·§3·§4·§5 갱신(브랜치 `docs/kafka-auth-tls-only`, push 대기).
+
+### 의사결정
+- **D-044 MSK 인증 모델 = B(TLS-only) 확정**:
+  - **결정**: `msk.tf` TLS 유지(SASL/IAM 미활성), 서비스 코드·config 무변경. 토픽 인가 = SG/네트워크 경계. 토픽은 terraform 선언 관리.
+  - **근거**: A(SASL/IAM)는 5개 서비스 `aws-msk-iam-auth` 의존성·IRSA 매트릭스·타 owner 조율이 필요 → 캡스톤 잔여 봉합 범위 밖. B는 gitops 단독 2일 완결. per-topic 최소권한 가치는 실 운영이 아닌 캡스톤에선 회수 난.
+  - **대안 검토**: A(SASL/IAM, 보안 정석이나 코드변경·타 owner — W5+ 백로그로 강등), B 지금+A 백로그(채택은 단순 B).
+- **토픽 RF=2 정합**: dev tfvars `msk_broker_count=2` → 모듈 default RF 3→2(2-브로커에서 RF=3은 생성 실패). 라이브에서 드러난 정합 이슈.
+- **bastion→MSK SG 갭 해소**: MSK SG가 EKS 노드 SG만 9094 허용 → bastion SG 인바운드 추가(vpc.tf). 이게 shared가 겪은 "bastion 차단"의 네트워크 실체였음. TLS-only라 IAM/CLI 블로커는 무력(spec §3.3 실증).
+
+### 이벤트 (차단·학습)
+- **image-updater E2E(A5) 이월**: terraform은 EBS CSI addon만 배포 — **ArgoCD·image-updater 미부트스트랩** + EKS `authMode=CONFIG_MAP`·프라이빗 엔드포인트(**bastion aws-auth 미매핑**)라 E2E는 전체 플랫폼 부트스트랩을 요구 → "클러스터 떠 있으니 공짜" 전제 오류. MSK 목표 완수 후 과금 차단 우선, E2E는 W2 이월 유지(복귀 시 ArgoCD bootstrap 선행).
+- **운영 학습(런북 후보)**: ① SSM `send-command`엔 스크립트를 **base64로 전달**(jq/heredoc은 newline 깨져 행 유발). ② `set -o pipefail` + `cmd | head`는 SIGPIPE(exit 141)로 스크립트 조기 종료. ③ MSK TLS(9094) 핸드셰이크는 bastion에서 정상(`Verify return code: 0`) — kafka TF provider 연결 OK.
+
+### 산출물
+- `infra/aws/dev/kafka-topics/`(versions/variables/main/README), `vpc.tf`(bastion SG), overlay 15개, `docs/superpowers/W5-scoping.md`, 본 HISTORY. shared `KAFKA_AUTH_MATRIX`(별도 브랜치).
+
+---
+
 ## 다음 항목 템플릿
 
 ### YYYY-MM-DD

@@ -181,6 +181,14 @@ resource "aws_security_group" "msk" {
     security_groups = [aws_security_group.eks_nodes.id]
   }
 
+  ingress {
+    description     = "Kafka TLS from bastion (terraform topic mgmt - kafka-topics/)"
+    from_port       = 9094
+    to_port         = 9094
+    protocol        = "tcp"
+    security_groups = [aws_security_group.bastion.id]
+  }
+
   tags = { Name = "${local.project}-${local.environment}-msk-sg" }
 
   lifecycle { create_before_destroy = true }
