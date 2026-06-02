@@ -381,6 +381,28 @@ OPEN 이슈 3건을 terraform 영구 코드화 + 라이브 1회 검증. spec/pla
 
 ---
 
+## 2026-06-02 (W5 선행) — ArgoCD 부트스트랩 dev/staging 검증 (#91, FR-TL-402)
+
+#87/#88/#89(PR #90) 해소로 가능해진 부트스트랩·배포검증. 기존 `scripts/bring-up.sh` 재사용. spec/plan `2026-06-02-argocd-bootstrap-dev-staging`, 브랜치 `infra/argocd-bootstrap-dev-staging`.
+
+### 무엇을 했는지
+- **bring-up.sh 정합**: PR #90이 terraform화한 `phase_access_entry`(=bootstrap_cluster_creator_admin_permissions)·`phase_sg`(=#89) 제거, `phase_kafka_config`(#88 kafka-brokers ConfigMap, kubectl) 추가. RDS db.t3.small→medium(dev+staging 연결).
+- **라이브 부트스트랩**: bring-up.sh `--to manifests`로 terraform apply(RDS medium) → SSM 터널 → ArgoCD HA → ESO(+oidc-fix) → kafka-config → manifests. 10 App 등록, ExternalSecret SecretSynced.
+- **dev 5/5**: `verify-argocd-deploy.sh synapse-dev` = **15/15 ALL PASSED**(App Synced/Healthy·Pod Running·ES SecretSynced). platform-svc-dev Healthy.
+- **staging 4/5**: 4개 Healthy, platform-svc-staging만 CrashLoop → **#92로 분리**(서비스측 `application-staging.yml` datasource 미연결). **롤백**: dev engagement-svc 124s(<3분).
+- 마감: terraform destroy 과금 차단.
+
+### 의사결정
+- **D-046 bring-up.sh PR#90 정합 + platform-svc-staging 경계**:
+  - **결정**: bring-up의 access-entry/sg phase는 PR #90 terraform과 중복 → 제거(단일 출처=terraform). kafka-config는 bring-up 스타일(kubectl)로 추가. RDS medium은 다환경 window 한정(tfvars gitignore라 디스크 값, 영구 default 아님).
+  - **근거**: platform-svc-staging 차단은 gitops가 아님 — dev/staging overlay·ExternalSecret(둘 다 `synapse/dev/platform-svc/*` 참조) 동일한데 dev만 동작. 서비스 `application-staging.yml`이 url/password 미연결(라이브 2단계 진단: url→password 순). 이슈 §8 "서비스 owner 트랙"에 해당 → #92.
+  - **학습**: `verify-argocd-deploy.sh` §1은 argocd CLI 의존 → `ARGOCD_OPTS=--core ARGOCD_NAMESPACE=argocd` + 컨텍스트 ns=argocd 필요(아니면 Sync/Health=UNKNOWN 오탐). SSM 터널 kubeconfig는 호출당 재연결.
+
+### 산출물
+- `scripts/bring-up.sh`(정합), `terraform.tfvars`(medium, 미커밋), 본 HISTORY. 이슈 #92(platform-svc). 브랜치 `infra/argocd-bootstrap-dev-staging`.
+
+---
+
 ## 다음 항목 템플릿
 
 ### YYYY-MM-DD

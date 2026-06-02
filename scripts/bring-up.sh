@@ -25,7 +25,7 @@ require() { command -v "$1" >/dev/null 2>&1 || {
 usage() {
   cat <<USAGE
 사용법: bring-up.sh [옵션]
-  --from <phase>   해당 phase부터 재개 (terraform|eks-auth|access-entry|sg|tunnel|argocd|eso|oidc-fix|manifests|image-updater|observability|status)
+  --from <phase>   해당 phase부터 재개 (terraform|eks-auth|tunnel|argocd|eso|oidc-fix|kafka-config|manifests|image-updater|observability|status)
   --to <phase>     해당 phase까지만 실행 (예: --to manifests = observability 제외 dev-only)
   --verify         bring-up 대신 W3 잔여 3항목 검증
   --destroy        terraform destroy (비용 차단)
@@ -34,7 +34,7 @@ usage() {
 USAGE
 }
 
-PHASES=(terraform eks-auth access-entry sg tunnel argocd eso oidc-fix manifests image-updater observability status)
+PHASES=(terraform eks-auth tunnel argocd eso oidc-fix kafka-config manifests image-updater observability status)
 
 # ─── phase 함수 ───────────────────────────────────────────────────────────
 phase_terraform() {
@@ -74,38 +74,6 @@ phase_eks_auth() {
   done
   err "auth mode 변경이 시간 내 완료 안 됨"
   exit 1
-}
-
-phase_access_entry() {
-  if $DRY_RUN; then echo "+ access-entry: 운영자 cluster-admin (필요시)"; return; fi
-  local me
-  me=$(aws sts get-caller-identity --query Arn --output text)
-  if aws eks describe-access-entry --cluster-name "$CLUSTER_NAME" --region "$AWS_REGION" \
-    --principal-arn "$me" >/dev/null 2>&1; then
-    ok "access entry 이미 존재: $me"
-    return
-  fi
-  run "aws eks create-access-entry --cluster-name $CLUSTER_NAME --region $AWS_REGION --principal-arn $me --type STANDARD"
-  run "aws eks associate-access-policy --cluster-name $CLUSTER_NAME --region $AWS_REGION --principal-arn $me --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy --access-scope type=cluster"
-}
-
-phase_sg() {
-  if $DRY_RUN; then echo "+ sg: EKS SG→rds:5432/redis:6379/msk:9094/os:443 ingress"; return; fi
-  local eks_sg rds redis msk os
-  eks_sg=$(terraform -chdir=$TFDIR output -raw eks_cluster_security_group_id)
-  rds=$(terraform -chdir=$TFDIR output -raw sg_rds_id)
-  redis=$(terraform -chdir=$TFDIR output -raw sg_redis_id)
-  msk=$(terraform -chdir=$TFDIR output -raw sg_msk_id)
-  os=$(terraform -chdir=$TFDIR output -raw sg_opensearch_id)
-  _sg_ingress() { # $1=target sg $2=port
-    aws ec2 authorize-security-group-ingress --region "$AWS_REGION" \
-      --group-id "$1" --protocol tcp --port "$2" --source-group "$eks_sg" 2>&1 |
-      grep -q "already exists" && ok "SG $1:$2 규칙 이미 존재" || ok "SG $1:$2 추가"
-  }
-  _sg_ingress "$rds" 5432
-  _sg_ingress "$redis" 6379
-  _sg_ingress "$msk" 9094
-  _sg_ingress "$os" 443
 }
 
 phase_tunnel() {
@@ -153,6 +121,20 @@ phase_oidc_fix() {
   local pol="{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Federated\":\"arn:aws:iam::${ACCOUNT_ID}:oidc-provider/oidc.eks.${AWS_REGION}.amazonaws.com/id/${cur}\"},\"Action\":\"sts:AssumeRoleWithWebIdentity\",\"Condition\":{\"StringEquals\":{\"oidc.eks.${AWS_REGION}.amazonaws.com/id/${cur}:aud\":\"sts.amazonaws.com\",\"oidc.eks.${AWS_REGION}.amazonaws.com/id/${cur}:sub\":\"system:serviceaccount:external-secrets:external-secrets\"}}}]}"
   run "aws iam update-assume-role-policy --role-name synapse-dev-eso-role --policy-document '$pol'"
   run "kubectl -n external-secrets rollout restart deploy external-secrets"
+}
+
+phase_kafka_config() {
+  # #88: kafka-brokers ConfigMap을 3개 ns에 선생성 (앱 배포 전 KAFKA_BROKERS 주입원).
+  # bring-up은 kubectl 스타일 — k8s-kafka-config terraform 모듈과 동일 리소스(터널 kubeconfig).
+  if $DRY_RUN; then echo "+ kafka-config: ns×3 + kafka-brokers ConfigMap (terraform output 브로커 사용)"; return; fi
+  local brokers
+  brokers=$(terraform -chdir=$TFDIR output -raw msk_bootstrap_brokers_tls)
+  for ns in synapse-dev synapse-staging synapse-prod; do
+    kubectl create namespace "$ns" --dry-run=client -o yaml | kubectl apply -f -
+    kubectl create configmap kafka-brokers -n "$ns" \
+      --from-literal=KAFKA_BROKERS="$brokers" --dry-run=client -o yaml | kubectl apply -f -
+  done
+  ok "kafka-brokers ConfigMap 3 ns 적용"
 }
 
 phase_manifests() {
