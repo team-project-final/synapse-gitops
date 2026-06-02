@@ -54,9 +54,6 @@ patches:
       - op: add
         path: /data/SPRING_DATA_REDIS_DATABASE
         value: "1"
-      - op: add
-        path: /data/KAFKA_BROKERS
-        value: "b-1.synapsedevkafka.4ki14g.c2.kafka.ap-northeast-2.amazonaws.com:9094,b-2.synapsedevkafka.4ki14g.c2.kafka.ap-northeast-2.amazonaws.com:9094"
       # ⚠️ prod Stripe price ID는 라이브 전 실제 prod price로 치환 필요(아래 placeholder는 렌더 통과용).
       - op: add
         path: /data/STRIPE_PRO_PRICE_ID
