@@ -12,7 +12,7 @@ locals {
     "engagement.gamification.level-up-v1",
     "engagement.gamification.badge-earned-v1",
     "platform.notification.notification-send-v1",
-    "learning.ai.cards-generated-v1", # deprecated(D-001 HTTP 전환) — 토픽만 존속, 동등 선언
+    "learning.ai.cards-generated-v1", # deprecated(D-001 HTTP 전환) — 호환 위해 토픽만 존속, 제거는 W5 백로그 추적
   ]
 }
 
