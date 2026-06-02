@@ -35,7 +35,7 @@ patches:
         value: "synapse"
       - op: add
         path: /data/KAFKA_BROKERS
-        value: "b-1.synapsedevkafka.dchj3l.c2.kafka.ap-northeast-2.amazonaws.com:9094,b-2.synapsedevkafka.dchj3l.c2.kafka.ap-northeast-2.amazonaws.com:9094"
+        value: "b-1.synapsedevkafka.4ki14g.c2.kafka.ap-northeast-2.amazonaws.com:9094,b-2.synapsedevkafka.4ki14g.c2.kafka.ap-northeast-2.amazonaws.com:9094"
       - op: add
         path: /data/SPRING_DATASOURCE_URL
         value: "jdbc:postgresql://synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com:5432/synapse"
