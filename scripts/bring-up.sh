@@ -25,7 +25,7 @@ require() { command -v "$1" >/dev/null 2>&1 || {
 usage() {
   cat <<USAGE
 사용법: bring-up.sh [옵션]
-  --from <phase>   해당 phase부터 재개 (terraform|eks-auth|access-entry|sg|tunnel|argocd|eso|oidc-fix|manifests|image-updater|observability|status)
+  --from <phase>   해당 phase부터 재개 (terraform|eks-auth|tunnel|argocd|eso|oidc-fix|kafka-config|manifests|image-updater|observability|status)
   --to <phase>     해당 phase까지만 실행 (예: --to manifests = observability 제외 dev-only)
   --verify         bring-up 대신 W3 잔여 3항목 검증
   --destroy        terraform destroy (비용 차단)
@@ -126,7 +126,7 @@ phase_oidc_fix() {
 phase_kafka_config() {
   # #88: kafka-brokers ConfigMap을 3개 ns에 선생성 (앱 배포 전 KAFKA_BROKERS 주입원).
   # bring-up은 kubectl 스타일 — k8s-kafka-config terraform 모듈과 동일 리소스(터널 kubeconfig).
-  if $DRY_RUN; then echo "+ kafka-config: ns×3 + kafka-brokers ConfigMap (브로커=terraform output)"; return; fi
+  if $DRY_RUN; then echo "+ kafka-config: ns×3 + kafka-brokers ConfigMap (terraform output 브로커 사용)"; return; fi
   local brokers
   brokers=$(terraform -chdir=$TFDIR output -raw msk_bootstrap_brokers_tls)
   for ns in synapse-dev synapse-staging synapse-prod; do
