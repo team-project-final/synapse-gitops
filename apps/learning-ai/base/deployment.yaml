@@ -27,6 +27,13 @@ spec:
                 configMapKeyRef:
                   name: kafka-brokers
                   key: KAFKA_BROKERS
+            # learning-ai(pydantic env_prefix="LEARNING_AI_")는 LEARNING_AI_KAFKA_BOOTSTRAP_SERVERS 를 읽음.
+            # prefix 없는 KAFKA_BROKERS만 주면 localhost:9092로 폴백해 KafkaConnectionError로 기동 실패.
+            - name: LEARNING_AI_KAFKA_BOOTSTRAP_SERVERS
+              valueFrom:
+                configMapKeyRef:
+                  name: kafka-brokers
+                  key: KAFKA_BROKERS
           envFrom:
             - configMapRef:
                 name: learning-ai-config
