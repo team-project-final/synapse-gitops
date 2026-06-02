@@ -23,6 +23,7 @@ secrets/
 
 # === Terraform ===
 infra/aws/dev/tfplan
+infra/aws/dev/*.log
 
 # === Tools ===
 .claude/
