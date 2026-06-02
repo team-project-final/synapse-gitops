@@ -76,3 +76,23 @@
 - [x] HISTORY 갱신 — HISTORY 2026-05-28 + 2026-06-01 라이브 재현 섹션 (D-043)
 
 **Step 10 Status**: [ ] Not Started / [ ] In Progress / [x] Done (롤백 405/406 라이브 검증(2026-06-01) + 백업/복구(407/408) + 알람 + 런북 Done. image-updater E2E 3항목만 W2 이월 잔존, team-lead 사인오프 대기 — D-043)
+
+---
+
+## 2026-06-02 후속 — MSK 토픽·인증 terraform 편입 (D-044)
+
+> 본격 작업: spec/plan `…2026-06-02-w4-remaining-msk-terraform-tls…`, 브랜치 `docs/w4-remaining-msk-terraform-tls`. HISTORY 2026-06-02 참조.
+
+- [x] **MSK 인증 모델 B(TLS-only) 확정** (D-044) — `msk.tf` 무변경, 서비스 코드/config 무변경. A(SASL/IAM)는 W5+ 백로그.
+- [x] **9개 Kafka 토픽 terraform 선언화** — `infra/aws/dev/kafka-topics/`(Mongey/kafka). 라이브 재기동에서 bastion apply로 9/9 생성 입증(RF=2). 기존 bastion 수동 스크립트 제거.
+- [x] **bastion→MSK SG 9094 인바운드 추가**(vpc.tf) — "bastion 차단"의 네트워크 실체 해소.
+- [x] **shared `KAFKA_AUTH_MATRIX` TLS-only 정합** — 브랜치 `docs/kafka-auth-tls-only`(team-lead 검토 후 push).
+
+### 사인오프 패키지 (team-lead 전달용, 합의 대기)
+- **권한 모델**: ArgoCD RBAC `role:prod-deployer`(prod sync 허용) + 로컬 `gitops-admin`. FR-403로 거부/허용 라이브 증명(2026-06-01). 신청 절차 `argocd/README.md`.
+- **RTO/RPO**: RTO 30분 / RPO 1시간. 롤백(FR-405/406)·백업복구(FR-407/408) 라이브 검증 완료. 런북 `w4-prod-rollback-backup-runbook.md`.
+
+### 이월 정정 (차단사유 명시)
+- **image-updater E2E (W2 이월)** — 차단사유: ArgoCD/image-updater 미부트스트랩 + EKS `authMode=CONFIG_MAP`·프라이빗(**bastion aws-auth 미매핑**). 복귀 시 ArgoCD bootstrap 선행 필요. (라이브 재기동만으로 불가)
+- **실 도메인 3항목 (W1 이월)** — 차단사유: 실 도메인 부재(ACM/DNS/UI HTTPS·webhook). port-forward/probe 대체.
+- **브로커 주소 자동화 / A안 SASL/IAM** — W5 백로그(`docs/superpowers/W5-scoping.md`).
