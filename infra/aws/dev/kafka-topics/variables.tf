@@ -4,9 +4,9 @@ variable "bootstrap_servers" {
 }
 
 variable "replication_factor" {
-  description = "토픽 복제 계수. MSK 브로커 수와 정합(dev=3)."
+  description = "토픽 복제 계수. MSK 브로커 수(dev tfvars msk_broker_count=2) 이하여야 생성 성공 → dev=2."
   type        = number
-  default     = 3
+  default     = 2
 }
 
 variable "min_insync_replicas" {
