@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafka-brokers
+data:
+  # base deployment의 KAFKA_BROKERS configMapKeyRef 대상. dev는 terraform(k8s-kafka-config)이 MSK 주소로 생성하지만
+  # 로컬은 인클러스터 kafka 서비스로 고정.
+  KAFKA_BROKERS: kafka:9092

@@ -17,10 +17,19 @@ patches:
       data:
         DATABASE_HOST: postgres
         DATABASE_PORT: "5432"
-        DATABASE_NAME: synapse
+        DATABASE_NAME: synapse_learning_ai
         KAFKA_BROKERS: kafka:9092
         OPENSEARCH_URL: http://opensearch:9200
-        LEARNING_AI_DATABASE_URL: postgresql+asyncpg://synapse:synapse_local@postgres:5432/synapse
+        LEARNING_AI_DATABASE_URL: postgresql+asyncpg://synapse:synapse_local@postgres:5432/synapse_learning_ai
+  # enableServiceLinks=false: 서비스링크 env 주입 차단
+  # 주의: learning-ai는 OPENAI_API_KEY 시크릿이 없으면 기동 실패함(별도 주입 필요).
+  - target:
+      kind: Deployment
+      name: learning-ai
+    patch: |
+      - op: add
+        path: /spec/template/spec/enableServiceLinks
+        value: false
 images:
   - name: ghcr.io/team-project-final/synapse-learning-ai
     newName: synapse-learning-ai

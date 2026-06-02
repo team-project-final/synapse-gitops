@@ -17,10 +17,38 @@ patches:
       data:
         DATABASE_HOST: postgres
         DATABASE_PORT: "5432"
-        DATABASE_NAME: synapse
-        SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/synapse
+        DATABASE_NAME: synapse_learning
+        SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/synapse_learning
         SPRING_DATASOURCE_USERNAME: synapse
         KAFKA_BROKERS: kafka:9092
+        REDIS_HOST: redis
+        REDIS_PORT: "6379"
+        SPRING_DATA_REDIS_HOST: redis
+        SPRING_DATA_REDIS_PORT: "6379"
+  # enableServiceLinks=false + 프로브 tcpSocket(actuator health 401 → httpGet 프로브가 파드를 죽이는 문제 회피)
+  - target:
+      kind: Deployment
+      name: learning-card
+    patch: |
+      - op: add
+        path: /spec/template/spec/enableServiceLinks
+        value: false
+      - op: replace
+        path: /spec/template/spec/containers/0/livenessProbe
+        value:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 90
+          periodSeconds: 15
+          failureThreshold: 4
+      - op: replace
+        path: /spec/template/spec/containers/0/readinessProbe
+        value:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 40
+          periodSeconds: 10
+          failureThreshold: 6
 images:
   - name: ghcr.io/team-project-final/synapse-learning-card
     newName: synapse-learning-card
