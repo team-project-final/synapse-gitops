@@ -17,11 +17,23 @@ patches:
       data:
         DATABASE_HOST: postgres
         DATABASE_PORT: "5432"
-        DATABASE_NAME: synapse
-        SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/synapse
+        DATABASE_NAME: synapse_knowledge
+        SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/synapse_knowledge
         SPRING_DATASOURCE_USERNAME: synapse
         KAFKA_BROKERS: kafka:9092
         OPENSEARCH_URL: http://opensearch:9200
+        REDIS_HOST: redis
+        REDIS_PORT: "6379"
+        SPRING_DATA_REDIS_HOST: redis
+        SPRING_DATA_REDIS_PORT: "6379"
+  # enableServiceLinks=false: REDIS_PORT=tcp://... 주입으로 인한 NumberFormatException 차단
+  - target:
+      kind: Deployment
+      name: knowledge-svc
+    patch: |
+      - op: add
+        path: /spec/template/spec/enableServiceLinks
+        value: false
 images:
   - name: ghcr.io/team-project-final/synapse-knowledge-svc
     newName: synapse-knowledge-svc

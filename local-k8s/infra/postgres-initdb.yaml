@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-initdb
+data:
+  # postgres 컨테이너의 /docker-entrypoint-initdb.d 에 마운트되어 최초 init 시 1회 실행.
+  # 로컬 postgres는 PVC가 없어 파드 재시작마다 fresh init → 매번 재생성됨.
+  # 서비스별 DB 격리(단일 synapse DB 공유 시 flyway_schema_history 충돌 회피).
+  10-create-databases.sql: |
+    CREATE DATABASE synapse_platform OWNER synapse;
+    CREATE DATABASE synapse_engagement OWNER synapse;
+    CREATE DATABASE synapse_knowledge OWNER synapse;
+    CREATE DATABASE synapse_learning OWNER synapse;
+    CREATE DATABASE synapse_learning_ai OWNER synapse;
+    \connect synapse_knowledge
+    CREATE EXTENSION IF NOT EXISTS vector;
+    \connect synapse_learning_ai
+    CREATE EXTENSION IF NOT EXISTS vector;

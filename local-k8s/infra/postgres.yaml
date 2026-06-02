@@ -9,12 +9,19 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres:16-alpine
+          image: pgvector/pgvector:pg16   # knowledge/learning-ai의 CREATE EXTENSION vector 지원
           env:
             - { name: POSTGRES_DB, value: synapse }
             - { name: POSTGRES_USER, value: synapse }
             - { name: POSTGRES_PASSWORD, value: synapse_local }
           ports: [ { containerPort: 5432 } ]
+          volumeMounts:
+            - name: initdb
+              mountPath: /docker-entrypoint-initdb.d
+      volumes:
+        - name: initdb
+          configMap:
+            name: postgres-initdb
 ---
 apiVersion: v1
 kind: Service
