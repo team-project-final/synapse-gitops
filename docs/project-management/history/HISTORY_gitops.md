@@ -359,6 +359,28 @@ EKS 실증 실패 후 kind로 즉시 대체 실증:
 
 ---
 
+## 2026-06-02 (W5 선행) — EKS window 진입 마찰 제거 (#87/#88/#89)
+
+OPEN 이슈 3건을 terraform 영구 코드화 + 라이브 1회 검증. spec/plan `2026-06-02-eks-window-entry-hardening`, 브랜치 `infra/eks-window-entry-hardening`.
+
+### 무엇을 했는지
+- **#87 bastion EKS 접근**: `eks.tf` `access_config{authentication_mode=API_AND_CONFIG_MAP}` + `aws_eks_access_entry`(bastion) + `aws_eks_access_policy_association`(AmazonEKSClusterAdminPolicy). bastion IAM에 kafka read(MSK ARN 스코프). **라이브: bastion `kubectl get nodes` 4 Ready·`auth can-i '*' '*'`=yes(ADMIN_OK) — kubectl 401 해소.**
+- **#89 D-026**: EKS 자동생성 cluster SG(`vpc_config[0].cluster_security_group_id`)를 RDS/Redis/OpenSearch/MSK SG ingress에 코드화. **라이브: test pod(cluster SG egress)가 4 인프라(9094/5432/6379/443) 전부 도달 — 수동 SG 0.**
+- **#88 브로커 ConfigMap**: `infra/aws/dev/k8s-kafka-config/`(kubernetes provider, ns ×3 + `kafka-brokers` ConfigMap ×3, bastion 실행) + overlay 15개 하드코딩 → `configMapKeyRef` 전환. **라이브: bastion terraform apply로 ConfigMap 3 ns 생성·test pod env 전파 확인.**
+- 마감: 이슈 #87/#88/#89 라이브 증거 코멘트, `terraform destroy` 과금 차단.
+
+### 의사결정
+- **D-045 #87 access entry(cluster admin) + #88 terraform-owned ns**:
+  - **결정**: #87=API_AND_CONFIG_MAP+access entry(legacy aws-auth ConfigMap 대신, terraform-native). bastion scope=ClusterAdmin(프라이빗 클러스터 유일 진입점·ArgoCD 부트스트랩 수행). #88 ns는 terraform 소유(순서 보장)+`prevent_destroy` 안전망.
+  - **근거**: private endpoint(`endpoint_public_access=false`)라 #88 k8s 리소스는 **bastion 실행**(로컬 terraform 도달 불가). #87 kafka IAM은 B(TLS-only)에선 필수 아니나 이슈 acceptance 충족 위해 포함(GetBootstrapBrokers/DescribeCluster는 MSK ARN 스코프).
+  - **대안 검토**: #88 ns를 data source(reviewer 제안) — ArgoCD CreateNamespace 비동기라 순서 문제 재도입 → 미채택, prevent_destroy로 blast radius 완화. SASL/IAM(A안) — W5+ 백로그 유지.
+  - **발견(학습)**: SSM 셸은 HOME 불일치로 `~/.kube/config` 못 찾음 → `KUBECONFIG`/`HOME=/root` 명시 필요. #89 검증은 ArgoCD 부트스트랩 없이 test pod로 SG 도달 동등 증명(원문 `verify-argocd-deploy 5/5`는 ArgoCD 후속).
+
+### 산출물
+- `eks.tf`·`bastion.tf`·`vpc.tf`, `infra/aws/dev/k8s-kafka-config/`, overlay 15개(5 base deployment + patch 제거), 본 HISTORY. 브랜치 `infra/eks-window-entry-hardening`.
+
+---
+
 ## 다음 항목 템플릿
 
 ### YYYY-MM-DD
