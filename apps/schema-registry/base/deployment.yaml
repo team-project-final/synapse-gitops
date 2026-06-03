@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: schema-registry
+  labels:
+    app.kubernetes.io/name: schema-registry
+    app.kubernetes.io/part-of: synapse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: schema-registry
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: schema-registry
+        app.kubernetes.io/part-of: synapse
+    spec:
+      # k8s 서비스링크 env(SCHEMA_REGISTRY_*)가 cp 이미지 설정과 충돌하는 것 방지
+      enableServiceLinks: false
+      containers:
+        - name: schema-registry
+          image: confluentinc/cp-schema-registry:7.7.0
+          env:
+            # kafkastore bootstrap = MSK 주소. 앱들과 동일한 kafka-brokers ConfigMap을 사용한다.
+            # (dev/EKS는 terraform k8s-kafka-config가 synapse-dev ns에 생성)
+            - name: KAFKA_BROKERS
+              valueFrom:
+                configMapKeyRef:
+                  name: kafka-brokers
+                  key: KAFKA_BROKERS
+            - name: SCHEMA_REGISTRY_HOST_NAME
+              value: schema-registry
+            # dev MSK 리스너 PLAINTEXT 가정. TLS/IAM/SASL이면 SECURITY_PROTOCOL 등 추가 필요(Runbook 참조).
+            - name: SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS
+              value: "PLAINTEXT://$(KAFKA_BROKERS)"
+            - name: SCHEMA_REGISTRY_LISTENERS
+              value: "http://0.0.0.0:8081"
+            # JVM 앱 — limit 768Mi 내로 힙 고정해 OOMKill 회피
+            - name: SCHEMA_REGISTRY_HEAP_OPTS
+              value: "-Xms256m -Xmx384m"
+          ports:
+            - containerPort: 8081
+          readinessProbe:
+            httpGet:
+              path: /subjects
+              port: 8081
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 12
+          # 콜드 클러스터에서 kafka 리더 선출 대기 중 healthy 파드를 죽이지 않도록 grace 확대
+          livenessProbe:
+            tcpSocket:
+              port: 8081
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            failureThreshold: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 768Mi
+          # cp 이미지 UID 미확정이라 runAsNonRoot 미적용. 안전 부분집합만(다른 워크로드와 동일).
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
