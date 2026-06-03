@@ -26,6 +26,9 @@ patches:
         REDIS_PORT: "6379"
         SPRING_DATA_REDIS_HOST: redis
         SPRING_DATA_REDIS_PORT: "6379"
+        # 앱은 KAFKA_BOOTSTRAP_SERVERS 를 읽음(KAFKA_BROKERS만 주면 localhost 폴백).
+        KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+        SCHEMA_REGISTRY_URL: http://schema-registry:8081
   # enableServiceLinks=false: REDIS_PORT=tcp://... 주입으로 인한 NumberFormatException 차단
   - target:
       kind: Deployment

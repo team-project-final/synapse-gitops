@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - ../../base
+  - pdb.yaml
 
 namespace: synapse-prod
 
@@ -51,6 +52,21 @@ patches:
       - op: replace
         path: /spec/data/1/remoteRef/key
         value: synapse/prod/learning-ai/db-password
+  - target:
+      kind: Deployment
+      name: learning-ai
+    patch: |
+      - op: add
+        path: /spec/template/spec/affinity
+        value:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                podAffinityTerm:
+                  labelSelector:
+                    matchLabels:
+                      app.kubernetes.io/name: learning-ai
+                  topologyKey: kubernetes.io/hostname
 
 images:
   - name: ghcr.io/team-project-final/synapse-learning-ai
