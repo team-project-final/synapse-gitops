@@ -20,6 +20,19 @@ spec:
             - { name: KAFKA_INTER_BROKER_LISTENER_NAME, value: "PLAINTEXT" }
             - { name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR, value: "1" }
           ports: [ { containerPort: 9092 } ]
+          readinessProbe:
+            tcpSocket: { port: 9092 }
+            initialDelaySeconds: 30   # zookeeper 콜드 스타트(자체 readiness 10s+) 후 등록 여유
+            periodSeconds: 10
+            failureThreshold: 12
+          livenessProbe:
+            tcpSocket: { port: 9092 }
+            initialDelaySeconds: 40
+            periodSeconds: 15
+            failureThreshold: 5   # GC 일시정지로 인한 불필요한 재시작 방지(75s)
+          resources:
+            requests: { cpu: 250m, memory: 512Mi }
+            limits: { cpu: 1000m, memory: 1Gi }
 ---
 apiVersion: v1
 kind: Service
