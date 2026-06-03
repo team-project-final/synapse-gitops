@@ -11,9 +11,11 @@ spec:
       app.kubernetes.io/name: learning-ai
   policyTypes: [Ingress, Egress]
   ingress:
-    # 같은 네임스페이스(gateway·타 svc)에서만 ingress 허용 — 외부/타 ns 직접 접근 차단
+    # knowledge-svc(시맨틱 검색)만 허용 — gateway는 learning-ai를 직접 호출하지 않음
     - from:
-        - podSelector: {}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: knowledge-svc
       ports:
         - {protocol: TCP, port: 8090}
   egress:
