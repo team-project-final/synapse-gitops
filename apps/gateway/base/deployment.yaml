@@ -63,9 +63,10 @@ spec:
             limits:
               cpu: 500m
               memory: 512Mi
-          # 이미지가 USER 미지정(root)이라 runAsNonRoot는 적용 불가(앱 레포 Dockerfile에 USER 추가 후 활성화 권장).
-          # 그 전까지 안전한 항목만: 권한상승 차단 + 모든 capability drop + seccomp 기본.
           securityContext:
+            runAsNonRoot: true
+            runAsUser: 101    # 이미지의 app 유저(adduser → uid 101). runAsNonRoot 검증에 숫자 UID 필요
+            runAsGroup: 101
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]
