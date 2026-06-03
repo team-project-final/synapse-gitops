@@ -262,13 +262,27 @@ team-project-final/
       <div class="code">minikube version
 kubectl version --client
 docker --version</div>
+      <p><strong>minikube가 없으면</strong>(관리자 권한 없이 설치, Windows): <code>choco install minikube</code>는 관리자 권한이 필요하므로, 바이너리를 사용자 폴더에 직접 받는다.</p>
+      <div class="code">mkdir $env:USERPROFILE\tools\minikube -Force
+iwr -useb https://github.com/kubernetes/minikube/releases/latest/download/minikube-windows-amd64.exe -OutFile $env:USERPROFILE\tools\minikube\minikube.exe
+[Environment]::SetEnvironmentVariable('Path', "$env:USERPROFILE\tools\minikube;" + [Environment]::GetEnvironmentVariable('Path','User'), 'User')</div>
 
       <div class="step"><input type="checkbox" id="k8s-2"><label for="k8s-2">2. 한 번에 기동(빌드+적재+적용)</label></div>
-      <p>형제 레포(<a href="#clone">§2</a>의 7개)가 클론돼 있어야 합니다. 스크립트가 Gateway·서비스 이미지를 빌드해 minikube에 적재합니다(learning-card는 Dockerfile이 없어 <code>bootBuildImage</code>로 빌드 — 최초 다소 느림).</p>
+      <p>형제 레포(<a href="#clone">§2</a>의 7개)가 클론돼 있어야 합니다. 스크립트가 Gateway·서비스 이미지 <strong>6개</strong>를 각 레포의 Dockerfile(멀티스테이지)로 빌드해 minikube에 적재합니다(최초 다소 느림 — JVM 4개 + Python + Gateway 컴파일).</p>
       <div class="code">cd C:\workspace\team-project-final\synapse-gitops
 bash scripts/minikube-up.sh</div>
 
+      <div class="step"><input type="checkbox" id="k8s-2b"><label for="k8s-2b">2.5 learning-ai OpenAI 키 주입(필수, 1회)</label></div>
+      <p>learning-ai는 기동 시 OpenAI 자격증명을 요구합니다. <code>secrets.yaml</code>의 placeholder(<code>sk-mock</code>)로는 뜨지 않으므로 <strong>실제 키를 클러스터에 직접 주입</strong>합니다(git에 커밋하지 않음). 키 이름에 <code>LEARNING_AI_</code> prefix 필수(앱이 pydantic <code>env_prefix</code> 사용). 키 없이도 나머지 10개 워크로드는 정상이며 learning-ai만 CrashLoop입니다.</p>
+      <div class="code">kubectl -n synapse-local create secret generic learning-ai-secret \
+  --from-literal=LEARNING_AI_OPENAI_API_KEY=&lt;실제키&gt; \
+  --from-literal=LEARNING_AI_ANTHROPIC_API_KEY=sk-mock \
+  --from-literal=DATABASE_PASSWORD=synapse_local \
+  --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n synapse-local rollout restart deploy/learning-ai</div>
+
       <div class="step"><input type="checkbox" id="k8s-3"><label for="k8s-3">3. 파드 상태 확인</label></div>
+      <p>인프라 5 + Gateway + 서비스 5 = <strong>11개 워크로드가 모두 <code>1/1 Running</code></strong>이면 정상(<code>kafka-topics-init</code> Job은 <code>Completed</code>).</p>
       <div class="code">kubectl -n synapse-local get pods</div>
 
       <div class="step"><input type="checkbox" id="k8s-4"><label for="k8s-4">4. 접근 — Gateway 경유 port-forward</label></div>
@@ -286,7 +300,9 @@ kubectl -n synapse-local describe pod -l app.kubernetes.io/name=platform-svc   #
       <div class="step"><input type="checkbox" id="k8s-5"><label for="k8s-5">minikube 대시보드(웹 UI)로 보기</label></div>
       <p>브라우저 GUI로 파드·로그·리소스를 클릭하며 볼 수 있습니다.</p>
       <div class="code">minikube dashboard            # 브라우저 자동 오픈
-minikube dashboard --url      # URL만 출력(원격/수동 오픈용)</div>
+minikube dashboard --url      # URL만 출력(원격/수동 오픈용)
+minikube addons enable metrics-server   # 대시보드 CPU/메모리 그래프 + kubectl top 활성화
+kubectl top nodes ; kubectl -n synapse-local top pods   # CLI 실시간 사용량</div>
 
       <h3>3.6 k8s에서 서비스 사용·데이터·이벤트 확인</h3>
       <p>compose 사용법(<a href="#usage">§6</a>)의 k8s 버전입니다 — <code>docker exec</code> 대신 <code>kubectl exec</code>, 접근은 <code>port-forward</code>를 씁니다.</p>
@@ -309,7 +325,8 @@ kubectl -n synapse-local exec -it deploy/opensearch -- curl -s localhost:9200/_c
       </details>
       <details class="deep"><summary>트러블슈팅 (심화)</summary>
         <div class="body"><strong>JVM 서비스가 반복 재시작(CrashLoop/Restarts 증가)</strong>: 대개 <strong>메모리 부족</strong>입니다. opensearch+kafka+JVM 4개가 동시에 떠서 4GB로는 liveness가 파드를 죽입니다 → <code>minikube delete &amp;&amp; minikube start --memory=8192 --cpus=4</code> 후 재기동(스크립트 기본값도 8GB). <strong>ImagePullBackOff</strong>: 이미지가 minikube에 적재 안 됨 → <code>minikube image ls | grep synapse</code> 확인, 없으면 <code>minikube image load synapse-&lt;name&gt;:local</code> 재실행. <strong>토픽 미생성</strong>: <code>kubectl -n synapse-local logs job/kafka-topics-init</code>. <strong>Gateway 502/503</strong>: 대상 서비스가 아직 Ready 아님 → <code>kubectl -n synapse-local get pods</code> 확인. <strong>compose와 동시 실행 금지</strong>: 포트 충돌.
-        <br><strong>learning-ai / learning-card 이미지</strong>: 두 Dockerfile은 <code>synapse-learning-svc</code>의 <strong>dev 브랜치에서 수정 완료</strong>(learning-ai는 <code>app/</code> 복사 순서, learning-card는 멀티스테이지 Dockerfile 신설). 빌드하려면 해당 레포를 dev로 두거나 main에 반영하세요. 미반영 상태면 두 파드만 <code>ImagePullBackOff</code>이고 나머지는 정상(스크립트는 한 이미지 실패해도 계속 진행). 검증 결과 수정된 Dockerfile + 8GB 메모리에서 <strong>11개 파드 전부 Running</strong> 확인.</div>
+        <br><strong>learning-ai가 CrashLoop</strong>: 십중팔구 OpenAI 키 미주입입니다(<a href="#k8s">§3</a> 2.5단계). 로그에 <code>Missing credentials</code>면 키 주입, <code>KafkaConnectionError: localhost:9092</code>면 <code>learning-ai-config</code>에 <code>LEARNING_AI_</code> prefix 키가 빠진 것(현재 매니페스트엔 반영됨). <strong>learning-card ImagePullBackOff</strong>: 이미지가 노드에 안 올라간 경우. learning-card는 멀티스테이지 Dockerfile로 일반 <code>docker build</code> 후 적재합니다(paketo <code>bootBuildImage</code> 산출물은 containerd import가 "wrong diff id"로 실패하므로 사용하지 않음).
+        <br><strong>그 밖의 갭은 매니페스트에 반영됨</strong>(설계 노트): 서비스별 DB 격리(<code>postgres-initdb.yaml</code>, 단일 <code>synapse</code> 공유 시 Flyway 충돌), <code>pgvector/pgvector:pg16</code>(knowledge/learning-ai의 <code>CREATE EXTENSION vector</code>), <code>kafka-brokers</code> ConfigMap, <code>enableServiceLinks: false</code>(<code>REDIS_PORT=tcp://...</code> 주입 충돌 차단), engagement·learning-card 프로브 <code>tcpSocket</code>(actuator 401 회피). 검증 결과 8GB 메모리 + OpenAI 키 주입 시 <strong>11개 워크로드 전부 1/1 Running</strong>.</div>
       </details>
       <details class="deep"><summary>compose 경로와 무엇이 다른가? (심화)</summary>
         <div class="body">compose 경로(<a href="#path1">§4</a>/<a href="#path2">§5</a>)는 인프라를 호스트 컨테이너로 띄우지만, 이 경로는 인프라·Gateway까지 <strong>클러스터 안</strong>에 띄워 파드가 서비스 DNS(<code>postgres</code>,<code>kafka</code>,<code>platform-svc</code> 등)로 통신합니다. 실 배포(EKS)와 가장 가깝습니다.</div>
