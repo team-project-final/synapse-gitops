@@ -44,11 +44,16 @@ spec:
             - secretRef:
                 name: learning-ai-secret
                 optional: true
+          startupProbe:
+            tcpSocket:
+              port: 8090
+            periodSeconds: 5
+            failureThreshold: 24   # 최대 ~120s 기동 허용
           livenessProbe:
             httpGet:
               path: /health
               port: 8090
-            initialDelaySeconds: 60
+            initialDelaySeconds: 15
             periodSeconds: 10
           readinessProbe:
             httpGet:

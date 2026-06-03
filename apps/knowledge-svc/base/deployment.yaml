@@ -44,11 +44,16 @@ spec:
             - secretRef:
                 name: knowledge-svc-secret
                 optional: true
+          startupProbe:
+            tcpSocket:
+              port: 8080
+            periodSeconds: 5
+            failureThreshold: 30   # 최대 ~150s 기동 허용(JVM 콜드스타트). 성공 후 liveness 활성
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
               port: 8080
-            initialDelaySeconds: 90
+            initialDelaySeconds: 15
             periodSeconds: 10
           readinessProbe:
             httpGet:
