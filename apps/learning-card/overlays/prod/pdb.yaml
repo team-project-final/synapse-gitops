@@ -2,6 +2,9 @@ apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
   name: learning-card-pdb
+  labels:
+    app.kubernetes.io/name: learning-card
+    app.kubernetes.io/part-of: synapse
 spec:
   minAvailable: 1
   selector:
