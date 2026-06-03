@@ -70,3 +70,18 @@ prod 적용 후 문제 시: `apps/<svc>/overlays/prod/kustomization.yaml`의 `re
 - ingress가 "같은 ns 전체 허용"이라 gateway 외 svc도 서로 접근 가능. 더 조이려면 `from`을 gateway 라벨로 한정(단 inter-svc REST 흐름 매핑 필요).
 - 외부 egress가 `0.0.0.0/0:443`(VPC 제외)이라 넓음. 보안 강화 시 Stripe/OAuth/OpenAI IP 레인지로 좁히되 IP 변동 리스크 고려(또는 egress 프록시).
 - gateway는 현재 어느 ApplicationSet에도 없어 prod 미배포 — gateway용 netpol은 배포 경로 확정 후.
+
+## B4 — ingress 호출자 한정 + 외부443 차등 (2026-06-03)
+
+per-svc netpol을 cookie-cutter(ns 전체 ingress + 전 서비스 외부443)에서 호출 그래프 기반으로 조임:
+- ingress `from`: platform←gateway,learning-ai / engagement←gateway / knowledge←gateway /
+  learning-card←gateway,learning-ai / learning-ai←knowledge-svc.
+- 외부 0.0.0.0/0:443: platform·learning-ai만 유지, engagement·knowledge·learning-card 제거.
+- intra-ns egress(`podSelector {}`)·VPC 데이터스토어 egress는 보수적으로 유지.
+
+### EKS 프로비저닝 시 확인
+- **gateway 의존성(B1)**: ingress가 `app.kubernetes.io/name: gateway` 라벨 의존. gateway가 prod에
+  배포되어야 공개 API 경로가 열림. gateway 파드 라벨이 정확히 그 값인지 확인.
+- **외부443 제거 영향**: engagement/knowledge/learning-card가 향후 AWS SDK(CloudWatch/S3/SQS) 등
+  외부 호출을 추가하면 차단됨 → 해당 netpol에 외부443 재추가 또는 VPC 엔드포인트 사용.
+- **VPC CNI 정책 컨트롤러** 활성 선행. 미활성 시 정책 무시.

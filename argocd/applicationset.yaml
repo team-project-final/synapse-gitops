@@ -14,6 +14,7 @@ spec:
                 - service: knowledge-svc
                 - service: learning-card
                 - service: learning-ai
+                - service: gateway
           - list:
               elements:
                 - env: dev
