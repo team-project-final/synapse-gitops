@@ -28,6 +28,8 @@
   table.ref th,table.ref td{border:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top}
   table.ref th{color:var(--muted)}
   tr.dep td{opacity:.5}
+  tr.dto-detail{display:none}
+  tr.dto-detail.open{display:table-row}
 </style>
 </head>
 <body>
@@ -44,6 +46,8 @@
   </main>
   <footer id="footer"></footer>
   <script>
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
 const SYSTEM = {
   services: {
     gateway:      {label:"gateway", addr:"gateway", port:8080, tier:"edge", color:"#bc8cff", role:"API 게이트웨이(Spring Cloud Gateway)", rest:[
@@ -482,6 +486,7 @@ const POS = { // [x,y] (viewBox 1000x440)
   postgres:[120,400], redis:[300,400], opensearch:[700,400],
 };
 let activeLayers = {rest:true, kafka:true, store:true};
+let selectedId = null;
 function edgeList(){
   const e=[];
   SYSTEM.rest.forEach(r=>e.push({a:r.from,b:r.to,type:"rest"}));
@@ -521,25 +526,25 @@ function renderMap(){
     g.appendChild(r);g.appendChild(t);
     g.addEventListener("click",()=>openPanel(id));
     g.addEventListener("mouseenter",()=>highlight(id));
-    g.addEventListener("mouseleave",()=>highlight(null));
+    g.addEventListener("mouseleave",()=>highlight(selectedId));
     svg.appendChild(g);
   });
   const reg=document.getElementById("map-region"); reg.innerHTML=""; reg.appendChild(svg);
 }
 function openEdge(ed){
-  let h=`<h3 style="margin-top:0">연결: ${ed.a} → ${ed.b}</h3>`;
-  h+=row("종류", ed.type.toUpperCase());
+  let h=`<h3 style="margin-top:0">연결: ${esc(ed.a)} → ${esc(ed.b)}</h3>`;
+  h+=row("종류", esc(ed.type.toUpperCase()));
   if(ed.type==="kafka"&&ed.topic){ const ev=SYSTEM.events.find(e=>e.topic===ed.topic);
-    h+=row("토픽", `<code>${ed.topic}</code>`);
+    h+=row("토픽", `<code>${esc(ed.topic)}</code>`);
     if(ev){
       if(ev.deprecated)h+=`<div style="color:var(--kafka);margin:4px 0">⚠ deprecated</div>`;
-      h+=row("producer", ev.producer); h+=row("consumers", ev.consumers.length?ev.consumers.join(", "):"<span class='muted'>(없음)</span>");
-      if(ev.note)h+=row("비고", ev.note);
+      h+=row("producer", esc(ev.producer)); h+=row("consumers", ev.consumers.length?ev.consumers.map(c=>esc(c)).join(", "):"<span class='muted'>(없음)</span>");
+      if(ev.note)h+=row("비고", esc(ev.note));
       if(ev.schemaFields?.length){ h+=`<div class="muted" style="margin-top:6px">Avro 필드</div>`;
-        h+=ev.schemaFields.map(f=>`<div><code>${f.name}</code>: ${f.type}</div>`).join(""); } } }
+        h+=ev.schemaFields.map(f=>`<div><code>${esc(f.name)}</code>: ${esc(f.type)}</div>`).join(""); } } }
   if(ed.type==="rest"){ const r=SYSTEM.rest.find(x=>x.from===ed.a&&x.to===ed.b);
-    if(r){ h+=row("base", `<code>${r.basePath}</code>`); if(r.note)h+=row("비고", r.note);
-      if(r.endpoints?.length)h+=row("경로", r.endpoints.map(p=>`<code>${p}</code>`).join("<br>")); } }
+    if(r){ h+=row("base", `<code>${esc(r.basePath)}</code>`); if(r.note)h+=row("비고", esc(r.note));
+      if(r.endpoints?.length)h+=row("경로", r.endpoints.map(p=>`<code>${esc(p)}</code>`).join("<br>")); } }
   document.getElementById("panel-region").innerHTML=h;
 }
 function renderLayerToggles(){
@@ -560,33 +565,44 @@ function highlight(id){
 function row(k,v){ return `<div style="margin:4px 0"><span class="muted">${k}</span> ${v}</div>`; }
 function openPanel(id){
   const n=SYSTEM.services[id]||SYSTEM.infra[id]; if(!n)return;
-  let h=`<h3 style="margin-top:0">${n.label}</h3>`;
-  h+=row("주소", `<code>${n.addr}:${n.port}</code>`);
-  if(n.role)h+=row("역할", n.role);
+  selectedId=id;
+  let h=`<h3 style="margin-top:0">${esc(n.label)}</h3>`;
+  h+=row("주소", `<code>${esc(n.addr)}:${esc(n.port)}</code>`);
+  if(n.role)h+=row("역할", esc(n.role));
   if(SYSTEM.services[id]){
     const s=SYSTEM.services[id];
-    if(s.stores?.length)h+=row("데이터스토어", s.stores.map(x=>`<code>${x}</code>`).join(", "));
-    if(s.produces?.length)h+=row("발행 토픽", s.produces.map(t=>`<code>${t}</code>`).join("<br>"));
-    if(s.consumes?.length)h+=row("구독 토픽", s.consumes.map(t=>`<code>${t}</code>`).join("<br>"));
-    if(s.calls?.length)h+=row("REST 호출", s.calls.map(c=>`<code>${c}</code>`).join(", "));
+    if(s.stores?.length)h+=row("데이터스토어", s.stores.map(x=>`<code>${esc(x)}</code>`).join(", "));
+    if(s.produces?.length)h+=row("발행 토픽", s.produces.map(t=>`<code>${esc(t)}</code>`).join("<br>"));
+    if(s.consumes?.length)h+=row("구독 토픽", s.consumes.map(t=>`<code>${esc(t)}</code>`).join("<br>"));
+    if(s.calls?.length)h+=row("REST 호출", s.calls.map(c=>`<code>${esc(c)}</code>`).join(", "));
     if(s.rest?.length){ h+=`<div class="muted" style="margin-top:8px">REST 엔드포인트 (${s.rest.length})</div>`;
-      h+=`<table style="width:100%;font-size:12px;border-collapse:collapse">`+s.rest.map(e=>`<tr><td style="vertical-align:top"><code>${e.method}</code></td><td style="vertical-align:top"><code>${e.path}</code></td><td>${e.desc||""}</td></tr>`).join("")+`</table>`; }
+      h+=`<table style="width:100%;font-size:12px;border-collapse:collapse">`+s.rest.map(e=>`<tr><td style="vertical-align:top"><code>${esc(e.method)}</code></td><td style="vertical-align:top"><code>${esc(e.path)}</code></td><td>${esc(e.desc||"")}</td></tr>`).join("")+`</table>`; }
   }
-  h+=`<p><button onclick="filterReference('${id}')">레퍼런스에서 보기 →</button></p>`;
+  h+=`<p><button id="panel-ref-btn">레퍼런스에서 보기 →</button></p>`;
   document.getElementById("panel-region").innerHTML=h;
+  document.getElementById("panel-ref-btn").addEventListener("click", ()=>filterReference(id));
+  highlight(id);
 }
 let refFilter="";
 function renderReference(){
   const q=refFilter.toLowerCase();
   const ep=[]; Object.entries(SYSTEM.services).forEach(([id,s])=>(s.rest||[]).forEach(e=>ep.push({svc:id,...e})));
   const epRows=ep.filter(e=>!q||(e.svc+e.method+e.path+(e.reqDto||"")+(e.resDto||"")+(e.desc||"")).toLowerCase().includes(q))
-    .map(e=>`<tr><td>${e.svc}</td><td><code>${e.method}</code></td><td><code>${e.path}</code></td><td>${e.reqDto||"-"}</td><td>${e.resDto||"-"}</td><td>${e.desc||""}</td></tr>`).join("");
+    .map(e=>`<tr><td>${esc(e.svc)}</td><td><code>${esc(e.method)}</code></td><td><code>${esc(e.path)}</code></td><td>${esc(e.reqDto||"-")}</td><td>${esc(e.resDto||"-")}</td><td>${esc(e.desc||"")}</td></tr>`).join("");
   const tpRows=SYSTEM.events.filter(e=>!q||(e.topic+e.producer+e.consumers.join()).toLowerCase().includes(q))
-    .map(e=>`<tr class="${e.deprecated?'dep':''}"><td><code>${e.topic}</code>${e.deprecated?' <span style="color:var(--kafka)">⚠dep</span>':''}</td><td>${e.producer}</td><td>${e.consumers.join(", ")||"-"}</td><td>${(e.schemaFields||[]).map(f=>f.name).join(", ")}</td><td>${e.partitions}</td></tr>`).join("");
+    .map(e=>`<tr class="${e.deprecated?'dep':''}"><td><code>${esc(e.topic)}</code>${e.deprecated?' <span style="color:var(--kafka)">⚠dep</span>':''}</td><td>${esc(e.producer)}</td><td>${e.consumers.map(c=>esc(c)).join(", ")||"-"}</td><td>${(e.schemaFields||[]).map(f=>esc(f.name)).join(", ")}</td><td>${esc(e.partitions)}</td></tr>`).join("");
   const coRows=SYSTEM.connections.filter(c=>!q||(c.name+c.addr).toLowerCase().includes(q))
-    .map(c=>`<tr><td>${c.name}</td><td><code>${c.addr}</code></td><td>${c.envVars.map(v=>`<code>${v}</code>`).join(" ")}</td><td>${c.protocol}</td></tr>`).join("");
+    .map(c=>`<tr><td>${esc(c.name)}</td><td><code>${esc(c.addr)}</code></td><td>${c.envVars.map(v=>`<code>${esc(v)}</code>`).join(" ")}</td><td>${esc(c.protocol)}</td></tr>`).join("");
   const dtoNames=Object.keys(SYSTEM.dtos).filter(n=>!q||(n+SYSTEM.dtos[n].fields.map(f=>f.name).join()).toLowerCase().includes(q)).sort();
-  const dtoRows=dtoNames.map(n=>`<tr><td><code>${n}</code></td><td>${SYSTEM.dtos[n].fields.map(f=>`<code>${f.name}</code>:${f.type}`).join(", ")}</td></tr>`).join("");
+  const dtoRows=dtoNames.map(n=>{
+    const dto=SYSTEM.dtos[n];
+    const hasSample=dto.sample!=null;
+    const nameCell=`<td style="cursor:${hasSample?'pointer':'default'}" class="dto-name-cell">${hasSample?'▸ ':''}<code>${esc(n)}</code></td>`;
+    const fieldsCell=`<td>${dto.fields.map(f=>`<code>${esc(f.name)}</code>:${esc(f.type)}`).join(", ")}</td>`;
+    const mainRow=`<tr class="dto-main-row" data-dto="${esc(n)}">${nameCell}${fieldsCell}</tr>`;
+    const sampleRow=hasSample?`<tr class="dto-detail"><td colspan="2"><pre style="margin:0;font-size:11px;white-space:pre-wrap;word-break:break-all">${esc(JSON.stringify(dto.sample,null,2))}</pre></td></tr>`:"";
+    return mainRow+sampleRow;
+  }).join("");
   document.getElementById("ref-region").innerHTML=`
     <div style="display:flex;gap:8px;align-items:center"><h3 style="margin:0">📖 종합 레퍼런스</h3>
       <input id="ref-search" placeholder="검색 (서비스/경로/토픽/DTO)…" value="${refFilter.replace(/"/g,'&quot;')}" style="margin-left:auto;width:280px;background:#0d1117;border:1px solid var(--line);color:var(--fg);padding:5px 8px;border-radius:6px">
@@ -594,45 +610,109 @@ function renderReference(){
     <h4>REST 엔드포인트 (${ep.length})</h4><table class="ref"><thead><tr><th>서비스</th><th>method</th><th>path</th><th>요청</th><th>응답</th><th>설명</th></tr></thead><tbody>${epRows||'<tr><td colspan="6" class="muted">없음</td></tr>'}</tbody></table>
     <h4>Kafka 토픽 (${SYSTEM.events.length})</h4><table class="ref"><thead><tr><th>토픽</th><th>producer</th><th>consumers</th><th>Avro 필드</th><th>part.</th></tr></thead><tbody>${tpRows}</tbody></table>
     <h4>연결 디렉터리</h4><table class="ref"><thead><tr><th>대상</th><th>주소</th><th>주입 env</th><th>프로토콜</th></tr></thead><tbody>${coRows}</tbody></table>
-    <h4>DTO 카탈로그 (${Object.keys(SYSTEM.dtos).length})</h4><table class="ref"><thead><tr><th>DTO</th><th>필드</th></tr></thead><tbody>${dtoRows||'<tr><td colspan="2" class="muted">없음</td></tr>'}</tbody></table>`;
+    <h4>DTO 카탈로그 (${Object.keys(SYSTEM.dtos).length})</h4><table id="dto-table" class="ref"><thead><tr><th>DTO</th><th>필드</th></tr></thead><tbody>${dtoRows||'<tr><td colspan="2" class="muted">없음</td></tr>'}</tbody></table>`;
   const inp=document.getElementById("ref-search");
   inp.oninput=e=>{ refFilter=e.target.value; renderReference(); const ni=document.getElementById("ref-search"); ni.focus(); ni.setSelectionRange(ni.value.length,ni.value.length); };
+  const dtoTable=document.getElementById("dto-table");
+  if(dtoTable){ dtoTable.addEventListener("click",e=>{
+    const row=e.target.closest("tr.dto-main-row"); if(!row)return;
+    const detail=row.nextElementSibling; if(!detail||!detail.classList.contains("dto-detail"))return;
+    const open=detail.classList.toggle("open");
+    const nameCell=row.querySelector(".dto-name-cell");
+    if(nameCell){ nameCell.innerHTML=nameCell.innerHTML.replace(/^[▸▾] /,""+(open?"▾ ":"▸ ")); }
+  }); }
 }
 function filterReference(id){ refFilter=id; renderReference(); document.getElementById("ref-region").scrollIntoView({behavior:"smooth"}); }
 
 let flowTimer=null;
+let flowState=null;
+
 function renderScenarioPicker(){
   const host=document.getElementById("scenario-picker"); host.innerHTML="";
   SYSTEM.scenarios.forEach(s=>{ const b=document.createElement("button"); b.textContent="▶ "+s.name;
     b.onclick=()=>playScenario(s.name); host.appendChild(b); });
 }
-function renderFlowRegion(){ document.getElementById("flow-region").innerHTML=
-  `<div id="flow-steps" class="muted">상단의 시나리오를 선택하면 흐름이 재생됩니다.</div>`; }
-function playScenario(name){
-  const sc=SYSTEM.scenarios.find(s=>s.name===name); if(!sc)return;
-  const svg=document.getElementById("map-svg"); if(!svg)return;
-  if(flowTimer)cancelAnimationFrame(flowTimer);
+
+function renderFlowRegion(){
+  document.getElementById("flow-region").innerHTML=
+    `<div id="flow-controls"><button id="fc-prev">⏮</button><button id="fc-play">▶</button><button id="fc-next">⏭</button><select id="fc-speed"><option value="1.5">0.5x</option><option value="1" selected>1x</option><option value="0.5">2x</option></select> <span id="fc-name" class="muted"></span></div><div id="flow-steps" class="muted">상단의 시나리오를 선택하면 흐름이 재생됩니다.</div>`;
+  document.getElementById("fc-prev").addEventListener("click",()=>flowStep(-1));
+  document.getElementById("fc-play").addEventListener("click",()=>flowToggle());
+  document.getElementById("fc-next").addEventListener("click",()=>flowStep(1));
+  document.getElementById("fc-speed").addEventListener("change",function(){ if(flowState)flowState.speed=parseFloat(this.value)||1; });
+}
+
+function _getOrCreateDot(svg){
   const ns="http://www.w3.org/2000/svg";
   let dot=document.getElementById("flow-dot");
   if(!dot){ dot=document.createElementNS(ns,"circle"); dot.id="flow-dot"; dot.setAttribute("r",7);
     dot.setAttribute("fill","#fff"); dot.setAttribute("stroke","#000"); dot.setAttribute("stroke-width","1"); svg.appendChild(dot); }
   else if(dot.parentNode!==svg){ svg.appendChild(dot); }
-  const steps=sc.steps, stepsHost=document.getElementById("flow-steps");
-  function showStep(k){ stepsHost.innerHTML=steps.map((st,idx)=>
-    `<div style="padding:3px 0;${idx===k?'color:var(--accent);font-weight:600':'opacity:.6'}">${idx+1}. ${st.narration}</div>`).join(""); }
-  function animateTo(from,to,done){
-    const [x1,y1]=POS[from], [x2,y2]=POS[to]; const t0=performance.now(), dur=900;
-    (function frame(t){ const p=Math.min(1,(t-t0)/dur);
-      dot.setAttribute("cx",x1+(x2-x1)*p); dot.setAttribute("cy",y1+(y2-y1)*p);
-      if(p<1)flowTimer=requestAnimationFrame(frame); else done(); })(t0);
-  }
-  let i=0; showStep(0);
-  dot.setAttribute("cx",POS[steps[0].node][0]); dot.setAttribute("cy",POS[steps[0].node][1]);
-  i=1;
-  function next(){ if(i>=steps.length)return; showStep(i);
-    const from=steps[i-1].node, to=steps[i].node;
-    animateTo(from,to,()=>{ i++; setTimeout(next,350); }); }
-  if(steps.length>1) next();
+  return dot;
+}
+
+function showStep(k){
+  const stepsHost=document.getElementById("flow-steps"); if(!stepsHost||!flowState)return;
+  const steps=flowState.scenario.steps;
+  stepsHost.innerHTML=steps.map((st,idx)=>
+    `<div style="padding:3px 0;${idx===k?'color:var(--accent);font-weight:600':'opacity:.6'}">${idx+1}. ${esc(st.narration)}</div>`).join("");
+}
+
+function updatePlayBtn(){
+  const btn=document.getElementById("fc-play"); if(!btn)return;
+  btn.textContent=(flowState&&flowState.playing)?"⏸":"▶";
+}
+
+function flowAdvance(){
+  if(!flowState||!flowState.playing)return;
+  const steps=flowState.scenario.steps;
+  if(flowState.idx>=steps.length-1){ flowState.playing=false; updatePlayBtn(); return; }
+  const svg=document.getElementById("map-svg"); if(!svg)return;
+  const dot=_getOrCreateDot(svg);
+  const from=steps[flowState.idx].node, to=steps[flowState.idx+1].node;
+  const [x1,y1]=POS[from]||[0,0], [x2,y2]=POS[to]||[0,0];
+  const dur=900*flowState.speed; const t0=performance.now();
+  if(flowTimer)cancelAnimationFrame(flowTimer);
+  (function frame(t){
+    if(!flowState||!flowState.playing)return;
+    const p=Math.min(1,(t-t0)/dur);
+    dot.setAttribute("cx",x1+(x2-x1)*p); dot.setAttribute("cy",y1+(y2-y1)*p);
+    if(p<1){ flowTimer=requestAnimationFrame(frame); }
+    else { flowState.idx++; showStep(flowState.idx); setTimeout(flowAdvance, 350*flowState.speed); }
+  })(t0);
+}
+
+function flowStep(d){
+  if(!flowState)return;
+  flowState.playing=false; updatePlayBtn();
+  const steps=flowState.scenario.steps;
+  flowState.idx=Math.max(0,Math.min(flowState.idx+d,steps.length-1));
+  const svg=document.getElementById("map-svg"); if(!svg)return;
+  const dot=_getOrCreateDot(svg);
+  const node=steps[flowState.idx].node;
+  const [x,y]=POS[node]||[0,0];
+  dot.setAttribute("cx",x); dot.setAttribute("cy",y);
+  showStep(flowState.idx);
+}
+
+function flowToggle(){
+  if(!flowState)return;
+  flowState.playing=!flowState.playing; updatePlayBtn();
+  if(flowState.playing && flowState.idx<flowState.scenario.steps.length-1){ flowAdvance(); }
+}
+
+function playScenario(name){
+  const sc=SYSTEM.scenarios.find(s=>s.name===name); if(!sc)return;
+  const svg=document.getElementById("map-svg"); if(!svg)return;
+  if(flowTimer)cancelAnimationFrame(flowTimer);
+  const speedEl=document.getElementById("fc-speed");
+  const speed=speedEl?parseFloat(speedEl.value)||1:1;
+  flowState={scenario:sc, idx:0, playing:true, speed:speed};
+  const nameEl=document.getElementById("fc-name"); if(nameEl)nameEl.textContent=name;
+  const dot=_getOrCreateDot(svg);
+  dot.setAttribute("cx",POS[sc.steps[0].node][0]); dot.setAttribute("cy",POS[sc.steps[0].node][1]);
+  showStep(0); updatePlayBtn();
+  flowAdvance();
 }
 
 function renderFooter(){ document.getElementById("footer").innerHTML=
