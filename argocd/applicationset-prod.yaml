@@ -29,6 +29,12 @@ spec:
       destination:
         server: https://kubernetes.default.svc
         namespace: synapse-prod
+      # HPA가 replicas를 관리하므로 ArgoCD가 매니페스트의 replicas:3으로 되돌리지 않도록 무시
+      ignoreDifferences:
+        - group: apps
+          kind: Deployment
+          jsonPointers:
+            - /spec/replicas
       # ⚠️ automated 없음 — main 머지 후 OutOfSync 대기 → gitops-admin 수동 sync (FR-GO-402 승인 게이트)
       syncPolicy:
         syncOptions:

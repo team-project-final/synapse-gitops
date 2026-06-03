@@ -51,11 +51,16 @@ spec:
             - secretRef:
                 name: learning-ai-secret
                 optional: true
+          startupProbe:
+            tcpSocket:
+              port: 8090
+            periodSeconds: 5
+            failureThreshold: 24   # 최대 ~120s 기동 허용
           livenessProbe:
             httpGet:
               path: /health
               port: 8090
-            initialDelaySeconds: 60
+            initialDelaySeconds: 15
             periodSeconds: 10
           readinessProbe:
             httpGet:
@@ -70,3 +75,11 @@ spec:
             limits:
               cpu: 500m
               memory: 512Mi
+          # 이미지가 USER 미지정(root)이라 runAsNonRoot는 적용 불가(앱 레포 Dockerfile에 USER 추가 후 활성화 권장).
+          # 그 전까지 안전한 항목만: 권한상승 차단 + 모든 capability drop + seccomp 기본.
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault

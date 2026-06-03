@@ -2,6 +2,9 @@ apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
   name: engagement-svc-pdb
+  labels:
+    app.kubernetes.io/name: engagement-svc
+    app.kubernetes.io/part-of: synapse
 spec:
   minAvailable: 1
   selector:
