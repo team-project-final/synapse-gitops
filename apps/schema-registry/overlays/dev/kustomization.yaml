@@ -5,3 +5,28 @@ resources:
   - ../../base
 
 namespace: synapse-dev
+
+# dev MSK는 TLS 전용 리스너(client_broker=TLS, 9094). base의 PLAINTEXT 가정을
+# SSL로 오버라이드. MSK 인증서는 Amazon Trust Services 발급 → cp 이미지/JDK 기본
+# truststore에 포함되어 커스텀 truststore 불필요.
+# bootstrap은 $(KAFKA_BROKERS) 간접참조 대신 configmap valueFrom으로 직접 주입한다
+# (cp 이미지 run 스크립트가 $()를 명령치환해 비우는 문제 + k8s env 순서 의존 회피).
+# 프로토콜 프리픽스 없이 host:port만 주고 SECURITY_PROTOCOL=SSL로 TLS 지정.
+patches:
+  - target:
+      kind: Deployment
+      name: schema-registry
+    patch: |
+      - op: remove
+        path: /spec/template/spec/containers/0/env/2/value
+      - op: add
+        path: /spec/template/spec/containers/0/env/2/valueFrom
+        value:
+          configMapKeyRef:
+            name: kafka-brokers
+            key: KAFKA_BROKERS
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL
+          value: "SSL"
