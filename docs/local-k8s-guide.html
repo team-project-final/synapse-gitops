@@ -522,7 +522,22 @@ function renderMap(){
   });
   const reg=document.getElementById("map-region"); reg.innerHTML=""; reg.appendChild(svg);
 }
-function openEdge(ed){ /* Task 7에서 구현 */ }
+function openEdge(ed){
+  let h=`<h3 style="margin-top:0">연결: ${ed.a} → ${ed.b}</h3>`;
+  h+=row("종류", ed.type.toUpperCase());
+  if(ed.type==="kafka"&&ed.topic){ const ev=SYSTEM.events.find(e=>e.topic===ed.topic);
+    h+=row("토픽", `<code>${ed.topic}</code>`);
+    if(ev){
+      if(ev.deprecated)h+=`<div style="color:var(--kafka);margin:4px 0">⚠ deprecated</div>`;
+      h+=row("producer", ev.producer); h+=row("consumers", ev.consumers.length?ev.consumers.join(", "):"<span class='muted'>(없음)</span>");
+      if(ev.note)h+=row("비고", ev.note);
+      if(ev.schemaFields?.length){ h+=`<div class="muted" style="margin-top:6px">Avro 필드</div>`;
+        h+=ev.schemaFields.map(f=>`<div><code>${f.name}</code>: ${f.type}</div>`).join(""); } } }
+  if(ed.type==="rest"){ const r=SYSTEM.rest.find(x=>x.from===ed.a&&x.to===ed.b);
+    if(r){ h+=row("base", `<code>${r.basePath}</code>`); if(r.note)h+=row("비고", r.note);
+      if(r.endpoints?.length)h+=row("경로", r.endpoints.map(p=>`<code>${p}</code>`).join("<br>")); } }
+  document.getElementById("panel-region").innerHTML=h;
+}
 function renderLayerToggles(){
   const host=document.getElementById("layer-toggles"); host.innerHTML="";
   [["rest","REST"],["kafka","Kafka"],["store","Store"]].forEach(([k,label])=>{
@@ -538,7 +553,25 @@ function highlight(id){
   svg.querySelectorAll("g[data-id]").forEach(g=>g.style.opacity=(!id||related.has(g.dataset.id))?"1":"0.25");
   svg.querySelectorAll("line").forEach(l=>l.setAttribute("opacity",(!id||l.dataset.a===id||l.dataset.b===id)?"0.9":"0.08"));
 }
-function openPanel(id){ /* Task 7에서 구현 */ }
+function row(k,v){ return `<div style="margin:4px 0"><span class="muted">${k}</span> ${v}</div>`; }
+function openPanel(id){
+  const n=SYSTEM.services[id]||SYSTEM.infra[id]; if(!n)return;
+  let h=`<h3 style="margin-top:0">${n.label}</h3>`;
+  h+=row("주소", `<code>${n.addr}:${n.port}</code>`);
+  if(n.role)h+=row("역할", n.role);
+  if(SYSTEM.services[id]){
+    const s=SYSTEM.services[id];
+    if(s.stores?.length)h+=row("데이터스토어", s.stores.map(x=>`<code>${x}</code>`).join(", "));
+    if(s.produces?.length)h+=row("발행 토픽", s.produces.map(t=>`<code>${t}</code>`).join("<br>"));
+    if(s.consumes?.length)h+=row("구독 토픽", s.consumes.map(t=>`<code>${t}</code>`).join("<br>"));
+    if(s.calls?.length)h+=row("REST 호출", s.calls.map(c=>`<code>${c}</code>`).join(", "));
+    if(s.rest?.length){ h+=`<div class="muted" style="margin-top:8px">REST 엔드포인트 (${s.rest.length})</div>`;
+      h+=`<table style="width:100%;font-size:12px;border-collapse:collapse">`+s.rest.map(e=>`<tr><td style="vertical-align:top"><code>${e.method}</code></td><td style="vertical-align:top"><code>${e.path}</code></td><td>${e.desc||""}</td></tr>`).join("")+`</table>`; }
+  }
+  h+=`<p><button onclick="filterReference('${id}')">레퍼런스에서 보기 →</button></p>`;
+  document.getElementById("panel-region").innerHTML=h;
+}
+function filterReference(id){ /* Task 9에서 구현 */ document.getElementById("ref-region").scrollIntoView({behavior:"smooth"}); }
 
     window.addEventListener('DOMContentLoaded', ()=>{ runSelfTests(); renderLayerToggles(); renderMap(); });
   </script>
