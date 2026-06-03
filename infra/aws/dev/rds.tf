@@ -28,7 +28,7 @@ resource "aws_db_instance" "main" {
   identifier = "${local.project}-${local.environment}-postgres"
 
   engine         = "postgres"
-  engine_version = "16.6"
+  engine_version = "16.9"
   instance_class = var.rds_instance_class
 
   allocated_storage     = 20
@@ -47,6 +47,7 @@ resource "aws_db_instance" "main" {
   publicly_accessible = false
   multi_az            = false
   skip_final_snapshot = true
+  apply_immediately   = true
 
   backup_retention_period = 1
   backup_window           = "03:00-04:00"
