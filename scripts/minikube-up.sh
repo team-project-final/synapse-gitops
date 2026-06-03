@@ -32,6 +32,20 @@ build_docker synapse-learning-card  "$SIB/synapse-learning-svc/learning-card"
 echo "==> 3) 매니페스트 적용"
 kubectl apply -k "$ROOT/local-k8s"
 
+echo "==> 3.5) learning-ai OpenAI 키 자동주입 (LEARNING_AI_OPENAI_API_KEY env 또는 ../.learning-ai-key 파일 존재 시)"
+LAI_KEY="${LEARNING_AI_OPENAI_API_KEY:-}"
+if [ -z "$LAI_KEY" ] && [ -f "$SIB/.learning-ai-key" ]; then LAI_KEY="$(cat "$SIB/.learning-ai-key" 2>/dev/null || true)"; fi
+if [ -n "$LAI_KEY" ]; then
+  # merge-patch: secrets.yaml(learning-ai-secret)의 나머지 키는 그대로 두고 OpenAI 키만 주입.
+  # (create secret | apply 는 시크릿을 통째 교체해 secrets.yaml에 향후 추가될 키를 유실시킴)
+  kubectl -n synapse-local patch secret learning-ai-secret --type=merge \
+    -p "{\"stringData\":{\"LEARNING_AI_OPENAI_API_KEY\":\"$LAI_KEY\"}}"
+  kubectl -n synapse-local rollout restart deploy/learning-ai
+  echo "    키 주입 완료."
+else
+  echo "    키 없음 — learning-ai는 CrashLoop으로 남습니다(나머지 10개 워크로드는 정상). README 참조."
+fi
+
 echo "==> 4) 롤아웃 대기"
 kubectl -n synapse-local rollout status deploy/postgres --timeout=120s
 for d in platform-svc engagement-svc knowledge-svc learning-card learning-ai gateway; do

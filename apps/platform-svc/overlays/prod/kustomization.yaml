@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - ../../base
+  - pdb.yaml
 
 namespace: synapse-prod
 
@@ -113,6 +114,21 @@ patches:
       - op: replace
         path: /spec/data/13/remoteRef/key
         value: synapse/prod/platform-svc/apple-client-secret
+  - target:
+      kind: Deployment
+      name: platform-svc
+    patch: |
+      - op: add
+        path: /spec/template/spec/affinity
+        value:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                podAffinityTerm:
+                  labelSelector:
+                    matchLabels:
+                      app.kubernetes.io/name: platform-svc
+                  topologyKey: kubernetes.io/hostname
 
 images:
   - name: ghcr.io/team-project-final/synapse-platform-svc

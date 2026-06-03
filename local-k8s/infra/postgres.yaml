@@ -15,6 +15,20 @@ spec:
             - { name: POSTGRES_USER, value: synapse }
             - { name: POSTGRES_PASSWORD, value: synapse_local }
           ports: [ { containerPort: 5432 } ]
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "synapse", "-d", "synapse"]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "synapse"]
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: 500m, memory: 512Mi }
           volumeMounts:
             - name: initdb
               mountPath: /docker-entrypoint-initdb.d

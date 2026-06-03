@@ -22,11 +22,17 @@ patches:
         DB_USERNAME: synapse
         SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/synapse_platform
         SPRING_DATASOURCE_USERNAME: synapse
-        SPRING_JPA_HIBERNATE_DDL_AUTO: update   # 로컬: 빈 DB에 스키마 자동 생성(validate 대신)
+        # Flyway(V1~V32)가 스키마 소유 — 앱 기본 프로파일(application.yml)·prod와 동일하게 validate.
+        # (다른 4개 svc도 DDL_AUTO 미설정=Flyway 의존. 로컬만 update로 두면 Flyway/엔티티 불일치를 숨김)
+        SPRING_JPA_HIBERNATE_DDL_AUTO: validate
         # 앱이 spring.data.redis.* 만 읽으므로 relaxed-binding 키로 줌(REDIS_HOST/PORT는 무시됨)
         SPRING_DATA_REDIS_HOST: redis
         SPRING_DATA_REDIS_PORT: "6379"
         KAFKA_BROKERS: kafka:9092
+        # 앱(application.yml)은 spring.kafka.bootstrap-servers=${KAFKA_BOOTSTRAP_SERVERS:localhost:9092} 를 읽음.
+        # KAFKA_BROKERS만 주면 localhost:9092로 폴백해 Kafka 연결 실패 → 이벤트/Avro 흐름 단절.
+        KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+        SCHEMA_REGISTRY_URL: http://schema-registry:8081
   # k8s가 주입하는 <SVC>_PORT=tcp://... 서비스링크 env가 앱 설정과 충돌하는 것을 차단
   - target:
       kind: Deployment
