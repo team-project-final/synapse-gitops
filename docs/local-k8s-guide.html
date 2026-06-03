@@ -46,8 +46,8 @@ const SYSTEM = {
     platform:     {label:"platform-svc", addr:"platform-svc", port:8080, tier:"svc", color:"#58a6ff", role:"auth/user/billing/notification", rest:[], produces:["platform.auth.user-registered-v1"], consumes:[], stores:["postgres:synapse_platform","redis"], calls:[]},
     engagement:   {label:"engagement-svc", addr:"engagement-svc", port:8080, tier:"svc", color:"#3fb950", role:"인게이지먼트(이벤트 소비)", rest:[], produces:[], consumes:["platform.auth.user-registered-v1","learning.card.review-completed-v1"], stores:["postgres:synapse_engagement","redis"], calls:[]},
     knowledge:    {label:"knowledge-svc", addr:"knowledge-svc", port:8080, tier:"svc", color:"#f778ba", role:"노트/지식", rest:[], produces:["knowledge.note.note-created-v1","knowledge.note.note-updated-v1"], consumes:[], stores:["postgres:synapse_knowledge","redis","opensearch"], calls:[]},
-    "learning-ai":{label:"learning-ai", addr:"learning-ai", port:8080, tier:"svc", color:"#e3b341", role:"AI 카드 생성(Python)", rest:[], produces:["learning.ai.cards-generated-v1"], consumes:["knowledge.note.note-created-v1","knowledge.note.note-updated-v1"], stores:["postgres:synapse_learning_ai","redis","opensearch"], calls:["knowledge","learning-card"]},
-    "learning-card":{label:"learning-card", addr:"learning-card", port:8080, tier:"svc", color:"#ff7b72", role:"학습 카드/복습", rest:[], produces:["learning.card.review-completed-v1"], consumes:["learning.ai.cards-generated-v1"], stores:["postgres:synapse_learning","redis"], calls:[]},
+    "learning-ai":{label:"learning-ai", addr:"learning-ai", port:8080, tier:"svc", color:"#e3b341", role:"AI 카드 생성(Python)", rest:[], produces:[], consumes:["knowledge.note.note-created-v1","knowledge.note.note-updated-v1"], stores:["postgres:synapse_learning_ai","redis","opensearch"], calls:["knowledge","learning-card"]},
+    "learning-card":{label:"learning-card", addr:"learning-card", port:8080, tier:"svc", color:"#ff7b72", role:"학습 카드/복습", rest:[], produces:["learning.card.review-completed-v1"], consumes:[], stores:["postgres:synapse_learning","redis"], calls:[]},
   },
   infra: {
     kafka:{label:"kafka", addr:"kafka", port:9092, kind:"broker"},
