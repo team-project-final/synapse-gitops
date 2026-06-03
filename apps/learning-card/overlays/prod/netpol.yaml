@@ -11,9 +11,14 @@ spec:
       app.kubernetes.io/name: learning-card
   policyTypes: [Ingress, Egress]
   ingress:
-    # 같은 네임스페이스(gateway·타 svc)에서만 ingress 허용 — 외부/타 ns 직접 접근 차단
+    # gateway(공개 경로) + learning-ai(카드 저장)만 허용
     - from:
-        - podSelector: {}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: gateway
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: learning-ai
       ports:
         - {protocol: TCP, port: 8080}
   egress:
@@ -37,11 +42,4 @@ spec:
         - {protocol: TCP, port: 6379}
         - {protocol: TCP, port: 9092}
         - {protocol: TCP, port: 9094}
-        - {protocol: TCP, port: 443}
-    # 외부 HTTPS(Stripe/OAuth/OpenAI/AWS API) — VPC·메타데이터(169.254.169.254) 제외
-    - to:
-        - ipBlock:
-            cidr: 0.0.0.0/0
-            except: [10.0.0.0/16, 169.254.169.254/32]
-      ports:
         - {protocol: TCP, port: 443}
