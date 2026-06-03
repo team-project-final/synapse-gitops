@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - ../../base
   - pdb.yaml
+  - hpa.yaml
 
 namespace: synapse-prod
 
