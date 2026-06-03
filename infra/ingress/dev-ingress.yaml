@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: synapse-dev
+  namespace: synapse-dev
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    # NOTE: 라이브 세션에서 ACM 인증서 ARN으로 치환
+    #   acm.tf 적용 후 `terraform -chdir=infra/aws/dev output` 의 인증서 ARN 값
+    alb.ingress.kubernetes.io/certificate-arn: <ACM_ARN>
+    # gateway(Spring Boot actuator) readiness
+    alb.ingress.kubernetes.io/healthcheck-path: /actuator/health/readiness
+spec:
+  rules:
+    # 단일 진입: gateway가 /api/** 경로 라우팅 + rate-limit (ALB→gateway→services)
+    # NOTE: <domain>을 프로젝트 도메인(terraform var.domain_name)으로 치환
+    - host: dev.<domain>
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway
+                port:
+                  number: 80
