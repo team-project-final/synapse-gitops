@@ -523,10 +523,24 @@ function renderMap(){
   const reg=document.getElementById("map-region"); reg.innerHTML=""; reg.appendChild(svg);
 }
 function openEdge(ed){ /* Task 7에서 구현 */ }
-function highlight(id){ /* Task 6에서 구현 */ }
+function renderLayerToggles(){
+  const host=document.getElementById("layer-toggles"); host.innerHTML="";
+  [["rest","REST"],["kafka","Kafka"],["store","Store"]].forEach(([k,label])=>{
+    const b=document.createElement("button"); b.textContent=label; b.className=activeLayers[k]?"active":"";
+    b.onclick=()=>{ activeLayers[k]=!activeLayers[k]; renderMap(); renderLayerToggles(); };
+    host.appendChild(b);
+  });
+}
+function highlight(id){
+  const svg=document.getElementById("map-svg"); if(!svg)return;
+  const related=new Set(); if(id){ related.add(id);
+    edgeList().forEach(ed=>{ if(ed.a===id)related.add(ed.b); if(ed.b===id)related.add(ed.a); }); }
+  svg.querySelectorAll("g[data-id]").forEach(g=>g.style.opacity=(!id||related.has(g.dataset.id))?"1":"0.25");
+  svg.querySelectorAll("line").forEach(l=>l.setAttribute("opacity",(!id||l.dataset.a===id||l.dataset.b===id)?"0.9":"0.08"));
+}
 function openPanel(id){ /* Task 7에서 구현 */ }
 
-    window.addEventListener('DOMContentLoaded', ()=>{ runSelfTests(); renderMap(); });
+    window.addEventListener('DOMContentLoaded', ()=>{ runSelfTests(); renderLayerToggles(); renderMap(); });
   </script>
 </body>
 </html>
