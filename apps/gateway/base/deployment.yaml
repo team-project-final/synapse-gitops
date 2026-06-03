@@ -27,6 +27,7 @@ spec:
         - name: gateway
           image: ghcr.io/team-project-final/synapse-gateway:latest
           lifecycle:
+            # gateway는 인그레스 진입점 — 엔드포인트 디레지스터 전파에 다른 svc(5s)보다 긴 드레인(10s) 부여
             preStop:
               exec:
                 command: ["/bin/sleep", "10"]

@@ -25,6 +25,7 @@ spec:
             tcpSocket: { port: 9200 }
             initialDelaySeconds: 60
             periodSeconds: 20
+            failureThreshold: 5   # kafka/zk/schema-registry와 동일하게 콜드스타트 여유
           resources:
             requests: { cpu: 250m, memory: 512Mi }
             limits: { cpu: 1000m, memory: 1Gi }   # 256m heap + Lucene off-heap/page cache 여유(768Mi는 OOM 위험)
