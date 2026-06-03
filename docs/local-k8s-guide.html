@@ -24,6 +24,10 @@
   footer{padding:10px 16px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
   button{background:#21262d;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer}
   button.active{border-color:var(--accent);color:var(--accent)}
+  table.ref{width:100%;border-collapse:collapse;font-size:12px;margin:6px 0}
+  table.ref th,table.ref td{border:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top}
+  table.ref th{color:var(--muted)}
+  tr.dep td{opacity:.5}
 </style>
 </head>
 <body>
@@ -571,7 +575,30 @@ function openPanel(id){
   h+=`<p><button onclick="filterReference('${id}')">레퍼런스에서 보기 →</button></p>`;
   document.getElementById("panel-region").innerHTML=h;
 }
-function filterReference(id){ /* Task 9에서 구현 */ document.getElementById("ref-region").scrollIntoView({behavior:"smooth"}); }
+let refFilter="";
+function renderReference(){
+  const q=refFilter.toLowerCase();
+  const ep=[]; Object.entries(SYSTEM.services).forEach(([id,s])=>(s.rest||[]).forEach(e=>ep.push({svc:id,...e})));
+  const epRows=ep.filter(e=>!q||(e.svc+e.method+e.path+(e.reqDto||"")+(e.resDto||"")+(e.desc||"")).toLowerCase().includes(q))
+    .map(e=>`<tr><td>${e.svc}</td><td><code>${e.method}</code></td><td><code>${e.path}</code></td><td>${e.reqDto||"-"}</td><td>${e.resDto||"-"}</td><td>${e.desc||""}</td></tr>`).join("");
+  const tpRows=SYSTEM.events.filter(e=>!q||(e.topic+e.producer+e.consumers.join()).toLowerCase().includes(q))
+    .map(e=>`<tr class="${e.deprecated?'dep':''}"><td><code>${e.topic}</code>${e.deprecated?' <span style="color:var(--kafka)">⚠dep</span>':''}</td><td>${e.producer}</td><td>${e.consumers.join(", ")||"-"}</td><td>${(e.schemaFields||[]).map(f=>f.name).join(", ")}</td><td>${e.partitions}</td></tr>`).join("");
+  const coRows=SYSTEM.connections.filter(c=>!q||(c.name+c.addr).toLowerCase().includes(q))
+    .map(c=>`<tr><td>${c.name}</td><td><code>${c.addr}</code></td><td>${c.envVars.map(v=>`<code>${v}</code>`).join(" ")}</td><td>${c.protocol}</td></tr>`).join("");
+  const dtoNames=Object.keys(SYSTEM.dtos).filter(n=>!q||(n+SYSTEM.dtos[n].fields.map(f=>f.name).join()).toLowerCase().includes(q)).sort();
+  const dtoRows=dtoNames.map(n=>`<tr><td><code>${n}</code></td><td>${SYSTEM.dtos[n].fields.map(f=>`<code>${f.name}</code>:${f.type}`).join(", ")}</td></tr>`).join("");
+  document.getElementById("ref-region").innerHTML=`
+    <div style="display:flex;gap:8px;align-items:center"><h3 style="margin:0">📖 종합 레퍼런스</h3>
+      <input id="ref-search" placeholder="검색 (서비스/경로/토픽/DTO)…" value="${refFilter.replace(/"/g,'&quot;')}" style="margin-left:auto;width:280px;background:#0d1117;border:1px solid var(--line);color:var(--fg);padding:5px 8px;border-radius:6px">
+    </div>
+    <h4>REST 엔드포인트 (${ep.length})</h4><table class="ref"><thead><tr><th>서비스</th><th>method</th><th>path</th><th>요청</th><th>응답</th><th>설명</th></tr></thead><tbody>${epRows||'<tr><td colspan="6" class="muted">없음</td></tr>'}</tbody></table>
+    <h4>Kafka 토픽 (${SYSTEM.events.length})</h4><table class="ref"><thead><tr><th>토픽</th><th>producer</th><th>consumers</th><th>Avro 필드</th><th>part.</th></tr></thead><tbody>${tpRows}</tbody></table>
+    <h4>연결 디렉터리</h4><table class="ref"><thead><tr><th>대상</th><th>주소</th><th>주입 env</th><th>프로토콜</th></tr></thead><tbody>${coRows}</tbody></table>
+    <h4>DTO 카탈로그 (${Object.keys(SYSTEM.dtos).length})</h4><table class="ref"><thead><tr><th>DTO</th><th>필드</th></tr></thead><tbody>${dtoRows||'<tr><td colspan="2" class="muted">없음</td></tr>'}</tbody></table>`;
+  const inp=document.getElementById("ref-search");
+  inp.oninput=e=>{ refFilter=e.target.value; renderReference(); const ni=document.getElementById("ref-search"); ni.focus(); ni.setSelectionRange(ni.value.length,ni.value.length); };
+}
+function filterReference(id){ refFilter=id; renderReference(); document.getElementById("ref-region").scrollIntoView({behavior:"smooth"}); }
 
 let flowTimer=null;
 function renderScenarioPicker(){
@@ -608,7 +635,7 @@ function playScenario(name){
   if(steps.length>1) next();
 }
 
-    window.addEventListener('DOMContentLoaded', ()=>{ runSelfTests(); renderLayerToggles(); renderScenarioPicker(); renderMap(); renderFlowRegion(); });
+    window.addEventListener('DOMContentLoaded', ()=>{ runSelfTests(); renderLayerToggles(); renderScenarioPicker(); renderMap(); renderFlowRegion(); renderReference(); });
   </script>
 </body>
 </html>
