@@ -7,6 +7,12 @@ metadata:
     app.kubernetes.io/part-of: synapse
 spec:
   replicas: 1
+  minReadySeconds: 10
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: schema-registry
@@ -16,11 +22,16 @@ spec:
         app.kubernetes.io/name: schema-registry
         app.kubernetes.io/part-of: synapse
     spec:
+      terminationGracePeriodSeconds: 40
       # k8s 서비스링크 env(SCHEMA_REGISTRY_*)가 cp 이미지 설정과 충돌하는 것 방지
       enableServiceLinks: false
       containers:
         - name: schema-registry
           image: confluentinc/cp-schema-registry:7.7.0
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sleep", "5"]
           env:
             # kafkastore bootstrap = MSK 주소. 앱들과 동일한 kafka-brokers ConfigMap을 사용한다.
             # (dev/EKS는 terraform k8s-kafka-config가 synapse-dev ns에 생성)
@@ -41,20 +52,23 @@ spec:
               value: "-Xms256m -Xmx384m"
           ports:
             - containerPort: 8081
+          # startupProbe가 liveness/readiness 활성화를 게이트. 콜드 클러스터 Kafka 리더 선출(~180s) 허용.
+          startupProbe:
+            tcpSocket:
+              port: 8081
+            periodSeconds: 5
+            failureThreshold: 36
+          livenessProbe:
+            tcpSocket:
+              port: 8081
+            periodSeconds: 15
+            failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /subjects
               port: 8081
-            initialDelaySeconds: 20
             periodSeconds: 10
-            failureThreshold: 12
-          # 콜드 클러스터에서 kafka 리더 선출 대기 중 healthy 파드를 죽이지 않도록 grace 확대
-          livenessProbe:
-            tcpSocket:
-              port: 8081
-            initialDelaySeconds: 60
-            periodSeconds: 15
-            failureThreshold: 5
+            failureThreshold: 3
           resources:
             requests:
               cpu: 100m

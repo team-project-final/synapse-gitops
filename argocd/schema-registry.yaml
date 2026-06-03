@@ -1,6 +1,9 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
+  # NOTE: image-updater(namePattern "synapse-*-dev")가 이 이름과 매칭되지만 useAnnotations:true라
+  # image-list 주석이 없으면 스킵됨. cp-schema-registry는 Confluent dockerhub 이미지(ECR semver 아님)이므로
+  # argocd-image-updater.argoproj.io/* 주석을 절대 추가하지 말 것.
   name: synapse-schema-registry-dev
   namespace: argocd
   labels:
