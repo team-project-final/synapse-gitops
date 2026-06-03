@@ -13,7 +13,9 @@
   *{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--fg);
     font-family:system-ui,"Segoe UI","Malgun Gothic",sans-serif;font-size:14px}
   #topbar{display:flex;gap:16px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:10}
-  #topbar h1{font-size:16px;margin:0}
+  #topbar h1{font-size:18px;margin:0}
+  h3{font-size:20px;font-weight:700;line-height:1.25}
+  h4{font-size:15px;font-weight:700;line-height:1.3;margin:18px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--line)}
   main{display:grid;grid-template-columns:1fr 340px;grid-template-areas:"map panel" "flow panel" "ref ref";gap:12px;padding:12px}
   #map-region{grid-area:map;min-height:420px;background:var(--panel);border:1px solid var(--line);border-radius:8px}
   #panel-region{grid-area:panel;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto;max-height:80vh}
