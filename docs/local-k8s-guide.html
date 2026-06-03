@@ -573,7 +573,42 @@ function openPanel(id){
 }
 function filterReference(id){ /* Task 9에서 구현 */ document.getElementById("ref-region").scrollIntoView({behavior:"smooth"}); }
 
-    window.addEventListener('DOMContentLoaded', ()=>{ runSelfTests(); renderLayerToggles(); renderMap(); });
+let flowTimer=null;
+function renderScenarioPicker(){
+  const host=document.getElementById("scenario-picker"); host.innerHTML="";
+  SYSTEM.scenarios.forEach(s=>{ const b=document.createElement("button"); b.textContent="▶ "+s.name;
+    b.onclick=()=>playScenario(s.name); host.appendChild(b); });
+}
+function renderFlowRegion(){ document.getElementById("flow-region").innerHTML=
+  `<div id="flow-steps" class="muted">상단의 시나리오를 선택하면 흐름이 재생됩니다.</div>`; }
+function playScenario(name){
+  const sc=SYSTEM.scenarios.find(s=>s.name===name); if(!sc)return;
+  const svg=document.getElementById("map-svg"); if(!svg)return;
+  if(flowTimer)cancelAnimationFrame(flowTimer);
+  const ns="http://www.w3.org/2000/svg";
+  let dot=document.getElementById("flow-dot");
+  if(!dot){ dot=document.createElementNS(ns,"circle"); dot.id="flow-dot"; dot.setAttribute("r",7);
+    dot.setAttribute("fill","#fff"); dot.setAttribute("stroke","#000"); dot.setAttribute("stroke-width","1"); svg.appendChild(dot); }
+  else if(dot.parentNode!==svg){ svg.appendChild(dot); }
+  const steps=sc.steps, stepsHost=document.getElementById("flow-steps");
+  function showStep(k){ stepsHost.innerHTML=steps.map((st,idx)=>
+    `<div style="padding:3px 0;${idx===k?'color:var(--accent);font-weight:600':'opacity:.6'}">${idx+1}. ${st.narration}</div>`).join(""); }
+  function animateTo(from,to,done){
+    const [x1,y1]=POS[from], [x2,y2]=POS[to]; const t0=performance.now(), dur=900;
+    (function frame(t){ const p=Math.min(1,(t-t0)/dur);
+      dot.setAttribute("cx",x1+(x2-x1)*p); dot.setAttribute("cy",y1+(y2-y1)*p);
+      if(p<1)flowTimer=requestAnimationFrame(frame); else done(); })(t0);
+  }
+  let i=0; showStep(0);
+  dot.setAttribute("cx",POS[steps[0].node][0]); dot.setAttribute("cy",POS[steps[0].node][1]);
+  i=1;
+  function next(){ if(i>=steps.length)return; showStep(i);
+    const from=steps[i-1].node, to=steps[i].node;
+    animateTo(from,to,()=>{ i++; setTimeout(next,350); }); }
+  if(steps.length>1) next();
+}
+
+    window.addEventListener('DOMContentLoaded', ()=>{ runSelfTests(); renderLayerToggles(); renderScenarioPicker(); renderMap(); renderFlowRegion(); });
   </script>
 </body>
 </html>
