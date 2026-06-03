@@ -45,6 +45,12 @@ patches:
       - op: add
         path: /data/SPRING_DATASOURCE_USERNAME
         value: "synapse_admin"
+      - op: add
+        path: /data/KAFKA_ENABLED
+        value: "true"
+      - op: add
+        path: /data/SCHEMA_REGISTRY_URL
+        value: "http://schema-registry:8081"
 
   - target:
       kind: ExternalSecret
