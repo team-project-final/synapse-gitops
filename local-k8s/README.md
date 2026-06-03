@@ -16,6 +16,9 @@ bash scripts/minikube-up.sh
 
 `kubectl delete ns synapse-local && bash scripts/minikube-up.sh` 단독으로 인프라+앱 전부 `1/1`로 재현된다(learning-ai는 키 주입 시).
 
+> **minikube가 없으면**: 관리자 권한 없이도 바이너리로 설치 가능.
+> `iwr -useb https://github.com/kubernetes/minikube/releases/latest/download/minikube-windows-amd64.exe -OutFile $env:USERPROFILE\tools\minikube\minikube.exe` 후 해당 폴더를 PATH에 추가. (choco 설치는 관리자 권한 필요)
+
 ## learning-ai OpenAI 키 주입 (선택, minikube-up.sh가 자동 처리)
 
 `minikube-up.sh`는 다음이 있으면 learning-ai 시크릿에 키를 **자동 주입**한다(없으면 learning-ai만 CrashLoop, 나머지는 정상):
@@ -31,7 +34,7 @@ kubectl -n synapse-local patch secret learning-ai-secret --type=merge \
 kubectl -n synapse-local rollout restart deploy/learning-ai
 ```
 
-> 키 이름에 `LEARNING_AI_` prefix 필수(앱이 pydantic `env_prefix="LEARNING_AI_"` 사용).
+> 키 이름에 `LEARNING_AI_` prefix 필수(앱이 pydantic `env_prefix="LEARNING_AI_"` 사용). 키 없이도 나머지 워크로드는 정상 동작하며 learning-ai만 CrashLoop이다.
 
 ## 정적 렌더 확인 (클러스터 불필요)
 
@@ -49,6 +52,7 @@ kubectl kustomize local-k8s    # 40 리소스 렌더(Deployment 12 = 인프라 6
 | **`kafka-brokers` ConfigMap** | base deployment가 `configMapKeyRef name=kafka-brokers` 참조(dev는 terraform 생성) | `infra/kafka-brokers-config.yaml` |
 | **`enableServiceLinks: false`** | k8s가 주입하는 `<SVC>_PORT=tcp://...`가 앱/cp 이미지 설정과 충돌(NumberFormatException 등) | 각 app overlay + `infra/kafka.yaml`·`infra/schema-registry.yaml` |
 | **engagement·learning-card 프로브 = tcpSocket** | actuator health가 Spring Security로 보호(401)되어 httpGet 프로브가 파드를 죽임 | 두 app overlay |
+| **learning-ai 설정 키에 `LEARNING_AI_` prefix** | pydantic `env_prefix` 때문에 prefix 없는 `KAFKA_BROKERS` 등을 무시하고 localhost로 폴백 | `apps/learning-ai/kustomization.yaml` |
 | **schema-registry 배포 + 배선** | 전 Java svc·learning-ai가 Avro 직렬화에 Schema Registry 필요(없으면 localhost:8086 폴백 실패) | `infra/schema-registry.yaml` + 각 svc `SCHEMA_REGISTRY_URL=http://schema-registry:8081` |
 | **`KAFKA_BOOTSTRAP_SERVERS` 주입** | 앱은 `spring.kafka.bootstrap-servers=${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}` 를 읽음. `KAFKA_BROKERS`만 주면 localhost 폴백 → Kafka 단절 | platform/knowledge/learning-card overlay |
 | **platform-svc DDL = validate** | Flyway(V1~V32)가 스키마 소유. 앱 기본 프로파일·prod와 일치 | `apps/platform-svc/kustomization.yaml` |
@@ -79,10 +83,19 @@ kubectl -n synapse-local port-forward svc/learning-ai 8000:80
 
 Gateway 경유 예: `curl http://localhost:8080/api/platform/actuator/health` · learning-ai 문서: `http://localhost:8000/docs`
 
+## 대시보드 / 리소스 사용량
+
+```bash
+minikube dashboard --url                 # 웹 UI URL 출력 (프록시 유지)
+minikube addons enable metrics-server    # CPU/메모리 그래프 + kubectl top 활성화
+kubectl top nodes
+kubectl -n synapse-local top pods
+```
+
 ## 알려진 미해결(후속 finding)
 
 - **engagement-svc Kafka**: 앱 `application.yml`에 `spring.kafka.bootstrap-servers` 플레이스홀더가 없고 `kafka.enabled=false` 기본 → 로컬 Kafka 흐름을 켜려면 **앱 레포 수정** 필요(env만으론 안 됨).
 - **EKS(dev/staging/prod) Kafka bootstrap**: base가 `KAFKA_BROKERS`만 제공 → MSK 연결 방식 확인 후 별도 처리.
 - **앱 graceful shutdown**(`server.shutdown: graceful`)이 서비스 레포에 부재 → 완전 무중단엔 앱 설정 필요(현재 `preStop`이 엔드포인트 드레인으로 부분 보완).
 
-자세한 단계별 절차 / 트러블슈팅은 **[로컬 MSA 세팅 가이드](../docs/local-msa-setup.html)** §K8s 참조.
+자세한 단계별 절차 / OS 탭 / 트러블슈팅은 **[로컬 MSA 세팅 가이드](../docs/local-msa-setup.html)** §3(k8s) 참조.
