@@ -1,0 +1,47 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: learning-card-netpol
+  labels:
+    app.kubernetes.io/name: learning-card
+    app.kubernetes.io/part-of: synapse
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: learning-card
+  policyTypes: [Ingress, Egress]
+  ingress:
+    # 같은 네임스페이스(gateway·타 svc)에서만 ingress 허용 — 외부/타 ns 직접 접근 차단
+    - from:
+        - podSelector: {}
+      ports:
+        - {protocol: TCP, port: 8080}
+  egress:
+    # DNS (kube-dns)
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - {protocol: UDP, port: 53}
+        - {protocol: TCP, port: 53}
+    # 같은 네임스페이스 inter-svc 호출
+    - to:
+        - podSelector: {}
+    # VPC 내 데이터스토어: RDS(5432)/ElastiCache(6379)/MSK(9092,9094)/OpenSearch(443)
+    - to:
+        - ipBlock: {cidr: 10.0.0.0/16}
+      ports:
+        - {protocol: TCP, port: 5432}
+        - {protocol: TCP, port: 6379}
+        - {protocol: TCP, port: 9092}
+        - {protocol: TCP, port: 9094}
+        - {protocol: TCP, port: 443}
+    # 외부 HTTPS(Stripe/OAuth/OpenAI/AWS API) — VPC·메타데이터(169.254.169.254) 제외
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [10.0.0.0/16, 169.254.169.254/32]
+      ports:
+        - {protocol: TCP, port: 443}

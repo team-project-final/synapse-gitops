@@ -5,6 +5,7 @@ resources:
   - ../../base
   - pdb.yaml
   - hpa.yaml
+  - netpol.yaml
 
 namespace: synapse-prod
 
