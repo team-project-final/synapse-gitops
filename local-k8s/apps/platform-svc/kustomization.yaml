@@ -27,6 +27,7 @@ patches:
         SPRING_DATA_REDIS_HOST: redis
         SPRING_DATA_REDIS_PORT: "6379"
         KAFKA_BROKERS: kafka:9092
+        SCHEMA_REGISTRY_URL: http://schema-registry:8081
   # k8s가 주입하는 <SVC>_PORT=tcp://... 서비스링크 env가 앱 설정과 충돌하는 것을 차단
   - target:
       kind: Deployment

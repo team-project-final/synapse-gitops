@@ -7,5 +7,6 @@ resources:
   - redis.yaml
   - zookeeper.yaml
   - kafka.yaml
+  - schema-registry.yaml
   - opensearch.yaml
   - kafka-topics-job.yaml

@@ -25,6 +25,7 @@ patches:
         REDIS_PORT: "6379"
         SPRING_DATA_REDIS_HOST: redis
         SPRING_DATA_REDIS_PORT: "6379"
+        SCHEMA_REGISTRY_URL: http://schema-registry:8081
   # enableServiceLinks=false: REDIS_PORT=tcp://... 주입으로 인한 NumberFormatException 차단
   # 프로브 tcpSocket: actuator health가 Spring Security로 보호(401)되어 httpGet 프로브가 파드를 죽이는 문제 회피
   - target:
