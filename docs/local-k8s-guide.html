@@ -635,7 +635,10 @@ function playScenario(name){
   if(steps.length>1) next();
 }
 
-    window.addEventListener('DOMContentLoaded', ()=>{ runSelfTests(); renderLayerToggles(); renderScenarioPicker(); renderMap(); renderFlowRegion(); renderReference(); });
+function renderFooter(){ document.getElementById("footer").innerHTML=
+  `범례: <span style="color:var(--rest)">— REST</span> · <span style="color:var(--kafka)">-- Kafka</span> · <span style="color:var(--store)">— Store</span> · <span style="color:var(--muted)">-- deprecated</span> &nbsp;|&nbsp; synapse <code>local-k8s</code> 기준 스냅샷 · 생성 2026-06-03 · 아키텍처 변경 시 <code>SYSTEM</code> 객체 갱신`; }
+
+    window.addEventListener('DOMContentLoaded', ()=>{ runSelfTests(); renderLayerToggles(); renderScenarioPicker(); renderMap(); renderFlowRegion(); renderReference(); renderFooter(); });
   </script>
 </body>
 </html>
