@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Synapse local-k8s 가이드</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#161b22; --line:#30363d; --fg:#e6edf3; --muted:#8b949e;
+    --rest:#58a6ff; --kafka:#d29922; --store:#3fb950; --accent:#bc8cff;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--fg);
+    font-family:system-ui,"Segoe UI","Malgun Gothic",sans-serif;font-size:14px}
+  #topbar{display:flex;gap:16px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:10}
+  #topbar h1{font-size:16px;margin:0}
+  main{display:grid;grid-template-columns:1fr 340px;grid-template-areas:"map panel" "flow panel" "ref ref";gap:12px;padding:12px}
+  #map-region{grid-area:map;min-height:420px;background:var(--panel);border:1px solid var(--line);border-radius:8px}
+  #panel-region{grid-area:panel;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto;max-height:80vh}
+  #flow-region{grid-area:flow;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px}
+  #ref-region{grid-area:ref;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px}
+  code,.mono{font-family:var(--mono)}
+  .muted{color:var(--muted)}
+  footer{padding:10px 16px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+  button{background:#21262d;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer}
+  button.active{border-color:var(--accent);color:var(--accent)}
+</style>
+</head>
+<body>
+  <header id="topbar">
+    <h1>Synapse <span class="muted">local-k8s</span> 가이드</h1>
+    <span id="layer-toggles"></span>
+    <span id="scenario-picker" style="margin-left:auto"></span>
+  </header>
+  <main>
+    <section id="map-region"></section>
+    <aside id="panel-region"><p class="muted">노드나 연결을 클릭하면 상세가 표시됩니다.</p></aside>
+    <section id="flow-region"></section>
+    <section id="ref-region"></section>
+  </main>
+  <footer id="footer"></footer>
+  <script>
+    // 다음 태스크에서 SYSTEM/렌더 함수 추가
+    window.addEventListener('DOMContentLoaded', ()=>{ /* init */ });
+  </script>
+</body>
+</html>
