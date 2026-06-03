@@ -63,3 +63,13 @@ spec:
             limits:
               cpu: 500m
               memory: 512Mi
+          # 이미지가 USER app(non-root)으로 빌드됨 → 컨테이너 보안 컨텍스트 강화(PodSecurity restricted 대응)
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 101    # 이미지의 app 유저(adduser --system → uid 101). runAsNonRoot 검증에 숫자 UID 필요
+            runAsGroup: 101
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
