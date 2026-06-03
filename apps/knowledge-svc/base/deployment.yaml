@@ -38,6 +38,18 @@ spec:
                 configMapKeyRef:
                   name: kafka-brokers
                   key: KAFKA_BROKERS
+            # 앱은 spring.kafka.bootstrap-servers=${KAFKA_BOOTSTRAP_SERVERS:localhost:9092} 를 읽음(prod는 기본값 없음).
+            # KAFKA_BROKERS만으론 localhost 폴백/빈값 → Kafka 단절. 동일 값을 앱이 읽는 이름으로도 주입.
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              valueFrom:
+                configMapKeyRef:
+                  name: kafka-brokers
+                  key: KAFKA_BROKERS
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              valueFrom:
+                configMapKeyRef:
+                  name: kafka-brokers
+                  key: KAFKA_BROKERS
           envFrom:
             - configMapRef:
                 name: knowledge-svc-config

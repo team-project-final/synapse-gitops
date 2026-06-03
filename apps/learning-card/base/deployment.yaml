@@ -38,6 +38,18 @@ spec:
                 configMapKeyRef:
                   name: kafka-brokers
                   key: KAFKA_BROKERS
+            # 앱 기본 프로파일은 ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}, prod는 ${SPRING_KAFKA_BOOTSTRAP_SERVERS} 를 읽음.
+            # KAFKA_BROKERS만으론 localhost 폴백/빈값 → Kafka 단절. 두 이름 모두 동일 값으로 주입.
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              valueFrom:
+                configMapKeyRef:
+                  name: kafka-brokers
+                  key: KAFKA_BROKERS
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              valueFrom:
+                configMapKeyRef:
+                  name: kafka-brokers
+                  key: KAFKA_BROKERS
           envFrom:
             - configMapRef:
                 name: learning-card-config
