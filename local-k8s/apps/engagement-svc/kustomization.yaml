@@ -21,15 +21,15 @@ patches:
         SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/synapse_engagement
         SPRING_DATASOURCE_USERNAME: synapse
         KAFKA_BROKERS: kafka:9092
+        # 앱(#21)이 spring.kafka.bootstrap-servers=${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}를 읽음.
+        KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+        # synapse.kafka.enabled 게이트 ON — 컨슈머/프로듀서(Avro) 활성화. SCHEMA_REGISTRY_URL 필수(아래).
+        KAFKA_ENABLED: "true"
         REDIS_HOST: redis
         REDIS_PORT: "6379"
         SPRING_DATA_REDIS_HOST: redis
         SPRING_DATA_REDIS_PORT: "6379"
         SCHEMA_REGISTRY_URL: http://schema-registry:8081
-        # NOTE: 다른 Java svc와 달리 KAFKA_BOOTSTRAP_SERVERS를 의도적으로 추가하지 않음.
-        # engagement-svc는 application.yml에 spring.kafka.bootstrap-servers 플레이스홀더가 없고
-        # 자체 kafka.enabled=${KAFKA_ENABLED:false} 게이트로 Kafka가 기본 비활성 → env만으론 동작 안 함.
-        # 로컬에서 Kafka 흐름을 켜려면 앱 레포에 bootstrap-servers 추가 + KAFKA_ENABLED=true 필요(후속 finding).
   # enableServiceLinks=false: REDIS_PORT=tcp://... 주입으로 인한 NumberFormatException 차단
   # 프로브 tcpSocket: actuator health가 Spring Security로 보호(401)되어 httpGet 프로브가 파드를 죽이는 문제 회피
   - target:
