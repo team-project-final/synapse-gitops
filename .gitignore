@@ -36,3 +36,4 @@ site/scripts/node_modules/
 site/scripts/.summary-cache.json
 # 번들러 export 아티팩트 (정본 가이드는 docs/local-msa-setup.html)
 docs/synapse-local-setup.html
+.gstack/

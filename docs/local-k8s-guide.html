@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Synapse local-k8s 가이드</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#161b22; --line:#30363d; --fg:#e6edf3; --muted:#8b949e;
+    --rest:#58a6ff; --kafka:#d29922; --store:#3fb950; --accent:#bc8cff;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--fg);
+    font-family:system-ui,"Segoe UI","Malgun Gothic",sans-serif;font-size:14px}
+  #topbar{display:flex;gap:16px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:10}
+  #topbar h1{font-size:16px;margin:0}
+  main{display:grid;grid-template-columns:1fr 340px;grid-template-areas:"map panel" "flow panel" "ref ref";gap:12px;padding:12px}
+  #map-region{grid-area:map;min-height:420px;background:var(--panel);border:1px solid var(--line);border-radius:8px}
+  #panel-region{grid-area:panel;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto;max-height:80vh}
+  #flow-region{grid-area:flow;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px}
+  #ref-region{grid-area:ref;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px}
+  code,.mono{font-family:var(--mono)}
+  .muted{color:var(--muted)}
+  footer{padding:10px 16px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+  button{background:#21262d;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer}
+  button.active{border-color:var(--accent);color:var(--accent)}
+  table.ref{width:100%;border-collapse:collapse;font-size:12px;margin:6px 0}
+  table.ref th,table.ref td{border:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top}
+  table.ref th{color:var(--muted)}
+  tr.dep td{opacity:.5}
+  tr.dto-detail{display:none}
+  tr.dto-detail.open{display:table-row}
+</style>
+</head>
+<body>
+  <header id="topbar">
+    <h1>Synapse <span class="muted">local-k8s</span> 가이드</h1>
+    <span id="layer-toggles"></span>
+    <span id="scenario-picker" style="margin-left:auto"></span>
+  </header>
+  <main>
+    <section id="map-region"></section>
+    <aside id="panel-region"><p class="muted">노드나 연결을 클릭하면 상세가 표시됩니다.</p></aside>
+    <section id="flow-region"></section>
+    <section id="ref-region"></section>
+  </main>
+  <footer id="footer"></footer>
+  <script>
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+const SYSTEM = {
+  services: {
+    gateway:      {label:"gateway", addr:"gateway", port:8080, tier:"edge", color:"#bc8cff", role:"API 게이트웨이(Spring Cloud Gateway)", rest:[
+      {method:"ROUTE", path:"/api/platform/**",    reqDto:null, resDto:null, desc:"platform-svc로 라우팅 (stripPrefix=2)"},
+      {method:"ROUTE", path:"/api/engagement/**",  reqDto:null, resDto:null, desc:"engagement-svc로 라우팅 (stripPrefix=2)"},
+      {method:"ROUTE", path:"/api/knowledge/**",   reqDto:null, resDto:null, desc:"knowledge-svc로 라우팅 (stripPrefix=2)"},
+      {method:"ROUTE", path:"/api/learning/**",    reqDto:null, resDto:null, desc:"learning-card-svc로 라우팅 (stripPrefix=2)"},
+    ], produces:[], consumes:[], stores:["redis"], calls:["platform","engagement","knowledge","learning-card","learning-ai"]},
+    platform:     {label:"platform-svc", addr:"platform-svc", port:8080, tier:"svc", color:"#58a6ff", role:"auth/user/billing/notification", rest:[
+      {method:"POST",   path:"/api/v1/auth/signup",              reqDto:"EmailPasswordAuthRequest", resDto:"SignupResponse",          desc:"이메일/비밀번호 회원가입"},
+      {method:"POST",   path:"/api/v1/auth/login",               reqDto:"EmailPasswordAuthRequest", resDto:"LoginResponse",           desc:"로그인, refresh_token 쿠키 발급"},
+      {method:"POST",   path:"/api/v1/auth/refresh",             reqDto:null,                       resDto:"TokenRefreshResponse",    desc:"액세스 토큰 갱신 (쿠키 기반)"},
+      {method:"GET",    path:"/api/v1/auth/callback",            reqDto:null,                       resDto:null,                      desc:"OAuth2 콜백 (userId 파라미터)"},
+      {method:"POST",   path:"/api/v1/auth/mfa/setup",           reqDto:null,                       resDto:null,                      desc:"TOTP MFA 설정 시작"},
+      {method:"POST",   path:"/api/v1/auth/mfa/verify",          reqDto:"MfaVerifyRequest",         resDto:null,                      desc:"TOTP 코드 검증"},
+      {method:"GET",    path:"/api/v1/admin/users",              reqDto:null,                       resDto:"AdminUserPageResponse",   desc:"관리자: 사용자 목록 조회 (ADMIN 전용)"},
+      {method:"PUT",    path:"/api/v1/admin/users/{id}/status",  reqDto:"UserStatusChangeRequest",  resDto:null,                      desc:"관리자: 사용자 상태 변경 (active|suspended)"},
+      {method:"DELETE", path:"/api/v1/admin/users/{id}",         reqDto:null,                       resDto:null,                      desc:"관리자: 사용자 삭제"},
+      {method:"GET",    path:"/api/v1/admin/audit-logs",         reqDto:null,                       resDto:"AuditLogResponse",        desc:"관리자: 감사 로그 조회 (ADMIN 전용)"},
+      {method:"GET",    path:"/api/v1/admin/tenants",            reqDto:null,                       resDto:"AdminTenantPageResponse", desc:"관리자: 테넌트 목록 조회"},
+      {method:"PUT",    path:"/api/v1/admin/tenants/{id}/status",reqDto:"TenantStatusChangeRequest",resDto:null,                      desc:"관리자: 테넌트 상태 변경"},
+      {method:"POST",   path:"/api/v1/billing/checkout",         reqDto:"CheckoutSessionRequest",   resDto:"CheckoutSessionResponse", desc:"Stripe Checkout 세션 생성"},
+      {method:"POST",   path:"/api/v1/billing/webhooks",         reqDto:null,                       resDto:null,                      desc:"Stripe 웹훅 수신"},
+      {method:"GET",    path:"/api/v1/billing/subscription",     reqDto:null,                       resDto:"SubscriptionResponse",    desc:"현재 구독 정보 조회"},
+      {method:"POST",   path:"/api/v1/notifications/devices",    reqDto:"DeviceTokenRequest",       resDto:null,                      desc:"푸시 디바이스 토큰 등록"},
+      {method:"DELETE", path:"/api/v1/notifications/devices/{id}",reqDto:null,                      resDto:null,                      desc:"푸시 디바이스 토큰 해제"},
+    ], produces:["platform.auth.user-registered-v1"], consumes:[], stores:["postgres:synapse_platform","redis"], calls:[]},
+    engagement:   {label:"engagement-svc", addr:"engagement-svc", port:8080, tier:"svc", color:"#3fb950", role:"인게이지먼트(이벤트 소비)", rest:[
+      {method:"POST",   path:"/api/v1/community/groups",                         reqDto:"GroupCreateRequest",         resDto:"GroupResponse",            desc:"그룹 생성"},
+      {method:"GET",    path:"/api/v1/community/groups",                         reqDto:null,                         resDto:"GroupResponse",            desc:"그룹 목록 조회 (페이지)"},
+      {method:"GET",    path:"/api/v1/community/groups/{groupId}",               reqDto:null,                         resDto:"GroupResponse",            desc:"그룹 단건 조회"},
+      {method:"PUT",    path:"/api/v1/community/groups/{groupId}",               reqDto:"GroupUpdateRequest",         resDto:"GroupResponse",            desc:"그룹 수정"},
+      {method:"DELETE", path:"/api/v1/community/groups/{groupId}",               reqDto:null,                         resDto:null,                       desc:"그룹 삭제"},
+      {method:"POST",   path:"/api/v1/community/groups/{groupId}/members/invite",reqDto:"MemberInviteRequest",        resDto:"InviteDecisionResponse",   desc:"멤버 초대"},
+      {method:"POST",   path:"/api/v1/community/groups/{groupId}/members/join",  reqDto:null,                         resDto:"MemberResponse",           desc:"그룹 가입 (공개: ACTIVE, 비공개: PENDING)"},
+      {method:"PUT",    path:"/api/v1/community/groups/{groupId}/members/{memberId}/approve", reqDto:null,            resDto:"MemberResponse",           desc:"가입 승인"},
+      {method:"DELETE", path:"/api/v1/community/groups/{groupId}/members/{memberId}",         reqDto:null,            resDto:null,                       desc:"멤버 제거"},
+      {method:"GET",    path:"/api/v1/community/groups/{groupId}/members",       reqDto:null,                         resDto:"MemberResponse",           desc:"멤버 목록 조회"},
+      {method:"POST",   path:"/api/v1/community/groups/{groupId}/invite/{token}/accept",  reqDto:null,                resDto:"InviteDecisionResponse",   desc:"초대 수락"},
+      {method:"POST",   path:"/api/v1/community/groups/{groupId}/invite/{token}/decline", reqDto:null,                resDto:"InviteDecisionResponse",   desc:"초대 거절"},
+      {method:"GET",    path:"/api/v1/community/groups/{groupId}/join-requests",  reqDto:null,                        resDto:"JoinRequestResponse",      desc:"가입 요청 목록 (OWNER/ADMIN)"},
+      {method:"PATCH",  path:"/api/v1/community/groups/{groupId}/join-requests/{userId}", reqDto:"JoinRequestDecisionRequest", resDto:"MemberResponse",   desc:"가입 요청 승인/거절"},
+      {method:"POST",   path:"/api/v1/community/reports",                        reqDto:"ReportCreateRequest",        resDto:"ReportResponse",           desc:"콘텐츠 신고"},
+      {method:"GET",    path:"/api/v1/admin/reports",                            reqDto:null,                         resDto:"ReportResponse",           desc:"신고 목록 조회 (ADMIN)"},
+      {method:"PATCH",  path:"/api/v1/admin/reports/{reportId}",                 reqDto:"ReportModerateRequest",      resDto:"ReportResponse",           desc:"신고 처리 (ADMIN)"},
+      {method:"POST",   path:"/api/v1/community/share",                          reqDto:"ShareContentRequest",        resDto:"ShareTokenResponse",       desc:"콘텐츠 공유 토큰 발급"},
+      {method:"GET",    path:"/api/v1/community/share/{token}",                  reqDto:null,                         resDto:"SharedContentResponse",    desc:"공유 토큰으로 콘텐츠 조회"},
+      {method:"GET",    path:"/api/v1/community/search",                         reqDto:null,                         resDto:"SharedContentResponse",    desc:"공유 콘텐츠 검색"},
+      {method:"POST",   path:"/api/v1/community/share/{token}/fork",             reqDto:null,                         resDto:"SharedContentResponse",    desc:"공유 콘텐츠 포크"},
+      {method:"DELETE", path:"/api/v1/community/share/{id}",                     reqDto:null,                         resDto:null,                       desc:"공유 콘텐츠 삭제"},
+      {method:"GET",    path:"/api/v1/gamification/me",                          reqDto:null,                         resDto:"UserGamificationResponse", desc:"내 XP/레벨/뱃지/스트릭 조회"},
+      {method:"GET",    path:"/api/v1/gamification/xp/history",                  reqDto:null,                         resDto:"XpEventResponse",          desc:"XP 이벤트 이력 조회"},
+      {method:"GET",    path:"/api/v1/gamification/badges",                      reqDto:null,                         resDto:"BadgeResponse",            desc:"전체 뱃지 목록"},
+      {method:"GET",    path:"/api/v1/gamification/leaderboard",                 reqDto:null,                         resDto:"LeaderboardEntryResponse", desc:"리더보드 조회"},
+      {method:"POST",   path:"/api/v1/gamification/xp/events",                   reqDto:"AddXpRequest",               resDto:"UserGamificationResponse", desc:"XP 직접 적립 (내부/테스트용)"},
+    ], produces:[], consumes:["platform.auth.user-registered-v1","learning.card.review-completed-v1"], stores:["postgres:synapse_engagement","redis"], calls:[]},
+    knowledge:    {label:"knowledge-svc", addr:"knowledge-svc", port:8080, tier:"svc", color:"#f778ba", role:"노트/지식", rest:[
+      {method:"POST",   path:"/api/v1/notes",                         reqDto:"NoteCreateRequest",       resDto:"NoteResponse",            desc:"노트 생성"},
+      {method:"GET",    path:"/api/v1/notes",                         reqDto:null,                      resDto:"NoteResponse",            desc:"내 노트 목록 (페이지)"},
+      {method:"GET",    path:"/api/v1/notes/{id}",                    reqDto:null,                      resDto:"NoteResponse",            desc:"노트 단건 조회"},
+      {method:"PATCH",  path:"/api/v1/notes/{id}",                    reqDto:"NoteCreateRequest",       resDto:"NoteResponse",            desc:"노트 수정"},
+      {method:"DELETE", path:"/api/v1/notes/{id}",                    reqDto:null,                      resDto:null,                      desc:"노트 삭제"},
+      {method:"GET",    path:"/api/v1/notes/{id}/backlinks",          reqDto:null,                      resDto:"NoteResponse",            desc:"역링크 노트 목록"},
+      {method:"GET",    path:"/api/v1/notes/{id}/outlinks",           reqDto:null,                      resDto:"NoteResponse",            desc:"아웃링크 노트 목록"},
+      {method:"GET",    path:"/api/v1/notes/search",                  reqDto:null,                      resDto:"SearchPageResponse",      desc:"키워드 기반 노트 검색 (커서 페이징)"},
+      {method:"POST",   path:"/api/v1/ai/search/semantic",            reqDto:"SemanticSearchRequest",   resDto:"SemanticSearchResponse",  desc:"벡터 시맨틱 검색"},
+      {method:"POST",   path:"/api/v1/ai/search/hybrid",              reqDto:"HybridSearchRequest",     resDto:"HybridSearchResponse",    desc:"하이브리드(키워드+벡터) 검색"},
+      {method:"GET",    path:"/api/v1/graph/data",                    reqDto:null,                      resDto:"GraphDataResponse",       desc:"전체 노트 지식 그래프 데이터"},
+      {method:"GET",    path:"/api/v1/graph",                         reqDto:null,                      resDto:"GraphDataResponse",       desc:"특정 노트 인접 그래프 (depth 지정)"},
+      {method:"POST",   path:"/api/v1/admin/search/accuracy-test",    reqDto:null,                      resDto:"SearchComparisonReport",  desc:"검색 정확도 테스트 실행 (ADMIN)"},
+      {method:"GET",    path:"/api/v1/admin/search/accuracy-report",  reqDto:null,                      resDto:"SearchComparisonReport",  desc:"최신 검색 정확도 리포트 조회 (ADMIN)"},
+    ], produces:["knowledge.note.note-created-v1","knowledge.note.note-updated-v1"], consumes:[], stores:["postgres:synapse_knowledge","redis","opensearch"], calls:[]},
+    "learning-ai":{label:"learning-ai", addr:"learning-ai", port:8080, tier:"svc", color:"#e3b341", role:"AI 카드 생성(Python)", rest:[
+      {method:"POST",   path:"/ai/cards/generate",   reqDto:"AiGenerateRequest",        resDto:"AiCardGenerateResponse",   desc:"노트 내용으로 플래시카드 생성 (LLM)"},
+      {method:"POST",   path:"/ai/generate",          reqDto:"AiGenerateRequest",        resDto:"AiGenerateResponse",       desc:"범용 AI 텍스트 생성"},
+      {method:"POST",   path:"/ai/embeddings",        reqDto:"AiEmbedRequest",           resDto:"AiEmbedResponse",          desc:"배치 텍스트 임베딩 (최대 20개)"},
+      {method:"POST",   path:"/ai/search/semantic",   reqDto:"AiSemanticSearchRequest",  resDto:"AiSemanticSearchResponse", desc:"pgvector 기반 시맨틱 검색"},
+      {method:"POST",   path:"/ai/qa",                reqDto:"AiQaRequest",              resDto:"AiQaResponse",             desc:"RAG Q&A (stream=true 시 SSE)"},
+      {method:"GET",    path:"/health",               reqDto:null,                       resDto:"HealthResponse",           desc:"라이브니스 프로브"},
+      {method:"GET",    path:"/health/ready",         reqDto:null,                       resDto:null,                       desc:"레디니스 프로브"},
+    ], produces:[], consumes:["knowledge.note.note-created-v1","knowledge.note.note-updated-v1"], stores:["postgres:synapse_learning_ai","redis","opensearch"], calls:["knowledge","learning-card"]},
+    "learning-card":{label:"learning-card", addr:"learning-card", port:8080, tier:"svc", color:"#ff7b72", role:"학습 카드/복습", rest:[
+      {method:"POST",   path:"/decks",                              reqDto:"DeckCreateRequest",          resDto:"DeckResponse",            desc:"덱 생성"},
+      {method:"GET",    path:"/decks",                              reqDto:null,                         resDto:"DeckResponse",            desc:"내 덱 목록 (페이지)"},
+      {method:"GET",    path:"/decks/{deckId}",                     reqDto:null,                         resDto:"DeckResponse",            desc:"덱 단건 조회"},
+      {method:"PATCH",  path:"/decks/{deckId}",                     reqDto:"DeckUpdateRequest",          resDto:"DeckResponse",            desc:"덱 수정"},
+      {method:"DELETE", path:"/decks/{deckId}",                     reqDto:null,                         resDto:null,                      desc:"덱 삭제"},
+      {method:"POST",   path:"/decks/{deckId}/cards",               reqDto:"CardCreateRequest",          resDto:"CardResponse",            desc:"카드 생성"},
+      {method:"GET",    path:"/decks/{deckId}/cards",               reqDto:null,                         resDto:"CardResponse",            desc:"덱의 카드 목록 (페이지)"},
+      {method:"GET",    path:"/decks/{deckId}/cards/{cardId}",      reqDto:null,                         resDto:"CardResponse",            desc:"카드 단건 조회"},
+      {method:"PATCH",  path:"/decks/{deckId}/cards/{cardId}",      reqDto:"CardUpdateRequest",          resDto:"CardResponse",            desc:"카드 수정"},
+      {method:"DELETE", path:"/decks/{deckId}/cards/{cardId}",      reqDto:null,                         resDto:null,                      desc:"카드 삭제"},
+      {method:"POST",   path:"/reviews/sessions",                   reqDto:"ReviewSessionStartRequest",  resDto:"ReviewSessionResponse",   desc:"복습 세션 시작"},
+      {method:"GET",    path:"/reviews/queue",                      reqDto:null,                         resDto:"ReviewCardResponse",      desc:"복습 큐 조회 (due 카드 목록)"},
+      {method:"POST",   path:"/reviews/sessions/{sessionId}/submit",reqDto:"ReviewSessionSubmitRequest", resDto:"ReviewSubmitResponse",    desc:"복습 결과 제출 (SRS 업데이트)"},
+      {method:"PUT",    path:"/reviews/sessions/{sessionId}/complete",reqDto:null,                       resDto:"ReviewSessionResponse",   desc:"복습 세션 완료"},
+      {method:"GET",    path:"/stats/overview",                     reqDto:null,                         resDto:"ReviewStatsResponse",     desc:"복습 통계 개요"},
+      {method:"GET",    path:"/stats/heatmap",                      reqDto:null,                         resDto:"WeeklyStatsResponse",     desc:"주간 복습 히트맵"},
+    ], produces:["learning.card.review-completed-v1"], consumes:[], stores:["postgres:synapse_learning","redis"], calls:[]},
+  },
+  infra: {
+    kafka:{label:"kafka", addr:"kafka", port:9092, kind:"broker"},
+    "schema-registry":{label:"schema-registry", addr:"schema-registry", port:8081, kind:"registry"},
+    zookeeper:{label:"zookeeper", addr:"zookeeper", port:2181, kind:"coord"},
+    postgres:{label:"postgres", addr:"postgres", port:5432, kind:"db"},
+    redis:{label:"redis", addr:"redis", port:6379, kind:"cache"},
+    opensearch:{label:"opensearch", addr:"opensearch", port:9200, kind:"search"},
+  },
+  rest: [
+    {from:"gateway", to:"platform",      basePath:"/api/platform/**",  endpoints:["/api/v1/auth/**","/api/v1/admin/**","/api/v1/billing/**","/api/v1/notifications/**"]},
+    {from:"gateway", to:"engagement",    basePath:"/api/engagement/**",endpoints:["/api/v1/community/**","/api/v1/gamification/**","/api/v1/admin/reports/**"]},
+    {from:"gateway", to:"knowledge",     basePath:"/api/knowledge/**", endpoints:["/api/v1/notes/**","/api/v1/ai/search/**","/api/v1/graph/**","/api/v1/admin/search/**"]},
+    {from:"gateway", to:"learning-card", basePath:"/api/learning/**",  endpoints:["/decks/**","/reviews/**","/stats/**"]},
+    {from:"gateway", to:"learning-ai",   basePath:"/api/learning/**",  endpoints:["/ai/**","/health"]},
+    {from:"learning-ai", to:"knowledge",     basePath:"http://knowledge-svc",  endpoints:["/api/v1/notes/{id}"]},
+    {from:"learning-ai", to:"learning-card", basePath:"http://learning-card",  endpoints:["/decks/{deckId}/cards"], note:"카드 등록(card_client.py) — D-001 HTTP 동기"},
+  ],
+  events: [
+    {topic:"platform.auth.user-registered-v1",  producer:"platform",      consumers:["engagement"],      schemaFields:[{name:"eventId",type:"string"},{name:"userId",type:"string"},{name:"email",type:"string"},{name:"tenantId",type:"string"},{name:"registeredAt",type:"string"},{name:"occurredAt",type:"long"}], partitions:3},
+    {topic:"knowledge.note.note-created-v1",     producer:"knowledge",     consumers:["learning-ai"],     schemaFields:[{name:"eventId",type:"string"},{name:"noteId",type:"string"},{name:"userId",type:"string"},{name:"tenantId",type:"string"},{name:"deckId",type:"string?"},{name:"title",type:"string"},{name:"content",type:"string?"},{name:"createdAt",type:"string"},{name:"occurredAt",type:"long"}], partitions:3},
+    {topic:"knowledge.note.note-updated-v1",     producer:"knowledge",     consumers:["learning-ai"],     schemaFields:[{name:"eventId",type:"string"},{name:"noteId",type:"string"},{name:"userId",type:"string"},{name:"tenantId",type:"string"},{name:"title",type:"string"},{name:"updatedAt",type:"string"},{name:"occurredAt",type:"long"}], partitions:3, note:"learning-ai 소비 + opensearch 재인덱싱"},
+    {topic:"learning.card.review-completed-v1",  producer:"learning-card", consumers:["engagement"],      schemaFields:[{name:"eventId",type:"string"},{name:"cardId",type:"string"},{name:"userId",type:"string"},{name:"tenantId",type:"string"},{name:"rating",type:"enum(AGAIN|HARD|GOOD|EASY)"},{name:"nextReviewAt",type:"string"},{name:"reviewedAt",type:"string"},{name:"occurredAt",type:"long"}], partitions:3},
+    {topic:"learning.ai.cards-generated-v1",     producer:"learning-ai",   consumers:[],   schemaFields:[{name:"noteId",type:"string"},{name:"userId",type:"string"},{name:"tenantId",type:"string"},{name:"cardCount",type:"int"},{name:"generatedAt",type:"string"}], partitions:3, deprecated:true, note:"D-001(2026-05-29): 발행자 없음 — 카드 등록은 learning-ai→learning-card HTTP(card_client.py)로 대체. 토픽은 호환/스모크용으로만 잔존."},
+  ],
+  connections: [
+    {name:"Kafka", addr:"kafka:9092", envVars:["KAFKA_BOOTSTRAP_SERVERS","KAFKA_BROKERS"], protocol:"PLAINTEXT", consumers:["platform","engagement","knowledge","learning-ai","learning-card"]},
+    {name:"Schema Registry", addr:"schema-registry:8081", envVars:["SCHEMA_REGISTRY_URL"], protocol:"HTTP", consumers:["platform","engagement","knowledge","learning-ai","learning-card"]},
+    {name:"PostgreSQL", addr:"postgres:5432", envVars:["SPRING_DATASOURCE_URL","DATABASE_HOST"], protocol:"JDBC", consumers:["platform","engagement","knowledge","learning-ai","learning-card"]},
+    {name:"Redis", addr:"redis:6379", envVars:["SPRING_DATA_REDIS_HOST"], protocol:"RESP", consumers:["gateway","platform","engagement","knowledge","learning-card"]},
+    {name:"OpenSearch", addr:"opensearch:9200", envVars:["OPENSEARCH_URL"], protocol:"HTTP", consumers:["knowledge","learning-ai"]},
+  ],
+  dtos: {
+    /* ── platform-svc ── */
+    EmailPasswordAuthRequest: {
+      fields:[{name:"email",type:"string",desc:"이메일 주소 (RFC5322)"},{name:"password",type:"string",desc:"비밀번호 (8자 이상, 영문+숫자+특수문자)"}],
+      sample:{email:"alice@example.com",password:"P@ssw0rd1"}
+    },
+    SignupResponse: {
+      fields:[{name:"userId",type:"UUID",desc:"생성된 사용자 UUID"}],
+      sample:{userId:"550e8400-e29b-41d4-a716-446655440000"}
+    },
+    LoginResponse: {
+      fields:[{name:"accessToken",type:"string",desc:"JWT 액세스 토큰"}],
+      sample:{accessToken:"eyJhbGciOiJIUzI1NiJ9..."}
+    },
+    TokenRefreshResponse: {
+      fields:[{name:"accessToken",type:"string",desc:"새로 발급된 JWT 액세스 토큰"}],
+      sample:{accessToken:"eyJhbGciOiJIUzI1NiJ9...new"}
+    },
+    MfaVerifyRequest: {
+      fields:[{name:"code",type:"string",desc:"TOTP 6자리 코드"}],
+      sample:{code:"123456"}
+    },
+    AdminUserPageResponse: {
+      fields:[{name:"content",type:"List<AdminUserResponse>",desc:"사용자 목록"},{name:"page",type:"int",desc:"현재 페이지"},{name:"size",type:"int",desc:"페이지 크기"},{name:"totalElements",type:"long",desc:"전체 항목 수"},{name:"totalPages",type:"int",desc:"전체 페이지 수"}],
+      sample:{content:[{id:"550e8400-e29b-41d4-a716-446655440001",email:"bob@example.com",displayName:"Bob",status:"active",createdAt:"2026-01-01T00:00:00Z",suspendedAt:null}],page:0,size:20,totalElements:1,totalPages:1}
+    },
+    UserStatusChangeRequest: {
+      fields:[{name:"status",type:"string",desc:"'active' 또는 'suspended'"}],
+      sample:{status:"suspended"}
+    },
+    AuditLogResponse: {
+      fields:[{name:"id",type:"UUID",desc:"감사 로그 ID"},{name:"eventId",type:"UUID",desc:"이벤트 ID"},{name:"action",type:"string",desc:"수행된 액션"},{name:"userId",type:"UUID",desc:"수행자 ID"},{name:"resourceType",type:"string",desc:"리소스 유형"},{name:"resourceId",type:"string",desc:"리소스 ID"},{name:"oldValue",type:"string",desc:"변경 전 값"},{name:"newValue",type:"string",desc:"변경 후 값"},{name:"ipAddress",type:"string",desc:"IP 주소"},{name:"userAgent",type:"string",desc:"User-Agent"},{name:"createdAt",type:"string",desc:"생성 시각 (ISO-8601)"}],
+      sample:{id:"aaaaaaaa-0000-0000-0000-000000000001",eventId:"bbbbbbbb-0000-0000-0000-000000000001",action:"USER_SUSPENDED",userId:"550e8400-e29b-41d4-a716-446655440001",resourceType:"USER",resourceId:"550e8400-e29b-41d4-a716-446655440002",oldValue:"active",newValue:"suspended",ipAddress:"127.0.0.1",userAgent:"Mozilla/5.0",createdAt:"2026-01-02T10:00:00Z"}
+    },
+    AdminTenantPageResponse: {
+      fields:[{name:"content",type:"List<AdminTenantResponse>",desc:"테넌트 목록"},{name:"page",type:"int",desc:"현재 페이지"},{name:"size",type:"int",desc:"페이지 크기"},{name:"totalElements",type:"long",desc:"전체 항목 수"},{name:"totalPages",type:"int",desc:"전체 페이지 수"}],
+      sample:{content:[{id:"cccccccc-0000-0000-0000-000000000001",name:"Acme Inc",slug:"acme",plan:"PRO",status:"active",createdAt:"2026-01-01T00:00:00Z"}],page:0,size:20,totalElements:1,totalPages:1}
+    },
+    TenantStatusChangeRequest: {
+      fields:[{name:"status",type:"string",desc:"'active' 또는 'suspended'"}],
+      sample:{status:"active"}
+    },
+    CheckoutSessionRequest: {
+      fields:[{name:"planCode",type:"string",desc:"구독 플랜 코드 (PlanCode enum)"},{name:"successUrl",type:"string",desc:"결제 성공 리다이렉트 URL"},{name:"cancelUrl",type:"string",desc:"결제 취소 리다이렉트 URL"}],
+      sample:{planCode:"PRO",successUrl:"https://app.example.com/billing/success",cancelUrl:"https://app.example.com/billing/cancel"}
+    },
+    CheckoutSessionResponse: {
+      fields:[{name:"checkoutUrl",type:"string",desc:"Stripe Checkout 페이지 URL"}],
+      sample:{checkoutUrl:"https://checkout.stripe.com/pay/cs_test_abc123"}
+    },
+    SubscriptionResponse: {
+      fields:[{name:"id",type:"UUID",desc:"구독 ID"},{name:"planCode",type:"string",desc:"플랜 코드"},{name:"status",type:"string",desc:"구독 상태"},{name:"currentPeriodEnd",type:"string",desc:"현재 구독 만료 시각"},{name:"stripeSubscriptionId",type:"string",desc:"Stripe 구독 ID"}],
+      sample:{id:"dddddddd-0000-0000-0000-000000000001",planCode:"PRO",status:"active",currentPeriodEnd:"2026-07-01T00:00:00Z",stripeSubscriptionId:"sub_1ABC123"}
+    },
+    DeviceTokenRequest: {
+      fields:[{name:"token",type:"string",desc:"FCM/APNs 디바이스 토큰"},{name:"platform",type:"string",desc:"플랫폼 (ANDROID|IOS|WEB)"}],
+      sample:{token:"fcm-device-token-xyz",platform:"ANDROID"}
+    },
+    /* ── engagement-svc ── */
+    GroupCreateRequest: {
+      fields:[{name:"name",type:"string",desc:"그룹명 (최대 100자)"},{name:"description",type:"string",desc:"그룹 설명 (최대 500자)"},{name:"isPublic",type:"boolean",desc:"공개 여부"}],
+      sample:{name:"Synapse 스터디",description:"같이 공부해요",isPublic:true}
+    },
+    GroupResponse: {
+      fields:[{name:"id",type:"long",desc:"그룹 ID"},{name:"name",type:"string",desc:"그룹명"},{name:"description",type:"string",desc:"그룹 설명"},{name:"isPublic",type:"boolean",desc:"공개 여부"},{name:"ownerId",type:"long",desc:"소유자 ID"},{name:"createdAt",type:"string",desc:"생성 시각"}],
+      sample:{id:1,name:"Synapse 스터디",description:"같이 공부해요",isPublic:true,ownerId:42,createdAt:"2026-01-10T09:00:00Z"}
+    },
+    GroupUpdateRequest: {
+      fields:[{name:"name",type:"string",desc:"그룹명 (최대 100자)"},{name:"description",type:"string",desc:"그룹 설명 (최대 500자)"},{name:"isPublic",type:"boolean",desc:"공개 여부"}],
+      sample:{name:"Updated Study Group",description:"업데이트된 설명",isPublic:false}
+    },
+    MemberInviteRequest: {
+      fields:[{name:"userId",type:"long",desc:"초대할 사용자 ID"}],
+      sample:{userId:99}
+    },
+    MemberResponse: {
+      fields:[{name:"id",type:"long",desc:"멤버십 ID"},{name:"groupId",type:"long",desc:"그룹 ID"},{name:"userId",type:"long",desc:"사용자 ID"},{name:"role",type:"string",desc:"역할 (OWNER|ADMIN|MEMBER)"},{name:"status",type:"string",desc:"상태 (ACTIVE|PENDING|BANNED)"},{name:"joinedAt",type:"string",desc:"가입 시각"}],
+      sample:{id:10,groupId:1,userId:99,role:"MEMBER",status:"ACTIVE",joinedAt:"2026-01-11T10:00:00Z"}
+    },
+    InviteDecisionResponse: {
+      fields:[{name:"groupId",type:"long",desc:"그룹 ID"},{name:"userId",type:"long",desc:"사용자 ID"},{name:"status",type:"string",desc:"멤버 상태"},{name:"inviteToken",type:"string",desc:"초대 토큰"},{name:"inviteExpiresAt",type:"string",desc:"초대 만료 시각"}],
+      sample:{groupId:1,userId:99,status:"PENDING",inviteToken:"tok_abc123",inviteExpiresAt:"2026-01-18T10:00:00Z"}
+    },
+    JoinRequestResponse: {
+      fields:[{name:"id",type:"long",desc:"멤버십 ID"},{name:"groupId",type:"long",desc:"그룹 ID"},{name:"userId",type:"long",desc:"요청자 ID"},{name:"status",type:"string",desc:"상태 (PENDING)"},{name:"joinedAt",type:"string",desc:"요청 시각"}],
+      sample:{id:20,groupId:1,userId:77,status:"PENDING",joinedAt:"2026-01-12T08:00:00Z"}
+    },
+    JoinRequestDecisionRequest: {
+      fields:[{name:"decision",type:"string",desc:"결정 (APPROVED|REJECTED)"}],
+      sample:{decision:"APPROVED"}
+    },
+    ReportCreateRequest: {
+      fields:[{name:"targetType",type:"string",desc:"신고 대상 유형 (ReportTargetType enum)"},{name:"targetId",type:"long",desc:"신고 대상 ID"},{name:"reason",type:"string",desc:"신고 사유 (최대 1000자)"}],
+      sample:{targetType:"GROUP",targetId:5,reason:"스팸 게시물입니다"}
+    },
+    ReportResponse: {
+      fields:[{name:"id",type:"long",desc:"신고 ID"},{name:"targetType",type:"string",desc:"대상 유형"},{name:"targetId",type:"long",desc:"대상 ID"},{name:"reason",type:"string",desc:"신고 사유"},{name:"status",type:"string",desc:"상태 (PENDING|RESOLVED|DISMISSED)"},{name:"adminNote",type:"string",desc:"관리자 메모"},{name:"createdAt",type:"string",desc:"신고 시각"},{name:"resolvedAt",type:"string",desc:"처리 시각"}],
+      sample:{id:3,targetType:"GROUP",targetId:5,reason:"스팸",status:"PENDING",adminNote:null,createdAt:"2026-01-13T12:00:00Z",resolvedAt:null}
+    },
+    ReportModerateRequest: {
+      fields:[{name:"status",type:"string",desc:"처리 결과 (RESOLVED|DISMISSED)"},{name:"adminNote",type:"string",desc:"관리자 메모"}],
+      sample:{status:"RESOLVED",adminNote:"해당 콘텐츠를 삭제 처리했습니다"}
+    },
+    ShareContentRequest: {
+      fields:[{name:"contentType",type:"string",desc:"콘텐츠 유형 (ContentType enum)"},{name:"contentId",type:"long",desc:"콘텐츠 ID"},{name:"title",type:"string",desc:"공유 제목 (최대 200자)"},{name:"description",type:"string",desc:"공유 설명 (최대 1000자)"},{name:"tags",type:"List<string>",desc:"태그 목록 (최대 10개)"}],
+      sample:{contentType:"DECK",contentId:7,title:"자바 기초 플래시카드",description:"자바 기초 문법 정리",tags:["java","backend"]}
+    },
+    SharedContentResponse: {
+      fields:[{name:"id",type:"long",desc:"공유 콘텐츠 ID"},{name:"shareToken",type:"string",desc:"공유 토큰"},{name:"contentType",type:"string",desc:"콘텐츠 유형"},{name:"contentId",type:"long",desc:"원본 콘텐츠 ID"},{name:"ownerId",type:"long",desc:"소유자 ID"},{name:"title",type:"string",desc:"제목"},{name:"description",type:"string",desc:"설명"},{name:"tags",type:"List<string>",desc:"태그 목록"},{name:"downloadCount",type:"long",desc:"다운로드 수"},{name:"sourceShareId",type:"long",desc:"원본 공유 ID (포크된 경우)"},{name:"createdAt",type:"string",desc:"생성 시각"}],
+      sample:{id:100,shareToken:"share_xyz789",contentType:"DECK",contentId:7,ownerId:42,title:"자바 기초 플래시카드",description:"자바 기초 문법 정리",tags:["java","backend"],downloadCount:5,sourceShareId:null,createdAt:"2026-01-14T15:00:00Z"}
+    },
+    ShareTokenResponse: {
+      fields:[{name:"shareToken",type:"string",desc:"발급된 공유 토큰"},{name:"id",type:"long",desc:"공유 콘텐츠 ID"}],
+      sample:{shareToken:"share_xyz789",id:100}
+    },
+    AddXpRequest: {
+      fields:[{name:"eventType",type:"string",desc:"XP 이벤트 유형 (EventType enum)"},{name:"xpAmount",type:"int",desc:"적립할 XP 양 (양수)"},{name:"sourceId",type:"string",desc:"소스 ID"},{name:"sourceType",type:"string",desc:"소스 유형"},{name:"eventId",type:"string",desc:"이벤트 고유 ID (멱등성)"}],
+      sample:{eventType:"REVIEW_COMPLETED",xpAmount:10,sourceId:"session-uuid-001",sourceType:"REVIEW_SESSION",eventId:"evt-uuid-001"}
+    },
+    UserGamificationResponse: {
+      fields:[{name:"xp",type:"int",desc:"누적 XP"},{name:"level",type:"int",desc:"현재 레벨"},{name:"currentStreak",type:"int",desc:"현재 연속 학습 일수"},{name:"longestStreak",type:"int",desc:"최장 연속 학습 일수"},{name:"badges",type:"List<BadgeResponse>",desc:"획득 뱃지 목록"}],
+      sample:{xp:350,level:4,currentStreak:5,longestStreak:12,badges:[{code:"FIRST_REVIEW",name:"첫 복습",description:"첫 번째 복습 완료",iconUrl:"/badges/first-review.svg",conditionType:"REVIEW_COUNT",conditionValue:1,earnedAt:"2026-01-05T08:00:00Z"}]}
+    },
+    BadgeResponse: {
+      fields:[{name:"code",type:"string",desc:"뱃지 코드"},{name:"name",type:"string",desc:"뱃지 이름"},{name:"description",type:"string",desc:"뱃지 설명"},{name:"iconUrl",type:"string",desc:"아이콘 URL"},{name:"conditionType",type:"string",desc:"획득 조건 유형"},{name:"conditionValue",type:"int",desc:"획득 조건 값"},{name:"earnedAt",type:"string",desc:"획득 시각 (미획득 시 null)"}],
+      sample:{code:"STREAK_7",name:"7일 연속",description:"7일 연속 학습",iconUrl:"/badges/streak-7.svg",conditionType:"STREAK_DAYS",conditionValue:7,earnedAt:"2026-01-20T09:00:00Z"}
+    },
+    XpEventResponse: {
+      fields:[{name:"eventType",type:"string",desc:"이벤트 유형"},{name:"xpAmount",type:"int",desc:"적립 XP"},{name:"sourceId",type:"string",desc:"소스 ID"},{name:"sourceType",type:"string",desc:"소스 유형"},{name:"eventId",type:"string",desc:"이벤트 ID"},{name:"createdAt",type:"string",desc:"발생 시각"}],
+      sample:{eventType:"REVIEW_COMPLETED",xpAmount:10,sourceId:"session-001",sourceType:"REVIEW_SESSION",eventId:"evt-001",createdAt:"2026-01-15T10:00:00Z"}
+    },
+    LeaderboardEntryResponse: {
+      fields:[{name:"rank",type:"int",desc:"순위"},{name:"userId",type:"long",desc:"사용자 ID"},{name:"nickname",type:"string",desc:"닉네임"},{name:"xp",type:"int",desc:"누적 XP"},{name:"level",type:"int",desc:"레벨"}],
+      sample:{rank:1,userId:42,nickname:"User 42",xp:1200,level:10}
+    },
+    /* ── knowledge-svc ── */
+    NoteCreateRequest: {
+      fields:[{name:"tenantId",type:"string",desc:"테넌트 ID"},{name:"title",type:"string",desc:"노트 제목 (최대 200자)"},{name:"contentMd",type:"string",desc:"마크다운 본문"},{name:"tags",type:"List<string>",desc:"태그 목록 (최대 10개, 각 30자 이하)"}],
+      sample:{tenantId:"tenant-001",title:"Spring Boot 정리",contentMd:"## 개요\nSpring Boot는...",tags:["java","spring"]}
+    },
+    NoteResponse: {
+      fields:[{name:"id",type:"long",desc:"노트 ID"},{name:"title",type:"string",desc:"제목"},{name:"contentMd",type:"string",desc:"마크다운 본문"},{name:"contentPlain",type:"string",desc:"순수 텍스트 본문"},{name:"tags",type:"List<string>",desc:"태그 목록"},{name:"status",type:"string",desc:"상태"},{name:"createdAt",type:"string",desc:"생성 시각"},{name:"updatedAt",type:"string",desc:"수정 시각"}],
+      sample:{id:55,title:"Spring Boot 정리",contentMd:"## 개요\nSpring Boot는...",contentPlain:"개요 Spring Boot는...",tags:["java","spring"],status:"ACTIVE",createdAt:"2026-01-10T10:00:00Z",updatedAt:"2026-01-10T10:00:00Z"}
+    },
+    SearchPageResponse: {
+      fields:[{name:"results",type:"List<SearchResultResponse>",desc:"검색 결과 목록"},{name:"totalCount",type:"long",desc:"전체 결과 수"},{name:"nextCursor",type:"string",desc:"다음 페이지 커서 (null이면 마지막)"},{name:"hasNext",type:"boolean",desc:"다음 페이지 존재 여부"}],
+      sample:{results:[{id:55,title:"Spring Boot 정리",highlight:"Spring Boot는 <em>auto-configuration</em>을...",tags:["java","spring"],score:0.95}],totalCount:1,nextCursor:null,hasNext:false}
+    },
+    SemanticSearchRequest: {
+      fields:[{name:"query",type:"string",desc:"검색 쿼리 텍스트"},{name:"limit",type:"int",desc:"반환 결과 수 (1-100)"},{name:"tags",type:"List<string>",desc:"태그 필터 (선택)"}],
+      sample:{query:"Spring 자동 설정 원리",limit:10,tags:["java"]}
+    },
+    SemanticSearchResponse: {
+      fields:[{name:"results",type:"List<SemanticSearchResult>",desc:"시맨틱 검색 결과"},{name:"totalCount",type:"long",desc:"결과 수"},{name:"searchTimeMs",type:"long",desc:"검색 소요 시간(ms)"}],
+      sample:{results:[{chunkId:"aaaa-0001",noteId:"bbbb-0002",content:"Spring Boot 자동 설정은...",score:0.92}],totalCount:1,searchTimeMs:45}
+    },
+    HybridSearchRequest: {
+      fields:[{name:"query",type:"string",desc:"검색 쿼리 텍스트"},{name:"limit",type:"int",desc:"반환 결과 수 (1-100)"},{name:"tags",type:"List<string>",desc:"태그 필터 (선택)"}],
+      sample:{query:"Spring 자동 설정",limit:10,tags:[]}
+    },
+    HybridSearchResponse: {
+      fields:[{name:"results",type:"List<UnifiedSearchResultResponse>",desc:"통합 검색 결과"},{name:"totalCount",type:"long",desc:"결과 수"},{name:"nextCursor",type:"string",desc:"커서 (null이면 마지막)"},{name:"hasNext",type:"boolean",desc:"다음 페이지 여부"},{name:"searchTimeMs",type:"long",desc:"검색 소요 시간(ms)"},{name:"semanticFallback",type:"boolean",desc:"시맨틱 폴백 여부"}],
+      sample:{results:[],totalCount:0,nextCursor:null,hasNext:false,searchTimeMs:30,semanticFallback:false}
+    },
+    GraphDataResponse: {
+      fields:[{name:"nodes",type:"List<GraphNodeResponse>",desc:"그래프 노드 목록"},{name:"edges",type:"List<GraphEdgeResponse>",desc:"그래프 엣지 목록"}],
+      sample:{nodes:[{id:1,title:"Spring Boot",linkCount:5,pageRank:0.35}],edges:[{sourceId:1,targetId:2}]}
+    },
+    SearchComparisonReport: {
+      fields:[{name:"keyword",type:"SearchAccuracyReport",desc:"키워드 검색 정확도 리포트"},{name:"semantic",type:"SearchAccuracyReport",desc:"시맨틱 검색 정확도 리포트"},{name:"hybrid",type:"SearchAccuracyReport",desc:"하이브리드 검색 정확도 리포트"},{name:"generatedAt",type:"string",desc:"리포트 생성 시각"}],
+      sample:{keyword:{avgPrecision:0.75,avgRecall:0.80},semantic:{avgPrecision:0.85,avgRecall:0.88},hybrid:{avgPrecision:0.90,avgRecall:0.91},generatedAt:"2026-01-20T12:00:00Z"}
+    },
+    /* ── learning-card (Java) ── */
+    DeckCreateRequest: {
+      fields:[{name:"name",type:"string",desc:"덱 이름 (최대 200자)"},{name:"description",type:"string",desc:"덱 설명 (최대 1000자)"},{name:"color",type:"string",desc:"색상 코드 (최대 50자)"}],
+      sample:{name:"자바 기초",description:"자바 핵심 개념 정리",color:"#58a6ff"}
+    },
+    DeckResponse: {
+      fields:[{name:"id",type:"UUID",desc:"덱 ID"},{name:"name",type:"string",desc:"덱 이름"},{name:"description",type:"string",desc:"덱 설명"},{name:"color",type:"string",desc:"색상 코드"},{name:"createdAt",type:"string",desc:"생성 시각"},{name:"updatedAt",type:"string",desc:"수정 시각"}],
+      sample:{id:"deck-uuid-001",name:"자바 기초",description:"자바 핵심 개념 정리",color:"#58a6ff",createdAt:"2026-01-10T10:00:00Z",updatedAt:"2026-01-10T10:00:00Z"}
+    },
+    DeckUpdateRequest: {
+      fields:[{name:"name",type:"string",desc:"덱 이름 (최대 200자)"},{name:"description",type:"string",desc:"덱 설명 (최대 1000자)"},{name:"color",type:"string",desc:"색상 코드 (최대 50자)"}],
+      sample:{name:"자바 심화",description:"심화 개념 추가",color:"#ff7b72"}
+    },
+    CardCreateRequest: {
+      fields:[{name:"frontContent",type:"string",desc:"카드 앞면 내용 (최대 5000자)"},{name:"backContent",type:"string",desc:"카드 뒷면 내용 (최대 5000자)"},{name:"cardType",type:"string",desc:"카드 유형"},{name:"sourceId",type:"string",desc:"원본 노트 ID (선택)"},{name:"bloomLevel",type:"string",desc:"Bloom 분류 레벨 (선택)"}],
+      sample:{frontContent:"Spring Boot의 자동 설정이란?",backContent:"@EnableAutoConfiguration을 통해...",cardType:"BASIC",sourceId:"note-uuid-001",bloomLevel:"UNDERSTAND"}
+    },
+    CardResponse: {
+      fields:[{name:"id",type:"UUID",desc:"카드 ID"},{name:"deckId",type:"UUID",desc:"덱 ID"},{name:"cardType",type:"string",desc:"카드 유형"},{name:"frontContent",type:"string",desc:"앞면 내용"},{name:"backContent",type:"string",desc:"뒷면 내용"},{name:"bloomLevel",type:"string",desc:"Bloom 레벨"},{name:"status",type:"string",desc:"카드 상태"},{name:"easinessFactor",type:"double",desc:"SM-2 용이도 계수"},{name:"intervalDays",type:"int",desc:"다음 복습까지 간격(일)"},{name:"repetitions",type:"int",desc:"복습 횟수"},{name:"lapses",type:"int",desc:"실패 횟수"},{name:"dueDate",type:"string",desc:"다음 복습 예정일"},{name:"lastReviewedAt",type:"string",desc:"마지막 복습 시각"},{name:"createdAt",type:"string",desc:"생성 시각"},{name:"updatedAt",type:"string",desc:"수정 시각"}],
+      sample:{id:"card-uuid-001",deckId:"deck-uuid-001",cardType:"BASIC",frontContent:"Spring Boot의 자동 설정이란?",backContent:"@EnableAutoConfiguration을 통해...",bloomLevel:"UNDERSTAND",status:"ACTIVE",easinessFactor:2.5,intervalDays:1,repetitions:0,lapses:0,dueDate:"2026-01-11T10:00:00Z",lastReviewedAt:null,createdAt:"2026-01-10T10:00:00Z",updatedAt:"2026-01-10T10:00:00Z"}
+    },
+    CardUpdateRequest: {
+      fields:[{name:"frontContent",type:"string",desc:"카드 앞면 내용 (최대 5000자)"},{name:"backContent",type:"string",desc:"카드 뒷면 내용 (최대 5000자)"},{name:"bloomLevel",type:"string",desc:"Bloom 분류 레벨"}],
+      sample:{frontContent:"수정된 앞면 내용",backContent:"수정된 뒷면 내용",bloomLevel:"APPLY"}
+    },
+    ReviewSessionStartRequest: {
+      fields:[{name:"deckId",type:"UUID",desc:"복습할 덱 ID"}],
+      sample:{deckId:"deck-uuid-001"}
+    },
+    ReviewSessionResponse: {
+      fields:[{name:"sessionId",type:"UUID",desc:"복습 세션 ID"},{name:"deckId",type:"UUID",desc:"덱 ID"},{name:"status",type:"string",desc:"세션 상태 (ACTIVE|COMPLETED)"},{name:"totalCards",type:"int",desc:"전체 카드 수"},{name:"reviewedCards",type:"int",desc:"복습 완료 카드 수"},{name:"startedAt",type:"string",desc:"세션 시작 시각"},{name:"completedAt",type:"string",desc:"세션 완료 시각 (미완료 시 null)"}],
+      sample:{sessionId:"session-uuid-001",deckId:"deck-uuid-001",status:"ACTIVE",totalCards:20,reviewedCards:0,startedAt:"2026-01-15T09:00:00Z",completedAt:null}
+    },
+    ReviewSessionSubmitRequest: {
+      fields:[{name:"cardId",type:"UUID",desc:"복습한 카드 ID"},{name:"rating",type:"int",desc:"평가 점수 (1=Again, 2=Hard, 3=Good, 4=Easy)"},{name:"timeSpentMs",type:"int",desc:"소요 시간(ms) (선택)"}],
+      sample:{cardId:"card-uuid-001",rating:3,timeSpentMs:4500}
+    },
+    ReviewSubmitResponse: {
+      fields:[{name:"cardId",type:"UUID",desc:"카드 ID"},{name:"rating",type:"int",desc:"제출한 평가"},{name:"newEaseFactor",type:"double",desc:"SM-2 갱신된 용이도 계수"},{name:"newIntervalDays",type:"int",desc:"갱신된 복습 간격(일)"},{name:"lapses",type:"int",desc:"누적 실패 횟수"},{name:"dueDate",type:"string",desc:"다음 복습 예정일"}],
+      sample:{cardId:"card-uuid-001",rating:3,newEaseFactor:2.5,newIntervalDays:3,lapses:0,dueDate:"2026-01-18T09:00:00Z"}
+    },
+    ReviewCardResponse: {
+      fields:[{name:"cardId",type:"UUID",desc:"카드 ID"},{name:"cardType",type:"string",desc:"카드 유형"},{name:"frontContent",type:"string",desc:"앞면 내용"},{name:"backContent",type:"string",desc:"뒷면 내용"},{name:"bloomLevel",type:"string",desc:"Bloom 레벨"},{name:"repetitions",type:"int",desc:"복습 횟수"},{name:"easinessFactor",type:"double",desc:"용이도 계수"},{name:"dueDate",type:"string",desc:"복습 예정일"}],
+      sample:{cardId:"card-uuid-001",cardType:"BASIC",frontContent:"Spring Boot의 자동 설정이란?",backContent:"@EnableAutoConfiguration을 통해...",bloomLevel:"UNDERSTAND",repetitions:2,easinessFactor:2.5,dueDate:"2026-01-15T09:00:00Z"}
+    },
+    ReviewStatsResponse: {
+      fields:[{name:"daily",type:"List<DailyReviewStatResponse>",desc:"일별 복습 통계"},{name:"totalReviews",type:"long",desc:"전체 복습 수"},{name:"overallCorrectRate",type:"double",desc:"전체 정답률"},{name:"currentStreak",type:"int",desc:"현재 연속 학습 일수"},{name:"longestStreak",type:"int",desc:"최장 연속 학습 일수"}],
+      sample:{daily:[],totalReviews:150,overallCorrectRate:0.78,currentStreak:5,longestStreak:14}
+    },
+    WeeklyStatsResponse: {
+      fields:[{name:"weekly",type:"List<WeeklyReviewStatResponse>",desc:"주간 복습 통계 목록"}],
+      sample:{weekly:[{week:"2026-W03",reviewCount:35,correctRate:0.80}]}
+    },
+    /* ── learning-ai (Python/FastAPI) ── */
+    AiGenerateRequest: {
+      fields:[{name:"prompt",type:"string",desc:"AI 생성 프롬프트 (1자 이상)"},{name:"task",type:"string",desc:"태스크 카테고리 (기본값: 'default')"},{name:"max_tokens",type:"int",desc:"최대 토큰 수 (1-4096, 기본값: 1024)"},{name:"temperature",type:"float",desc:"샘플링 온도 (0.0-1.0, 기본값: 1.0)"}],
+      sample:{prompt:"다음 노트에서 플래시카드를 만들어주세요: Spring Boot...",task:"card_generation",max_tokens:2048,temperature:0.7}
+    },
+    AiGenerateResponse: {
+      fields:[{name:"content",type:"string",desc:"생성된 텍스트"},{name:"model",type:"string",desc:"사용된 AI 모델명"},{name:"usage",type:"object",desc:"토큰 사용 정보 {input_tokens, output_tokens}"}],
+      sample:{content:"생성된 텍스트...",model:"claude-3-5-sonnet-20241022",usage:{input_tokens:150,output_tokens:300}}
+    },
+    AiCardGenerateResponse: {
+      fields:[{name:"cards",type:"List<GeneratedCard>",desc:"생성된 플래시카드 목록 [{front, back}]"},{name:"model",type:"string",desc:"사용된 AI 모델명"},{name:"usage",type:"object",desc:"토큰 사용 정보"}],
+      sample:{cards:[{front:"Spring Boot의 자동 설정이란?",back:"@EnableAutoConfiguration 어노테이션을 통해 클래스패스의 설정을 자동으로 적용하는 기능"}],model:"claude-3-5-sonnet-20241022",usage:{input_tokens:200,output_tokens:150}}
+    },
+    AiEmbedRequest: {
+      fields:[{name:"texts",type:"List<string>",desc:"임베딩할 텍스트 목록 (1-20개)"}],
+      sample:{texts:["Spring Boot 자동 설정","Kafka 메시지 브로커"]}
+    },
+    AiEmbedResponse: {
+      fields:[{name:"embeddings",type:"List<List<float>>",desc:"텍스트별 임베딩 벡터 배열"},{name:"model",type:"string",desc:"사용된 임베딩 모델명"}],
+      sample:{embeddings:[[0.1,0.2,0.3]],model:"text-embedding-3-small"}
+    },
+    AiSemanticSearchRequest: {
+      fields:[{name:"query",type:"string",desc:"검색 쿼리 텍스트 (1자 이상)"},{name:"top_k",type:"int",desc:"반환 결과 수 (1-100, 기본값: 10)"},{name:"threshold",type:"float",desc:"최소 유사도 임계값 (0.0-1.0, 기본값: 0.7)"}],
+      sample:{query:"Spring 자동 설정 원리",top_k:5,threshold:0.75}
+    },
+    AiSemanticSearchResponse: {
+      fields:[{name:"results",type:"List<SemanticSearchResult>",desc:"검색 결과 목록 [{chunk_id, note_id, content, score}]"}],
+      sample:{results:[{chunk_id:"aaaa-0001",note_id:"bbbb-0002",content:"Spring Boot 자동 설정은...",score:0.92}]}
+    },
+    AiQaRequest: {
+      fields:[{name:"question",type:"string",desc:"질문 텍스트 (1-500자)"},{name:"stream",type:"boolean",desc:"SSE 스트리밍 여부 (기본값: false)"}],
+      sample:{question:"Spring Boot의 자동 설정은 어떻게 동작하나요?",stream:false}
+    },
+    AiQaResponse: {
+      fields:[{name:"answer",type:"string",desc:"RAG 기반 생성 답변"},{name:"sources",type:"List<QaSource>",desc:"참조된 소스 청크 목록 [{chunk_id, note_id, content, score}]"},{name:"from_cache",type:"boolean",desc:"시맨틱 캐시 적중 여부"}],
+      sample:{answer:"Spring Boot의 자동 설정은 @EnableAutoConfiguration을 통해...",sources:[{chunk_id:"aaaa-0001",note_id:"bbbb-0002",content:"Spring Boot 자동 설정은...",score:0.92}],from_cache:false}
+    },
+    HealthResponse: {
+      fields:[{name:"service",type:"string",desc:"서비스 이름"},{name:"version",type:"string",desc:"서비스 버전"},{name:"status",type:"string",desc:"상태 (ok)"}],
+      sample:{service:"learning-ai",version:"0.1.0",status:"ok"}
+    },
+  },
+  scenarios: [
+    {name:"사용자 가입", steps:[
+      {node:"gateway", kind:"rest", narration:"클라이언트가 gateway로 POST /api/platform/auth/... 요청"},
+      {node:"platform", kind:"rest", narration:"gateway가 platform-svc로 라우팅, 사용자 등록 처리"},
+      {node:"kafka", kind:"event", narration:"platform-svc가 platform.auth.user-registered-v1 발행 (Avro→schema-registry)"},
+      {node:"engagement", kind:"event", narration:"engagement-svc가 토픽 소비"}]},
+    {name:"노트→카드 생성", steps:[
+      {node:"knowledge", kind:"rest", narration:"knowledge-svc가 노트 생성 API 처리"},
+      {node:"kafka", kind:"event", narration:"knowledge.note.note-created-v1 발행 (※ EVENT_FLOW_MATRIX: knowledge producer P0 미구현)"},
+      {node:"learning-ai", kind:"event", narration:"learning-ai가 note-created 소비 → LLM으로 카드 생성"},
+      {node:"learning-card", kind:"rest", narration:"learning-ai가 learning-card REST API로 카드 등록 (HTTP 동기, D-001)"}]},
+    {name:"복습 완료", steps:[
+      {node:"gateway", kind:"rest", narration:"클라이언트가 gateway로 복습 완료 요청"},
+      {node:"learning-card", kind:"rest", narration:"learning-card가 복습 결과 처리"},
+      {node:"kafka", kind:"event", narration:"learning.card.review-completed-v1 발행"},
+      {node:"engagement", kind:"event", narration:"engagement-svc가 소비"}]},
+  ],
+};
+
+function runSelfTests(){
+  const errs=[];
+  const svc=Object.keys(SYSTEM.services), inf=Object.keys(SYSTEM.infra);
+  const nodes=new Set([...svc,...inf]);
+  SYSTEM.rest.forEach(r=>{ if(!nodes.has(r.from)||!nodes.has(r.to)) errs.push("rest 노드 미존재: "+r.from+"→"+r.to); });
+  SYSTEM.events.forEach(e=>{ if(!SYSTEM.services[e.producer]) errs.push("토픽 producer 미존재: "+e.topic);
+    e.consumers.forEach(c=>{ if(!SYSTEM.services[c]) errs.push("토픽 consumer 미존재: "+e.topic+"/"+c); }); });
+  SYSTEM.scenarios.forEach(s=>s.steps.forEach((st,i)=>{ if(st.node && !nodes.has(st.node)) errs.push("시나리오 노드 미존재: "+s.name+"#"+i); }));
+  console.assert(errs.length===0, "[SELFTEST FAIL]\n"+errs.join("\n"));
+  console.log(errs.length===0 ? "[SELFTEST PASS] services="+svc.length+" infra="+inf.length+" topics="+SYSTEM.events.length+" rest="+SYSTEM.rest.length : "[SELFTEST FAIL] "+errs.length+"건");
+  return errs;
+}
+
+
+const POS = { // [x,y] (viewBox 1000x440)
+  gateway:[500,40],
+  platform:[120,180], engagement:[300,180], knowledge:[500,180], "learning-ai":[700,180], "learning-card":[880,180],
+  kafka:[300,330], "schema-registry":[500,330], zookeeper:[660,330],
+  postgres:[120,400], redis:[300,400], opensearch:[700,400],
+};
+let activeLayers = {rest:true, kafka:true, store:true};
+let selectedId = null;
+function edgeList(){
+  const e=[];
+  SYSTEM.rest.forEach(r=>e.push({a:r.from,b:r.to,type:"rest"}));
+  SYSTEM.events.forEach(ev=>{ e.push({a:ev.producer,b:"kafka",type:"kafka",topic:ev.topic,deprecated:!!ev.deprecated});
+    ev.consumers.forEach(c=>e.push({a:"kafka",b:c,type:"kafka",topic:ev.topic,deprecated:!!ev.deprecated})); });
+  Object.entries(SYSTEM.services).forEach(([id,s])=>(s.stores||[]).forEach(st=>e.push({a:id,b:st.split(":")[0],type:"store"})));
+  return e;
+}
+function renderMap(){
+  const W=1000,H=440, ns="http://www.w3.org/2000/svg";
+  const svg=document.createElementNS(ns,"svg");
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`); svg.setAttribute("width","100%"); svg.id="map-svg";
+  edgeList().forEach(ed=>{ if(!activeLayers[ed.type]) return;
+    const [x1,y1]=POS[ed.a]||[0,0], [x2,y2]=POS[ed.b]||[0,0];
+    const p=document.createElementNS(ns,"line");
+    p.setAttribute("x1",x1);p.setAttribute("y1",y1);p.setAttribute("x2",x2);p.setAttribute("y2",y2);
+    const col = ed.deprecated ? "var(--muted)" : (ed.type==="rest"?"var(--rest)":ed.type==="kafka"?"var(--kafka)":"var(--store)");
+    p.setAttribute("stroke",col);
+    p.setAttribute("stroke-width",ed.type==="store"?1:2);
+    if(ed.type==="kafka")p.setAttribute("stroke-dasharray","5 4");
+    p.setAttribute("opacity",ed.deprecated?"0.25":"0.55"); p.dataset.a=ed.a; p.dataset.b=ed.b; p.dataset.type=ed.type;
+    if(ed.topic)p.dataset.topic=ed.topic; if(ed.deprecated)p.dataset.deprecated="1";
+    p.style.cursor="pointer"; p.addEventListener("click",()=>openEdge(ed));
+    svg.appendChild(p);
+  });
+  const all={...SYSTEM.services,...SYSTEM.infra};
+  Object.entries(all).forEach(([id,n])=>{ const [x,y]=POS[id]||[0,0];
+    const g=document.createElementNS(ns,"g"); g.style.cursor="pointer"; g.dataset.id=id;
+    const isSvc=!!SYSTEM.services[id];
+    const r=document.createElementNS(ns,"rect");
+    r.setAttribute("x",x-58);r.setAttribute("y",y-16);r.setAttribute("width",116);r.setAttribute("height",32);
+    r.setAttribute("rx",6); r.setAttribute("fill","#0d1117");
+    r.setAttribute("stroke",isSvc?(n.color||"var(--rest)"):"var(--line)"); r.setAttribute("stroke-width",isSvc?2:1);
+    const t=document.createElementNS(ns,"text"); t.setAttribute("x",x);t.setAttribute("y",y+4);
+    t.setAttribute("text-anchor","middle");t.setAttribute("fill","var(--fg)");t.setAttribute("font-size","12");
+    t.textContent=n.label;
+    g.appendChild(r);g.appendChild(t);
+    g.addEventListener("click",()=>openPanel(id));
+    g.addEventListener("mouseenter",()=>highlight(id));
+    g.addEventListener("mouseleave",()=>highlight(selectedId));
+    svg.appendChild(g);
+  });
+  const reg=document.getElementById("map-region"); reg.innerHTML=""; reg.appendChild(svg);
+}
+function openEdge(ed){
+  let h=`<h3 style="margin-top:0">연결: ${esc(ed.a)} → ${esc(ed.b)}</h3>`;
+  h+=row("종류", esc(ed.type.toUpperCase()));
+  if(ed.type==="kafka"&&ed.topic){ const ev=SYSTEM.events.find(e=>e.topic===ed.topic);
+    h+=row("토픽", `<code>${esc(ed.topic)}</code>`);
+    if(ev){
+      if(ev.deprecated)h+=`<div style="color:var(--kafka);margin:4px 0">⚠ deprecated</div>`;
+      h+=row("producer", esc(ev.producer)); h+=row("consumers", ev.consumers.length?ev.consumers.map(c=>esc(c)).join(", "):"<span class='muted'>(없음)</span>");
+      if(ev.note)h+=row("비고", esc(ev.note));
+      if(ev.schemaFields?.length){ h+=`<div class="muted" style="margin-top:6px">Avro 필드</div>`;
+        h+=ev.schemaFields.map(f=>`<div><code>${esc(f.name)}</code>: ${esc(f.type)}</div>`).join(""); } } }
+  if(ed.type==="rest"){ const r=SYSTEM.rest.find(x=>x.from===ed.a&&x.to===ed.b);
+    if(r){ h+=row("base", `<code>${esc(r.basePath)}</code>`); if(r.note)h+=row("비고", esc(r.note));
+      if(r.endpoints?.length)h+=row("경로", r.endpoints.map(p=>`<code>${esc(p)}</code>`).join("<br>")); } }
+  document.getElementById("panel-region").innerHTML=h;
+}
+function renderLayerToggles(){
+  const host=document.getElementById("layer-toggles"); host.innerHTML="";
+  [["rest","REST"],["kafka","Kafka"],["store","Store"]].forEach(([k,label])=>{
+    const b=document.createElement("button"); b.textContent=label; b.className=activeLayers[k]?"active":"";
+    b.onclick=()=>{ activeLayers[k]=!activeLayers[k]; renderMap(); renderLayerToggles(); };
+    host.appendChild(b);
+  });
+}
+function highlight(id){
+  const svg=document.getElementById("map-svg"); if(!svg)return;
+  const related=new Set(); if(id){ related.add(id);
+    edgeList().forEach(ed=>{ if(ed.a===id)related.add(ed.b); if(ed.b===id)related.add(ed.a); }); }
+  svg.querySelectorAll("g[data-id]").forEach(g=>g.style.opacity=(!id||related.has(g.dataset.id))?"1":"0.25");
+  svg.querySelectorAll("line").forEach(l=>l.setAttribute("opacity",(!id||l.dataset.a===id||l.dataset.b===id)?"0.9":"0.08"));
+}
+function row(k,v){ return `<div style="margin:4px 0"><span class="muted">${k}</span> ${v}</div>`; }
+function openPanel(id){
+  const n=SYSTEM.services[id]||SYSTEM.infra[id]; if(!n)return;
+  selectedId=id;
+  let h=`<h3 style="margin-top:0">${esc(n.label)}</h3>`;
+  h+=row("주소", `<code>${esc(n.addr)}:${esc(n.port)}</code>`);
+  if(n.role)h+=row("역할", esc(n.role));
+  if(SYSTEM.services[id]){
+    const s=SYSTEM.services[id];
+    if(s.stores?.length)h+=row("데이터스토어", s.stores.map(x=>`<code>${esc(x)}</code>`).join(", "));
+    if(s.produces?.length)h+=row("발행 토픽", s.produces.map(t=>`<code>${esc(t)}</code>`).join("<br>"));
+    if(s.consumes?.length)h+=row("구독 토픽", s.consumes.map(t=>`<code>${esc(t)}</code>`).join("<br>"));
+    if(s.calls?.length)h+=row("REST 호출", s.calls.map(c=>`<code>${esc(c)}</code>`).join(", "));
+    if(s.rest?.length){ h+=`<div class="muted" style="margin-top:8px">REST 엔드포인트 (${s.rest.length})</div>`;
+      h+=`<table style="width:100%;font-size:12px;border-collapse:collapse">`+s.rest.map(e=>`<tr><td style="vertical-align:top"><code>${esc(e.method)}</code></td><td style="vertical-align:top"><code>${esc(e.path)}</code></td><td>${esc(e.desc||"")}</td></tr>`).join("")+`</table>`; }
+  }
+  h+=`<p><button id="panel-ref-btn">레퍼런스에서 보기 →</button></p>`;
+  document.getElementById("panel-region").innerHTML=h;
+  document.getElementById("panel-ref-btn").addEventListener("click", ()=>filterReference(id));
+  highlight(id);
+}
+let refFilter="";
+function renderReference(){
+  const q=refFilter.toLowerCase();
+  const ep=[]; Object.entries(SYSTEM.services).forEach(([id,s])=>(s.rest||[]).forEach(e=>ep.push({svc:id,...e})));
+  const epRows=ep.filter(e=>!q||(e.svc+e.method+e.path+(e.reqDto||"")+(e.resDto||"")+(e.desc||"")).toLowerCase().includes(q))
+    .map(e=>`<tr><td>${esc(e.svc)}</td><td><code>${esc(e.method)}</code></td><td><code>${esc(e.path)}</code></td><td>${esc(e.reqDto||"-")}</td><td>${esc(e.resDto||"-")}</td><td>${esc(e.desc||"")}</td></tr>`).join("");
+  const tpRows=SYSTEM.events.filter(e=>!q||(e.topic+e.producer+e.consumers.join()).toLowerCase().includes(q))
+    .map(e=>`<tr class="${e.deprecated?'dep':''}"><td><code>${esc(e.topic)}</code>${e.deprecated?' <span style="color:var(--kafka)">⚠dep</span>':''}</td><td>${esc(e.producer)}</td><td>${e.consumers.map(c=>esc(c)).join(", ")||"-"}</td><td>${(e.schemaFields||[]).map(f=>esc(f.name)).join(", ")}</td><td>${esc(e.partitions)}</td></tr>`).join("");
+  const coRows=SYSTEM.connections.filter(c=>!q||(c.name+c.addr).toLowerCase().includes(q))
+    .map(c=>`<tr><td>${esc(c.name)}</td><td><code>${esc(c.addr)}</code></td><td>${c.envVars.map(v=>`<code>${esc(v)}</code>`).join(" ")}</td><td>${esc(c.protocol)}</td></tr>`).join("");
+  const dtoNames=Object.keys(SYSTEM.dtos).filter(n=>!q||(n+SYSTEM.dtos[n].fields.map(f=>f.name).join()).toLowerCase().includes(q)).sort();
+  const dtoRows=dtoNames.map(n=>{
+    const dto=SYSTEM.dtos[n];
+    const hasSample=dto.sample!=null;
+    const nameCell=`<td style="cursor:${hasSample?'pointer':'default'}" class="dto-name-cell">${hasSample?'▸ ':''}<code>${esc(n)}</code></td>`;
+    const fieldsCell=`<td>${dto.fields.map(f=>`<code>${esc(f.name)}</code>:${esc(f.type)}`).join(", ")}</td>`;
+    const mainRow=`<tr class="dto-main-row" data-dto="${esc(n)}">${nameCell}${fieldsCell}</tr>`;
+    const sampleRow=hasSample?`<tr class="dto-detail"><td colspan="2"><pre style="margin:0;font-size:11px;white-space:pre-wrap;word-break:break-all">${esc(JSON.stringify(dto.sample,null,2))}</pre></td></tr>`:"";
+    return mainRow+sampleRow;
+  }).join("");
+  document.getElementById("ref-region").innerHTML=`
+    <div style="display:flex;gap:8px;align-items:center"><h3 style="margin:0">📖 종합 레퍼런스</h3>
+      <input id="ref-search" placeholder="검색 (서비스/경로/토픽/DTO)…" value="${refFilter.replace(/"/g,'&quot;')}" style="margin-left:auto;width:280px;background:#0d1117;border:1px solid var(--line);color:var(--fg);padding:5px 8px;border-radius:6px">
+    </div>
+    <h4>REST 엔드포인트 (${ep.length})</h4><table class="ref"><thead><tr><th>서비스</th><th>method</th><th>path</th><th>요청</th><th>응답</th><th>설명</th></tr></thead><tbody>${epRows||'<tr><td colspan="6" class="muted">없음</td></tr>'}</tbody></table>
+    <h4>Kafka 토픽 (${SYSTEM.events.length})</h4><table class="ref"><thead><tr><th>토픽</th><th>producer</th><th>consumers</th><th>Avro 필드</th><th>part.</th></tr></thead><tbody>${tpRows}</tbody></table>
+    <h4>연결 디렉터리</h4><table class="ref"><thead><tr><th>대상</th><th>주소</th><th>주입 env</th><th>프로토콜</th></tr></thead><tbody>${coRows}</tbody></table>
+    <h4>DTO 카탈로그 (${Object.keys(SYSTEM.dtos).length})</h4><table id="dto-table" class="ref"><thead><tr><th>DTO</th><th>필드</th></tr></thead><tbody>${dtoRows||'<tr><td colspan="2" class="muted">없음</td></tr>'}</tbody></table>`;
+  const inp=document.getElementById("ref-search");
+  inp.oninput=e=>{ refFilter=e.target.value; renderReference(); const ni=document.getElementById("ref-search"); ni.focus(); ni.setSelectionRange(ni.value.length,ni.value.length); };
+  const dtoTable=document.getElementById("dto-table");
+  if(dtoTable){ dtoTable.addEventListener("click",e=>{
+    const row=e.target.closest("tr.dto-main-row"); if(!row)return;
+    const detail=row.nextElementSibling; if(!detail||!detail.classList.contains("dto-detail"))return;
+    const open=detail.classList.toggle("open");
+    const nameCell=row.querySelector(".dto-name-cell");
+    if(nameCell){ nameCell.innerHTML=nameCell.innerHTML.replace(/^[▸▾] /,""+(open?"▾ ":"▸ ")); }
+  }); }
+}
+function filterReference(id){ refFilter=id; renderReference(); document.getElementById("ref-region").scrollIntoView({behavior:"smooth"}); }
+
+let flowTimer=null;
+let flowState=null;
+
+function renderScenarioPicker(){
+  const host=document.getElementById("scenario-picker"); host.innerHTML="";
+  SYSTEM.scenarios.forEach(s=>{ const b=document.createElement("button"); b.textContent="▶ "+s.name;
+    b.onclick=()=>playScenario(s.name); host.appendChild(b); });
+}
+
+function renderFlowRegion(){
+  document.getElementById("flow-region").innerHTML=
+    `<div id="flow-controls"><button id="fc-prev">⏮</button><button id="fc-play">▶</button><button id="fc-next">⏭</button><select id="fc-speed"><option value="1.5">0.5x</option><option value="1" selected>1x</option><option value="0.5">2x</option></select> <span id="fc-name" class="muted"></span></div><div id="flow-steps" class="muted">상단의 시나리오를 선택하면 흐름이 재생됩니다.</div>`;
+  document.getElementById("fc-prev").addEventListener("click",()=>flowStep(-1));
+  document.getElementById("fc-play").addEventListener("click",()=>flowToggle());
+  document.getElementById("fc-next").addEventListener("click",()=>flowStep(1));
+  document.getElementById("fc-speed").addEventListener("change",function(){ if(flowState)flowState.speed=parseFloat(this.value)||1; });
+}
+
+function _getOrCreateDot(svg){
+  const ns="http://www.w3.org/2000/svg";
+  let dot=document.getElementById("flow-dot");
+  if(!dot){ dot=document.createElementNS(ns,"circle"); dot.id="flow-dot"; dot.setAttribute("r",7);
+    dot.setAttribute("fill","#fff"); dot.setAttribute("stroke","#000"); dot.setAttribute("stroke-width","1"); svg.appendChild(dot); }
+  else if(dot.parentNode!==svg){ svg.appendChild(dot); }
+  return dot;
+}
+
+function showStep(k){
+  const stepsHost=document.getElementById("flow-steps"); if(!stepsHost||!flowState)return;
+  const steps=flowState.scenario.steps;
+  stepsHost.innerHTML=steps.map((st,idx)=>
+    `<div style="padding:3px 0;${idx===k?'color:var(--accent);font-weight:600':'opacity:.6'}">${idx+1}. ${esc(st.narration)}</div>`).join("");
+}
+
+function updatePlayBtn(){
+  const btn=document.getElementById("fc-play"); if(!btn)return;
+  btn.textContent=(flowState&&flowState.playing)?"⏸":"▶";
+}
+
+function flowAdvance(){
+  if(!flowState||!flowState.playing)return;
+  const steps=flowState.scenario.steps;
+  if(flowState.idx>=steps.length-1){ flowState.playing=false; updatePlayBtn(); return; }
+  const svg=document.getElementById("map-svg"); if(!svg)return;
+  const dot=_getOrCreateDot(svg);
+  const from=steps[flowState.idx].node, to=steps[flowState.idx+1].node;
+  const [x1,y1]=POS[from]||[0,0], [x2,y2]=POS[to]||[0,0];
+  const dur=900*flowState.speed; const t0=performance.now();
+  if(flowTimer)cancelAnimationFrame(flowTimer);
+  (function frame(t){
+    if(!flowState||!flowState.playing)return;
+    const p=Math.min(1,(t-t0)/dur);
+    dot.setAttribute("cx",x1+(x2-x1)*p); dot.setAttribute("cy",y1+(y2-y1)*p);
+    if(p<1){ flowTimer=requestAnimationFrame(frame); }
+    else { flowState.idx++; showStep(flowState.idx); setTimeout(flowAdvance, 350*flowState.speed); }
+  })(t0);
+}
+
+function flowStep(d){
+  if(!flowState)return;
+  flowState.playing=false; updatePlayBtn();
+  const steps=flowState.scenario.steps;
+  flowState.idx=Math.max(0,Math.min(flowState.idx+d,steps.length-1));
+  const svg=document.getElementById("map-svg"); if(!svg)return;
+  const dot=_getOrCreateDot(svg);
+  const node=steps[flowState.idx].node;
+  const [x,y]=POS[node]||[0,0];
+  dot.setAttribute("cx",x); dot.setAttribute("cy",y);
+  showStep(flowState.idx);
+}
+
+function flowToggle(){
+  if(!flowState)return;
+  flowState.playing=!flowState.playing; updatePlayBtn();
+  if(flowState.playing && flowState.idx<flowState.scenario.steps.length-1){ flowAdvance(); }
+}
+
+function playScenario(name){
+  const sc=SYSTEM.scenarios.find(s=>s.name===name); if(!sc)return;
+  const svg=document.getElementById("map-svg"); if(!svg)return;
+  if(flowTimer)cancelAnimationFrame(flowTimer);
+  const speedEl=document.getElementById("fc-speed");
+  const speed=speedEl?parseFloat(speedEl.value)||1:1;
+  flowState={scenario:sc, idx:0, playing:true, speed:speed};
+  const nameEl=document.getElementById("fc-name"); if(nameEl)nameEl.textContent=name;
+  const dot=_getOrCreateDot(svg);
+  dot.setAttribute("cx",POS[sc.steps[0].node][0]); dot.setAttribute("cy",POS[sc.steps[0].node][1]);
+  showStep(0); updatePlayBtn();
+  flowAdvance();
+}
+
+function renderFooter(){ document.getElementById("footer").innerHTML=
+  `범례: <span style="color:var(--rest)">— REST</span> · <span style="color:var(--kafka)">-- Kafka</span> · <span style="color:var(--store)">— Store</span> · <span style="color:var(--muted)">-- deprecated</span> &nbsp;|&nbsp; synapse <code>local-k8s</code> 기준 스냅샷 · 생성 2026-06-03 · 아키텍처 변경 시 <code>SYSTEM</code> 객체 갱신`; }
+
+    window.addEventListener('DOMContentLoaded', ()=>{ runSelfTests(); renderLayerToggles(); renderScenarioPicker(); renderMap(); renderFlowRegion(); renderReference(); renderFooter(); });
+  </script>
+</body>
+</html>
