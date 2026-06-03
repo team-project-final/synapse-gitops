@@ -40,8 +40,82 @@
   </main>
   <footer id="footer"></footer>
   <script>
-    // 다음 태스크에서 SYSTEM/렌더 함수 추가
-    window.addEventListener('DOMContentLoaded', ()=>{ /* init */ });
+const SYSTEM = {
+  services: {
+    gateway:      {label:"gateway", addr:"gateway", port:8080, tier:"edge", color:"#bc8cff", role:"API 게이트웨이(Spring Cloud Gateway)", rest:[], produces:[], consumes:[], stores:["redis"], calls:["platform","engagement","knowledge","learning-card","learning-ai"]},
+    platform:     {label:"platform-svc", addr:"platform-svc", port:8080, tier:"svc", color:"#58a6ff", role:"auth/user/billing/notification", rest:[], produces:["platform.auth.user-registered-v1"], consumes:[], stores:["postgres:synapse_platform","redis"], calls:[]},
+    engagement:   {label:"engagement-svc", addr:"engagement-svc", port:8080, tier:"svc", color:"#3fb950", role:"인게이지먼트(이벤트 소비)", rest:[], produces:[], consumes:["platform.auth.user-registered-v1","learning.card.review-completed-v1"], stores:["postgres:synapse_engagement","redis"], calls:[]},
+    knowledge:    {label:"knowledge-svc", addr:"knowledge-svc", port:8080, tier:"svc", color:"#f778ba", role:"노트/지식", rest:[], produces:["knowledge.note.note-created-v1","knowledge.note.note-updated-v1"], consumes:[], stores:["postgres:synapse_knowledge","redis","opensearch"], calls:[]},
+    "learning-ai":{label:"learning-ai", addr:"learning-ai", port:8080, tier:"svc", color:"#e3b341", role:"AI 카드 생성(Python)", rest:[], produces:["learning.ai.cards-generated-v1"], consumes:["knowledge.note.note-created-v1","knowledge.note.note-updated-v1"], stores:["postgres:synapse_learning_ai","redis","opensearch"], calls:["knowledge","learning-card"]},
+    "learning-card":{label:"learning-card", addr:"learning-card", port:8080, tier:"svc", color:"#ff7b72", role:"학습 카드/복습", rest:[], produces:["learning.card.review-completed-v1"], consumes:["learning.ai.cards-generated-v1"], stores:["postgres:synapse_learning","redis"], calls:[]},
+  },
+  infra: {
+    kafka:{label:"kafka", addr:"kafka", port:9092, kind:"broker"},
+    "schema-registry":{label:"schema-registry", addr:"schema-registry", port:8081, kind:"registry"},
+    zookeeper:{label:"zookeeper", addr:"zookeeper", port:2181, kind:"coord"},
+    postgres:{label:"postgres", addr:"postgres", port:5432, kind:"db"},
+    redis:{label:"redis", addr:"redis", port:6379, kind:"cache"},
+    opensearch:{label:"opensearch", addr:"opensearch", port:9200, kind:"search"},
+  },
+  rest: [
+    {from:"gateway", to:"platform",      basePath:"/api/platform/**",  endpoints:[]},
+    {from:"gateway", to:"engagement",    basePath:"/api/engagement/**",endpoints:[]},
+    {from:"gateway", to:"knowledge",     basePath:"/api/knowledge/**", endpoints:[]},
+    {from:"gateway", to:"learning-card", basePath:"/api/learning/**",  endpoints:[]},
+    {from:"gateway", to:"learning-ai",   basePath:"/api/learning/**",  endpoints:[]},
+    {from:"learning-ai", to:"knowledge",     basePath:"http://knowledge-svc",  endpoints:[]},
+    {from:"learning-ai", to:"learning-card", basePath:"http://learning-card",  endpoints:[]},
+  ],
+  events: [
+    {topic:"platform.auth.user-registered-v1",  producer:"platform",      consumers:["engagement"],      schemaFields:[], partitions:3},
+    {topic:"knowledge.note.note-created-v1",     producer:"knowledge",     consumers:["learning-ai"],     schemaFields:[], partitions:3},
+    {topic:"knowledge.note.note-updated-v1",     producer:"knowledge",     consumers:["learning-ai"],     schemaFields:[], partitions:3},
+    {topic:"learning.card.review-completed-v1",  producer:"learning-card", consumers:["engagement"],      schemaFields:[], partitions:3},
+    {topic:"learning.ai.cards-generated-v1",     producer:"learning-ai",   consumers:["learning-card"],   schemaFields:[], partitions:3},
+  ],
+  connections: [
+    {name:"Kafka", addr:"kafka:9092", envVars:["KAFKA_BOOTSTRAP_SERVERS","KAFKA_BROKERS"], protocol:"PLAINTEXT", consumers:["platform","engagement","knowledge","learning-ai","learning-card"]},
+    {name:"Schema Registry", addr:"schema-registry:8081", envVars:["SCHEMA_REGISTRY_URL"], protocol:"HTTP", consumers:["platform","engagement","knowledge","learning-ai","learning-card"]},
+    {name:"PostgreSQL", addr:"postgres:5432", envVars:["SPRING_DATASOURCE_URL","DATABASE_HOST"], protocol:"JDBC", consumers:["platform","engagement","knowledge","learning-ai","learning-card"]},
+    {name:"Redis", addr:"redis:6379", envVars:["SPRING_DATA_REDIS_HOST"], protocol:"RESP", consumers:["gateway","platform","engagement","knowledge","learning-card"]},
+    {name:"OpenSearch", addr:"opensearch:9200", envVars:["OPENSEARCH_URL"], protocol:"HTTP", consumers:["knowledge","learning-ai"]},
+  ],
+  dtos: {},
+  scenarios: [
+    {name:"사용자 가입", steps:[
+      {node:"gateway", kind:"rest", narration:"클라이언트가 gateway로 POST /api/platform/auth/... 요청"},
+      {node:"platform", kind:"rest", narration:"gateway가 platform-svc로 라우팅, 사용자 등록 처리"},
+      {node:"kafka", kind:"event", narration:"platform-svc가 platform.auth.user-registered-v1 발행 (Avro→schema-registry)"},
+      {node:"engagement", kind:"event", narration:"engagement-svc가 토픽 소비"}]},
+    {name:"노트→카드 생성", steps:[
+      {node:"knowledge", kind:"rest", narration:"knowledge-svc가 노트 생성"},
+      {node:"kafka", kind:"event", narration:"knowledge.note.note-created-v1 발행"},
+      {node:"learning-ai", kind:"event", narration:"learning-ai가 소비"},
+      {node:"knowledge", kind:"rest", narration:"learning-ai가 REST로 노트 내용 조회"},
+      {node:"kafka", kind:"event", narration:"learning-ai가 learning.ai.cards-generated-v1 발행"},
+      {node:"learning-card", kind:"event", narration:"learning-card가 소비, 카드 저장"}]},
+    {name:"복습 완료", steps:[
+      {node:"gateway", kind:"rest", narration:"클라이언트가 gateway로 복습 완료 요청"},
+      {node:"learning-card", kind:"rest", narration:"learning-card가 복습 결과 처리"},
+      {node:"kafka", kind:"event", narration:"learning.card.review-completed-v1 발행"},
+      {node:"engagement", kind:"event", narration:"engagement-svc가 소비"}]},
+  ],
+};
+
+function runSelfTests(){
+  const errs=[];
+  const svc=Object.keys(SYSTEM.services), inf=Object.keys(SYSTEM.infra);
+  const nodes=new Set([...svc,...inf]);
+  SYSTEM.rest.forEach(r=>{ if(!nodes.has(r.from)||!nodes.has(r.to)) errs.push("rest 노드 미존재: "+r.from+"→"+r.to); });
+  SYSTEM.events.forEach(e=>{ if(!SYSTEM.services[e.producer]) errs.push("토픽 producer 미존재: "+e.topic);
+    e.consumers.forEach(c=>{ if(!SYSTEM.services[c]) errs.push("토픽 consumer 미존재: "+e.topic+"/"+c); }); });
+  SYSTEM.scenarios.forEach(s=>s.steps.forEach((st,i)=>{ if(st.node && !nodes.has(st.node)) errs.push("시나리오 노드 미존재: "+s.name+"#"+i); }));
+  console.assert(errs.length===0, "[SELFTEST FAIL]\n"+errs.join("\n"));
+  console.log(errs.length===0 ? "[SELFTEST PASS] services="+svc.length+" infra="+inf.length+" topics="+SYSTEM.events.length+" rest="+SYSTEM.rest.length : "[SELFTEST FAIL] "+errs.length+"건");
+  return errs;
+}
+
+    window.addEventListener('DOMContentLoaded', ()=>{ runSelfTests(); });
   </script>
 </body>
 </html>
