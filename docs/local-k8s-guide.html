@@ -67,11 +67,11 @@ const SYSTEM = {
     {from:"learning-ai", to:"learning-card", basePath:"http://learning-card",  endpoints:[]},
   ],
   events: [
-    {topic:"platform.auth.user-registered-v1",  producer:"platform",      consumers:["engagement"],      schemaFields:[], partitions:3},
-    {topic:"knowledge.note.note-created-v1",     producer:"knowledge",     consumers:["learning-ai"],     schemaFields:[], partitions:3},
-    {topic:"knowledge.note.note-updated-v1",     producer:"knowledge",     consumers:["learning-ai"],     schemaFields:[], partitions:3},
-    {topic:"learning.card.review-completed-v1",  producer:"learning-card", consumers:["engagement"],      schemaFields:[], partitions:3},
-    {topic:"learning.ai.cards-generated-v1",     producer:"learning-ai",   consumers:["learning-card"],   schemaFields:[], partitions:3},
+    {topic:"platform.auth.user-registered-v1",  producer:"platform",      consumers:["engagement"],      schemaFields:[{name:"eventId",type:"string"},{name:"userId",type:"string"},{name:"email",type:"string"},{name:"tenantId",type:"string"},{name:"registeredAt",type:"string"},{name:"occurredAt",type:"long"}], partitions:3},
+    {topic:"knowledge.note.note-created-v1",     producer:"knowledge",     consumers:["learning-ai"],     schemaFields:[{name:"eventId",type:"string"},{name:"noteId",type:"string"},{name:"userId",type:"string"},{name:"tenantId",type:"string"},{name:"deckId",type:"string?"},{name:"title",type:"string"},{name:"content",type:"string?"},{name:"createdAt",type:"string"},{name:"occurredAt",type:"long"}], partitions:3},
+    {topic:"knowledge.note.note-updated-v1",     producer:"knowledge",     consumers:["learning-ai"],     schemaFields:[{name:"eventId",type:"string"},{name:"noteId",type:"string"},{name:"userId",type:"string"},{name:"tenantId",type:"string"},{name:"title",type:"string"},{name:"updatedAt",type:"string"},{name:"occurredAt",type:"long"}], partitions:3},
+    {topic:"learning.card.review-completed-v1",  producer:"learning-card", consumers:["engagement"],      schemaFields:[{name:"eventId",type:"string"},{name:"cardId",type:"string"},{name:"userId",type:"string"},{name:"tenantId",type:"string"},{name:"rating",type:"enum(AGAIN|HARD|GOOD|EASY)"},{name:"nextReviewAt",type:"string"},{name:"reviewedAt",type:"string"},{name:"occurredAt",type:"long"}], partitions:3},
+    {topic:"learning.ai.cards-generated-v1",     producer:"learning-ai",   consumers:["learning-card"],   schemaFields:[{name:"noteId",type:"string"},{name:"userId",type:"string"},{name:"tenantId",type:"string"},{name:"cardCount",type:"int"},{name:"generatedAt",type:"string"}], partitions:3},
   ],
   connections: [
     {name:"Kafka", addr:"kafka:9092", envVars:["KAFKA_BOOTSTRAP_SERVERS","KAFKA_BROKERS"], protocol:"PLAINTEXT", consumers:["platform","engagement","knowledge","learning-ai","learning-card"]},
