@@ -71,3 +71,65 @@ Kafka version: 4.1.1
 > 참고: minikube에서 `kubectl apply -k local-k8s`는 전 서비스를 git 상태로 재조정하므로
 > 라이브로 patch한 learning-ai OpenAI 키가 git 플레이스홀더로 되돌 수 있다. 필요 시
 > `minikube-up.sh` 3.5단계 절차로 재주입한다.
+
+---
+
+## Kafka SSL 적용 매트릭스
+
+> 조사 기준: 2026-06-04 (WS3-1). MSK는 TLS 전용 리스너(port 9094)이므로
+> 모든 MSK 클라이언트는 dev/staging/prod 전 환경에서 SSL을 사용해야 한다(결정 D-A).
+> 아래 표의 "no SSL" 셀이 후속 태스크에서 추가해야 할 갭이다.
+
+### 인벤토리 근거
+
+`grep -rln 'KAFKA_BROKERS\|KAFKA_BOOTSTRAP\|KAFKASTORE_BOOTSTRAP' apps/*/base apps/*/overlays` 결과:
+`engagement-svc`, `knowledge-svc`, `learning-card`, `learning-ai`, `platform-svc`, `schema-registry`
+의 base/deployment.yaml 6개 파일에서 매칭됨. `gateway`는 해당 없음(Kafka 미사용).
+
+각 서비스 분류:
+- **engagement-svc**: Spring Kafka, 소비+발행. topics: `platform.auth.user-registered-v1`, `learning.card.review-completed-v1`
+- **knowledge-svc**: Spring Kafka, 발행. topics: `knowledge.note.note-created-v1`, `knowledge.note.note-updated-v1` (PR #32)
+- **learning-card**: Spring Kafka, 발행+소비. topic: `learning.card.review-completed-v1`
+- **learning-ai**: Python(pydantic, env_prefix=`LEARNING_AI_`), 소비. topic: `learning.ai.cards-generated-v1`
+- **platform-svc**: Spring Kafka, 발행. topic: `platform.auth.user-registered-v1`
+- **schema-registry**: Confluent Schema Registry — MSK kafkastore 클라이언트 (dev overlay만 존재, staging/prod overlay 없음)
+
+### 매트릭스
+
+| 서비스 | security-protocol 환경변수 키 | dev | staging | prod |
+|---|---|---|---|---|
+| engagement-svc | `SPRING_KAFKA_SECURITY_PROTOCOL` | SSL set | **no SSL** | **no SSL** |
+| knowledge-svc | `SPRING_KAFKA_SECURITY_PROTOCOL` | **no SSL** | **no SSL** | **no SSL** |
+| learning-card | `SPRING_KAFKA_SECURITY_PROTOCOL` | **no SSL** | **no SSL** | **no SSL** |
+| learning-ai | **needs-verification** (앱 레포 확인 필요) | **no SSL** | **no SSL** | **no SSL** |
+| platform-svc | `SPRING_KAFKA_SECURITY_PROTOCOL` | **no SSL** | **no SSL** | **no SSL** |
+| schema-registry | `SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL` | SSL set | n/a (overlay 없음) | n/a (overlay 없음) |
+
+비고:
+- `engagement-svc/dev`의 SSL 설정은 `apps/engagement-svc/overlays/dev/kustomization.yaml` ConfigMap patch에 존재.
+- `schema-registry/dev`의 SSL 설정은 `apps/schema-registry/overlays/dev/kustomization.yaml` Deployment patch에 존재.
+- `schema-registry`는 staging/prod overlay 디렉토리 자체가 없으므로 staging/prod 배포 대상이 아님(n/a).
+- `learning-ai`의 security-protocol 환경변수 키는 gitops 매니페스트만으로 확정 불가.
+  base/deployment.yaml 주석에 `LEARNING_AI_KAFKA_BOOTSTRAP_SERVERS`(env_prefix=`LEARNING_AI_`) 패턴이 명시되어 있어
+  security-protocol 키도 `LEARNING_AI_KAFKA_SECURITY_PROTOCOL` 또는 `LEARNING_AI_SECURITY_PROTOCOL`일 가능성이 있으나,
+  앱 레포(`synapse-learning-ai`) 확인 필요.
+
+### 갭 목록
+
+**dev 갭** (dev 오버레이는 있으나 SSL 미설정):
+- `knowledge-svc/dev` — `SPRING_KAFKA_SECURITY_PROTOCOL=SSL` 추가 필요
+- `learning-card/dev` — `SPRING_KAFKA_SECURITY_PROTOCOL=SSL` 추가 필요
+- `learning-ai/dev` — security-protocol 환경변수 추가 필요 (키 이름 앱 레포 확인 후)
+- `platform-svc/dev` — `SPRING_KAFKA_SECURITY_PROTOCOL=SSL` 추가 필요
+
+**staging/prod 갭** (후속 태스크에서 처리):
+- `engagement-svc/staging` — `SPRING_KAFKA_SECURITY_PROTOCOL=SSL` 추가 필요
+- `engagement-svc/prod` — `SPRING_KAFKA_SECURITY_PROTOCOL=SSL` 추가 필요
+- `knowledge-svc/staging` — `SPRING_KAFKA_SECURITY_PROTOCOL=SSL` 추가 필요
+- `knowledge-svc/prod` — `SPRING_KAFKA_SECURITY_PROTOCOL=SSL` 추가 필요
+- `learning-card/staging` — `SPRING_KAFKA_SECURITY_PROTOCOL=SSL` 추가 필요
+- `learning-card/prod` — `SPRING_KAFKA_SECURITY_PROTOCOL=SSL` 추가 필요
+- `learning-ai/staging` — security-protocol 환경변수 추가 필요 (키 이름 앱 레포 확인 후)
+- `learning-ai/prod` — security-protocol 환경변수 추가 필요 (키 이름 앱 레포 확인 후)
+- `platform-svc/staging` — `SPRING_KAFKA_SECURITY_PROTOCOL=SSL` 추가 필요
+- `platform-svc/prod` — `SPRING_KAFKA_SECURITY_PROTOCOL=SSL` 추가 필요
