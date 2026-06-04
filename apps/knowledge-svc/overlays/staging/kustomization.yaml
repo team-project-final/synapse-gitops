@@ -34,8 +34,8 @@ patches:
         path: /data/DATABASE_NAME
         value: "synapse"
       - op: add
-        path: /data/OPENSEARCH_URL
-        value: "https://vpc-synapse-dev-qm5l2xdch6nfmkqanpmipou74a.ap-northeast-2.es.amazonaws.com"
+        path: /data/ELASTICSEARCH_URIS
+        value: "http://elasticsearch:9200"
       - op: add
         path: /data/SPRING_DATASOURCE_URL
         value: "jdbc:postgresql://synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com:5432/synapse"

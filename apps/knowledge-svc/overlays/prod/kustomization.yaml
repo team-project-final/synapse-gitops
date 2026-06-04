@@ -9,7 +9,7 @@ resources:
 
 namespace: synapse-prod
 
-# OpenSearch는 공유 dev 도메인 사용 — prod 인덱스/prefix 분리는 캡스톤 한계로 미적용(문서화).
+# Elasticsearch는 인클러스터 StatefulSet(FS-C 배포 예정) — prod도 동일 네임스페이스 9200 접근.
 patches:
   - target:
       kind: Deployment
@@ -38,8 +38,8 @@ patches:
         path: /data/DATABASE_NAME
         value: "synapse_prod"
       - op: add
-        path: /data/OPENSEARCH_URL
-        value: "https://vpc-synapse-dev-qm5l2xdch6nfmkqanpmipou74a.ap-northeast-2.es.amazonaws.com"
+        path: /data/ELASTICSEARCH_URIS
+        value: "http://elasticsearch:9200"
       - op: add
         path: /data/SPRING_DATASOURCE_URL
         value: "jdbc:postgresql://synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com:5432/synapse_prod"

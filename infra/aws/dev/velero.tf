@@ -1,6 +1,6 @@
 # Velero 백업용 S3 버킷 + IRSA. eso-irsa.tf 패턴 미러링.
 # SA: velero/velero. ns(synapse-prod/staging)+PV 일일 백업 → 이 버킷.
-# data.aws_caller_identity.current 는 opensearch.tf 에 이미 정의됨(재정의 금지).
+# data.aws_caller_identity.current 는 main.tf 에 정의됨(재정의 금지).
 
 locals {
   velero_bucket = "synapse-velero-backups-${data.aws_caller_identity.current.account_id}"

@@ -1,20 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
-metadata: { name: opensearch, labels: { app: opensearch } }
+metadata: { name: elasticsearch, labels: { app: elasticsearch } }
 spec:
   replicas: 1
-  selector: { matchLabels: { app: opensearch } }
+  selector: { matchLabels: { app: elasticsearch } }
   template:
-    metadata: { labels: { app: opensearch } }
+    metadata: { labels: { app: elasticsearch } }
     spec:
       containers:
-        - name: opensearch
-          image: opensearchproject/opensearch:2.11.0
+        - name: elasticsearch
+          # TODO(FS-D): nori 플러그인 포함 커스텀 이미지로 교체
+          image: docker.elastic.co/elasticsearch/elasticsearch:9.2.1
           env:
             - { name: discovery.type, value: single-node }
-            - { name: plugins.security.disabled, value: "true" }
-            - { name: OPENSEARCH_JAVA_OPTS, value: "-Xms256m -Xmx256m" }
-            - { name: DISABLE_INSTALL_DEMO_CONFIG, value: "true" }
+            - { name: xpack.security.enabled, value: "false" }
+            - { name: ES_JAVA_OPTS, value: "-Xms256m -Xmx256m" }
+            - { name: bootstrap.memory_lock, value: "false" }
           ports: [ { containerPort: 9200 } ]
           readinessProbe:
             httpGet: { path: /_cluster/health, port: 9200 }
@@ -28,11 +29,11 @@ spec:
             failureThreshold: 5   # kafka/zk/schema-registry와 동일하게 콜드스타트 여유
           resources:
             requests: { cpu: 250m, memory: 512Mi }
-            limits: { cpu: 1000m, memory: 1Gi }   # 256m heap + Lucene off-heap/page cache 여유(768Mi는 OOM 위험)
+            limits: { cpu: 1000m, memory: 1Gi }   # 256m heap + Lucene off-heap/page cache 여유
 ---
 apiVersion: v1
 kind: Service
-metadata: { name: opensearch }
+metadata: { name: elasticsearch }
 spec:
-  selector: { app: opensearch }
+  selector: { app: elasticsearch }
   ports: [ { port: 9200, targetPort: 9200 } ]

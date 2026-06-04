@@ -10,7 +10,7 @@ resources:
 namespace: synapse-prod
 
 # Python 서비스 — SPRING_PROFILES_ACTIVE 없음. DB는 LEARNING_AI_DATABASE_URL(asyncpg).
-# OpenSearch는 공유 dev 도메인(캡스톤 한계, 문서화).
+# learning-ai는 pgvector 사용 — ES/OpenSearch 미사용(GAP-5 정리 완료).
 patches:
   - target:
       kind: Deployment
@@ -35,9 +35,6 @@ patches:
       - op: add
         path: /data/DATABASE_NAME
         value: "synapse_prod"
-      - op: add
-        path: /data/OPENSEARCH_URL
-        value: "https://vpc-synapse-dev-qm5l2xdch6nfmkqanpmipou74a.ap-northeast-2.es.amazonaws.com"
       - op: add
         path: /data/LEARNING_AI_DATABASE_URL
         value: "postgresql+asyncpg://synapse_admin@synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com:5432/synapse_prod"
