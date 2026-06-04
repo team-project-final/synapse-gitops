@@ -26,7 +26,7 @@ usage() {
   cat <<USAGE
 사용법: bring-up.sh [옵션]
   --from <phase>   해당 phase부터 재개 (terraform|eks-auth|tunnel|argocd|eso|oidc-fix|kafka-config|manifests|metrics-server|image-updater|observability|status)
-  --to <phase>     해당 phase까지만 실행 (예: --to manifests = observability 제외 dev-only)
+  --to <phase>     해당 phase까지만 실행 (예: --to manifests = metrics-server/observability 제외 dev-only)
   --verify         bring-up 대신 W3 잔여 3항목 검증
   --destroy        terraform destroy (비용 차단)
   --dry-run        명령 출력만, 미실행
@@ -151,7 +151,8 @@ phase_metrics_server() {
   # HPA 선행 조건: metrics-server 없이는 HPA TARGETS가 <unknown>을 반환해 스케일링 불가.
   # prod overlays(apps/*/overlays/prod/hpa.yaml) 적용 전 필수. (WS4-2)
   run "kubectl apply -f infra/k8s-addons/metrics-server.yaml"
-  run "kubectl -n kube-system rollout status deploy/metrics-server --timeout=120s"
+  run "kubectl -n kube-system rollout status deploy/metrics-server --timeout=180s" \
+    || warn "metrics-server rollout timeout — HPA TARGETS may show <unknown>; 재실행: --from metrics-server"
 }
 
 phase_image_updater() {

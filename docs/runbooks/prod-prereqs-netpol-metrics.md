@@ -33,7 +33,7 @@ prod ApplicationSet Manual sync 전에 아래 순서로 확인한다.
 ### 1) VPC CNI NetworkPolicy 컨트롤러 활성 확인
 
 ```bash
-kubectl -n kube-system get ds aws-node -o yaml | grep -i ENABLE_NETWORK_POLICY
+kubectl -n kube-system get ds aws-node -o yaml | grep -i ENABLE_NETWORK_POLICY || echo "(미설정 — 컨트롤러 비활성)"
 ```
 
 `ENABLE_NETWORK_POLICY: "true"` 가 출력되어야 한다.
