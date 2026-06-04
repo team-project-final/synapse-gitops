@@ -31,7 +31,7 @@ spec:
     # 같은 네임스페이스 inter-svc 호출
     - to:
         - podSelector: {}
-    # VPC 내 데이터스토어: RDS(5432)/ElastiCache(6379)/MSK(9092,9094)/OpenSearch(443)
+    # VPC 내 데이터스토어: RDS(5432)/ElastiCache(6379)/MSK(9092,9094)/AWS HTTPS(443)
     - to:
         - ipBlock: {cidr: 10.0.0.0/16}
       ports:

@@ -31,7 +31,8 @@ spec:
     # 같은 네임스페이스 inter-svc 호출
     - to:
         - podSelector: {}
-    # VPC 내 데이터스토어: RDS(5432)/ElastiCache(6379)/MSK(9092,9094)/OpenSearch(443)
+    # VPC 내 데이터스토어: RDS(5432)/ElastiCache(6379)/MSK(9092,9094)/AWS HTTPS(443)
+    # ES 검색(9200)은 인클러스터 StatefulSet — 인트라-ns podSelector 규칙으로 이미 허용됨
     - to:
         - ipBlock: {cidr: 10.0.0.0/16}
       ports:

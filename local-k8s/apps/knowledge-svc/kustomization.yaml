@@ -21,7 +21,7 @@ patches:
         SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/synapse_knowledge
         SPRING_DATASOURCE_USERNAME: synapse
         KAFKA_BROKERS: kafka:9092
-        OPENSEARCH_URL: http://opensearch:9200
+        ELASTICSEARCH_URIS: http://elasticsearch:9200
         REDIS_HOST: redis
         REDIS_PORT: "6379"
         SPRING_DATA_REDIS_HOST: redis

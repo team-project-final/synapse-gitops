@@ -19,9 +19,8 @@ patches:
         DATABASE_PORT: "5432"
         DATABASE_NAME: synapse_learning_ai
         KAFKA_BROKERS: kafka:9092
-        OPENSEARCH_URL: http://opensearch:9200
         # learning-ai는 pydantic env_prefix="LEARNING_AI_" 를 쓰므로 설정 키에 prefix 필수.
-        # (prefix 없는 KAFKA_BROKERS/OPENSEARCH_URL 은 앱이 무시 — 기본값 localhost로 폴백해 기동 실패)
+        # (prefix 없는 KAFKA_BROKERS 는 앱이 무시 — 기본값 localhost로 폴백해 기동 실패)
         LEARNING_AI_DATABASE_URL: postgresql+asyncpg://synapse:synapse_local@postgres:5432/synapse_learning_ai
         LEARNING_AI_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
         LEARNING_AI_REDIS_URL: redis://:redis_local@redis:6379/0
