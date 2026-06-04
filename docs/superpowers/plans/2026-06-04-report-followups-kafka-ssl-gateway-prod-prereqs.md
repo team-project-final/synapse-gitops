@@ -4,7 +4,7 @@
 
 **Goal:** `docs/reports/2026-06-03-...md` §2.5의 미해결 후속 4종(gateway non-root 이미지·engagement Kafka 런타임·staging/prod Kafka SSL·prod 선행조건)을 코드화해 다음 EKS 프로비저닝 윈도에서 prod 경로까지 검증 가능한 상태로 만든다.
 
-**Architecture:** 4개 독립 워크스트림으로 분해한다. WS3(staging/prod Kafka SSL)는 순수 gitops 매니페스트라 클러스터 없이 즉시 렌더/lint 검증 후 머지 가능. WS1·WS2는 서비스 레포 CI가 새 이미지를 ECR에 올린 뒤 gitops가 태그를 가리키는 2-레포 작업. WS4(prod 선행조건)는 terraform + bring-up.sh 인프라 작업. 라이브 런타임 검증은 비용 절감 패턴(provision→verify→destroy)에 따라 다음 EKS 윈도로 이월하고, 그 전까지는 `kubectl kustomize` 렌더 + `yamllint`로 회귀 차단.
+**Architecture:** 4개 독립 워크스트림으로 분해한다. **WS3(Kafka TLS-readiness)는 2026-06-04 조사로 gitops 단독이 아니라 cross-repo(4개 앱 PR + gitops + EKS 검증) 작업으로 정정됨** — 아래 "WS3 (REVISED)" 섹션이 권위. WS1·WS2는 서비스 레포 CI가 새 이미지를 ECR에 올린 뒤 gitops가 태그를 가리키는 2-레포 작업. WS4(prod 선행조건)는 terraform + bring-up.sh 인프라 작업으로 **클러스터 없이 지금 완결 가능**. 라이브 런타임 검증은 비용 절감 패턴(provision→verify→destroy)에 따라 다음 EKS 윈도로 이월하고, 그 전까지는 `kubectl kustomize` 렌더 + `python -m yamllint`로 회귀 차단.
 
 **Tech Stack:** Kustomize overlays, ArgoCD ApplicationSet, AWS MSK(TLS-only, 9094), EKS VPC CNI NetworkPolicy 컨트롤러, metrics-server, Terraform(`infra/aws/dev`), Bash(`scripts/bring-up.sh`), yamllint.
 
@@ -37,11 +37,10 @@
 - Verify: `synapse-engagement-svc`(main에 #21 포함)
 - Modify: `apps/engagement-svc/overlays/dev/kustomization.yaml`(newTag 1.0.0 → 신규 semver)
 
-**WS3 — staging/prod Kafka SSL** (gitops 단독)
-- Modify: `apps/engagement-svc/overlays/{staging,prod}/kustomization.yaml`
-- Create: `apps/schema-registry/overlays/staging/` + `apps/schema-registry/overlays/prod/` (kustomization + patch)
-- Modify(인벤토리 결과 따라): `apps/{knowledge-svc,learning-card,learning-ai}/overlays/{staging,prod}/kustomization.yaml`
-- Modify: `argocd/applicationset-staging.yaml`, prod ApplicationSet(존재 시) — schema-registry staging/prod 등록
+**WS3 — Kafka TLS-readiness** (cross-repo, REVISED 2026-06-04 — 아래 "WS3 (REVISED)" 섹션 참조)
+- 앱 PR: `synapse-platform-svc`·`synapse-knowledge-svc`·`synapse-learning-svc/learning-card`(KafkaConfig `security.protocol` 배선), `synapse-learning-svc/learning-ai`(Python `security_protocol`)
+- gitops: `apps/{platform-svc,knowledge-svc,learning-card,learning-ai}/overlays/dev`(KAFKA 활성화) → 검증 후 staging/prod
+- Create: `apps/schema-registry/overlays/{staging,prod}/`, Modify: `argocd/applicationset*.yaml`
 
 **WS4 — prod 선행조건** (terraform + bring-up)
 - Modify: `infra/aws/dev/eks.tf`(vpc-cni addon `enableNetworkPolicy`)
@@ -51,194 +50,80 @@
 
 ---
 
-## WS3: staging/prod Kafka SSL (먼저 — 클러스터 불필요, 즉시 머지 가능)
+## WS3 (REVISED 2026-06-04): Kafka TLS-readiness — cross-repo (앱 PR 선행 → gitops → E2E)
 
-브랜치: `feat/kafka-ssl-staging-prod`
+> **정정 사유:** 초안 WS3는 "오버레이에 SSL env만 추가하면 됨"을 전제했으나 2026-06-04 조사로 전제가 틀렸음이 확인됨:
+> - MSK 연결 Spring 서비스들이 **커스텀 `KafkaConfig`로 producer/consumer 팩토리를 수동 구성**(`props.put(...)`)하며 **`security.protocol`을 넣는 코드가 없음** → `SPRING_KAFKA_SECURITY_PROTOCOL=SSL` env를 줘도 팩토리가 읽지 않아 PLAINTEXT 기본→TLS MSK 연결 실패.
+> - **learning-ai(Python)**는 `Settings`에 `security_protocol` 필드 부재, aiokafka에 `bootstrap_servers`만 전달.
+> - dev에서 Kafka는 **engagement-svc만** 활성(KAFKA_ENABLED). 나머지 4개는 어느 환경에도 미활성.
+> - TLS MSK 위 E2E는 **미검증**(engagement 검증 로그는 minikube PLAINTEXT 기준).
+>
+> 따라서 WS3는 gitops 단독이 아니라 **4개 앱 레포 PR + gitops + EKS 검증**의 cross-repo 작업이다. 근거: 메모리 `kafka-tls-msk-app-readiness-gap`, `docs/runbooks/engagement-kafka-enablement.md`(SSL 매트릭스), EVENT_FLOW_MATRIX(synapse-shared, D-001 — 5개 서비스 Kafka 참여).
 
-### Task 1: Kafka 클라이언트 인벤토리 확정 (D-A)
+**근거 파일(2026-06-04 실측):**
+- `synapse-platform-svc/.../global/kafka/KafkaProducerConfig.java` — 수동 props, `security.protocol` 없음.
+- `synapse-knowledge-svc/.../global/config/KafkaConfig.java`, `synapse-learning-svc/learning-card/.../config/KafkaConfig.java` — 동일 패턴(schema.registry.url만 주입).
+- `synapse-learning-svc/learning-ai/app/core/config.py` — `kafka_bootstrap_servers`만(env_prefix `LEARNING_AI_`).
 
-**Files:** 조사만 (수정 없음)
+**권장 순서:** dev 갭부터(사용자 결정) → 서비스별 앱 PR(WS3-A/B) → gitops dev 활성화(WS3-C) → EKS 윈도 E2E(WS3-D) → 검증된 서비스만 staging/prod 복제(WS3-E).
 
-- [ ] **Step 1: MSK에 연결하는 서비스 식별**
+> ⚠️ 각 앱 PR의 정확한 변경은 해당 레포 컨벤션·테스트 패턴에 맞춰 per-repo로 확정해야 한다(아래는 패턴·앵커 제시). 이 WS3는 "altitude plan" — 레포별 실착수 시 각 레포에서 TDD로 구체화.
 
-Run:
+### WS3-A: Spring 서비스 `security.protocol` 배선 (앱 레포 3건)
+
+대상: `synapse-platform-svc`, `synapse-knowledge-svc`, `synapse-learning-svc/learning-card`. 각 레포 동일 패턴, 레포별 1 PR(브랜치→dev PR, 메모리 git-pr-workflow).
+
+per-service 작업(예: platform-svc `KafkaProducerConfig.java` + `KafkaConsumerConfig.java`):
+
+- [ ] **Step 1: 실패 테스트** — securityProtocol=SSL 주입 시 factory config에 `security.protocol=SSL` 포함을 단언하는 단위 테스트.
+- [ ] **Step 2: @Value + props 주입 추가**
+```java
+@Value("${spring.kafka.security.protocol:PLAINTEXT}")
+private String securityProtocol;
+// ...팩토리 props 구성부에:
+if (!"PLAINTEXT".equalsIgnoreCase(securityProtocol)) {
+    props.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, securityProtocol);
+}
+```
+producer·consumer 팩토리 양쪽에 적용. (MSK 인증서=Amazon Trust Services → JDK 기본 truststore로 충분, truststore 설정 불요.)
+- [ ] **Step 3: application.yml 명시 바인딩** — `spring.kafka.security.protocol: ${SPRING_KAFKA_SECURITY_PROTOCOL:PLAINTEXT}` 추가(relaxed-binding 암묵 의존 대신 명시).
+- [ ] **Step 4: 테스트 green + 커밋 + dev PR**
+
+knowledge-svc·learning-card도 동일(KafkaConfig 경로만 상이). learning-card는 producer+consumer 모두.
+
+### WS3-B: learning-ai `security_protocol` (Python 앱 PR)
+
+**Files:** `synapse-learning-svc/learning-ai/app/core/config.py`, `app/kafka/consumer.py`, `app/kafka/notification_producer.py`
+
+- [ ] **Step 1: 실패 테스트** — Settings가 `LEARNING_AI_KAFKA_SECURITY_PROTOCOL` env를 읽어 `kafka_security_protocol`에 반영하는지.
+- [ ] **Step 2: Settings 필드 추가** — `kafka_security_protocol: str = "PLAINTEXT"`.
+- [ ] **Step 3: aiokafka 생성자에 전달** — `AIOKafkaConsumer(..., security_protocol=settings.kafka_security_protocol)`, producer도 동일. SSL이면 aiokafka 기본 ssl context(시스템 CA = Amazon Trust 포함).
+- [ ] **Step 4: 테스트 green + 커밋 + dev PR**
+
+### WS3-C: gitops dev Kafka 활성화 (WS3-A/B 머지 + 이미지 빌드 후)
+
+**Files:** Modify `apps/{platform-svc,knowledge-svc,learning-card,learning-ai}/overlays/dev/kustomization.yaml`
+
+- [ ] **Step 1: 각 dev 오버레이에 engagement/dev 동형 패치 추가** — ConfigMap `/data`에 `KAFKA_ENABLED`(앱 게이트 키에 맞춤), `SPRING_KAFKA_SECURITY_PROTOCOL=SSL`(learning-ai는 `LEARNING_AI_KAFKA_SECURITY_PROTOCOL=SSL`), `SCHEMA_REGISTRY_URL=http://schema-registry:8081`. 참조: `apps/engagement-svc/overlays/dev/kustomization.yaml`.
+- [ ] **Step 2: 이미지 태그가 보안배선 포함분인지 확인** — WS3-A/B 머지 후 CI가 올린 새 이미지로 각 dev 오버레이 newTag 정합(또는 image-updater 자동). dev-latest가 mutable이면 재빌드로 반영.
+- [ ] **Step 3: render/lint + 커밋**
 ```bash
-cd C:/workspace/team-project-final/synapse-gitops
-grep -rln 'KAFKA_BROKERS\|KAFKA_BOOTSTRAP\|KAFKASTORE_BOOTSTRAP' apps/*/base apps/*/overlays
-```
-Expected: KAFKA 연결 env를 가진 서비스 목록. 각 서비스가 (a) MSK producer/consumer인지 (b) 단순 배선만인지 base deployment 주석으로 분류.
-
-- [ ] **Step 2: dev SSL 적용 현황과 대조**
-
-Run:
-```bash
-grep -rln 'SECURITY_PROTOCOL' apps/*/overlays/dev
-```
-Expected: engagement-svc, schema-registry만. Step 1 목록에서 빠진 서비스 = **dev에도 SSL 누락 후보**. 표로 정리(서비스 × {dev,staging,prod} × SSL 유무)하고 본 Task에 기록. 이 표가 Task 2~4의 적용 대상이 된다.
-
-- [ ] **Step 3: 인벤토리 커밋(문서)**
-
-인벤토리 표를 `docs/runbooks/engagement-kafka-enablement.md` 하단 "## Kafka SSL 적용 매트릭스" 섹션으로 추가하고 커밋:
-```bash
-git add docs/runbooks/engagement-kafka-enablement.md
-git commit -m "docs(kafka): MSK 클라이언트 × 환경 SSL 적용 매트릭스 추가 (WS3-1)"
+for d in apps/platform-svc apps/knowledge-svc apps/learning-card apps/learning-ai; do kubectl kustomize "$d/overlays/dev" >/dev/null && echo "OK $d"; done
+# yamllint: python -m yamllint -c .yamllint (CRLF 정규화 후)
 ```
 
-### Task 2: engagement-svc staging/prod SSL 패치
+### WS3-D: EKS 윈도 E2E 검증 (D-B 이월)
 
-**Files:** Modify `apps/engagement-svc/overlays/staging/kustomization.yaml`, `apps/engagement-svc/overlays/prod/kustomization.yaml`
+- [ ] **Step 1: runbook 확장** — `docs/runbooks/engagement-kafka-enablement.md` 절차를 4개 서비스로 확장. 각 서비스 파드 로그에서 TLS MSK(9094) bootstrap·consumer group join·Avro produce/consume 무에러. EVENT_FLOW 체인(가입→프로필, 노트→AI카드, 복습→XP) E2E.
 
-dev 오버레이의 SSL 패치(참조용, `apps/engagement-svc/overlays/dev/kustomization.yaml`):
-```yaml
-      - op: add
-        path: /data/SPRING_KAFKA_SECURITY_PROTOCOL
-        value: SSL
-```
-(dev는 patch 형식. staging/prod 오버레이가 ConfigMap을 patch하는지 configMapGenerator로 생성하는지 먼저 확인 후 동일 메커니즘 사용.)
+### WS3-E: staging/prod 복제 (dev E2E 통과 서비스만)
 
-- [ ] **Step 1: staging 오버레이 구조 확인**
+**Files:** Create `apps/schema-registry/overlays/{staging,prod}/`, Modify `apps/<svc>/overlays/{staging,prod}/kustomization.yaml`, `argocd/applicationset*.yaml`
 
-Run:
-```bash
-cat apps/engagement-svc/overlays/staging/kustomization.yaml
-```
-Expected: dev와 동일 패턴인지(patches vs configMapGenerator) 확인. dev의 `SPRING_KAFKA_SECURITY_PROTOCOL=SSL`·`KAFKA_ENABLED` 패치 블록과 비교.
-
-- [ ] **Step 2: staging에 SSL + KAFKA_ENABLED 패치 추가**
-
-`apps/engagement-svc/overlays/staging/kustomization.yaml`에 dev와 동일한 patch 블록 추가(대상 ConfigMap/Deployment 경로는 staging 구조에 맞춤). 예(patch 메커니즘일 때):
-```yaml
-      - op: add
-        path: /data/SPRING_KAFKA_SECURITY_PROTOCOL
-        value: SSL
-      - op: add
-        path: /data/KAFKA_ENABLED
-        value: "true"
-```
-
-- [ ] **Step 3: prod에 동일 적용**
-
-`apps/engagement-svc/overlays/prod/kustomization.yaml`에 Step 2와 동일 블록 추가.
-
-- [ ] **Step 4: 렌더 + lint**
-
-Run:
-```bash
-for d in apps/engagement-svc/overlays/staging apps/engagement-svc/overlays/prod; do
-  kubectl kustomize "$d" >/dev/null && echo "OK $d" || echo "FAIL $d"
-done
-for f in apps/engagement-svc/overlays/staging/kustomization.yaml apps/engagement-svc/overlays/prod/kustomization.yaml; do
-  tr -d '\r' < "$f" > /tmp/lf.yaml && yamllint -c .yamllint /tmp/lf.yaml && echo "clean $f"
-done
-```
-Expected: 2× OK, 2× clean. 렌더 출력에 `SPRING_KAFKA_SECURITY_PROTOCOL: SSL` 포함 확인:
-```bash
-kubectl kustomize apps/engagement-svc/overlays/prod | grep -A1 SECURITY_PROTOCOL
-```
-
-- [ ] **Step 5: 커밋**
-
-```bash
-git add apps/engagement-svc/overlays/staging/kustomization.yaml apps/engagement-svc/overlays/prod/kustomization.yaml
-git commit -m "feat(engagement): staging/prod Kafka SSL(SECURITY_PROTOCOL) 적용 (WS3-2, TLS MSK)"
-```
-
-### Task 3: schema-registry staging/prod 오버레이 신설
-
-**Files:** Create `apps/schema-registry/overlays/staging/kustomization.yaml`, `apps/schema-registry/overlays/prod/kustomization.yaml`
-
-dev 오버레이(참조, `apps/schema-registry/overlays/dev/kustomization.yaml`)는 `SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL=SSL` + `KAFKASTORE_BOOTSTRAP_SERVERS`를 ConfigMap valueFrom으로 설정.
-
-- [ ] **Step 1: dev 오버레이 전문 확인**
-
-Run:
-```bash
-cat apps/schema-registry/overlays/dev/kustomization.yaml
-```
-Expected: namespace(synapse-dev), resources(`../../base`), SSL/bootstrap 설정 블록. staging/prod는 namespace와 ConfigMap 참조 ns만 바뀌고 SSL은 동일.
-
-- [ ] **Step 2: staging 오버레이 생성**
-
-`apps/schema-registry/overlays/staging/kustomization.yaml` — dev를 복제하되 `namespace: synapse-staging`으로 변경, ConfigMap 참조(`kafka-brokers`)가 synapse-staging ns의 것을 가리키도록(bring-up `phase_kafka_config`가 ns별 생성). SSL 블록은 dev와 동일.
-
-- [ ] **Step 3: prod 오버레이 생성**
-
-`apps/schema-registry/overlays/prod/kustomization.yaml` — Step 2와 동일, `namespace: synapse-prod`. prod replica/affinity는 runbook(engagement-kafka-enablement "prod 확장 시 replica/affinity 별도 검토")에 따라 일단 dev와 동일(1 replica) 유지, 확장은 후속.
-
-- [ ] **Step 4: 렌더 + lint**
-
-Run:
-```bash
-for d in apps/schema-registry/overlays/staging apps/schema-registry/overlays/prod; do
-  kubectl kustomize "$d" >/dev/null && echo "OK $d" || echo "FAIL $d"
-done
-for f in apps/schema-registry/overlays/staging/kustomization.yaml apps/schema-registry/overlays/prod/kustomization.yaml; do
-  tr -d '\r' < "$f" > /tmp/lf.yaml && yamllint -c .yamllint /tmp/lf.yaml && echo "clean $f"
-done
-```
-Expected: 2× OK, 2× clean.
-
-- [ ] **Step 5: 커밋**
-
-```bash
-git add apps/schema-registry/overlays/staging apps/schema-registry/overlays/prod
-git commit -m "feat(schema-registry): staging/prod 오버레이 신설(SSL, ns별 kafka-brokers) (WS3-3)"
-```
-
-### Task 4: 인벤토리상 나머지 Kafka 클라이언트 SSL (Task 1 결과에 따라)
-
-**Files:** Modify `apps/{knowledge-svc,learning-card,learning-ai}/overlays/{dev,staging,prod}/kustomization.yaml` 중 Task 1에서 "SSL 누락"으로 식별된 것만
-
-- [ ] **Step 1: 식별된 각 서비스에 SSL env 추가**
-
-Task 1 매트릭스에서 SSL이 필요한데 누락된 (서비스×환경) 셀마다, 해당 서비스가 쓰는 Kafka 보안 프로토콜 env(Spring 서비스면 `SPRING_KAFKA_SECURITY_PROTOCOL=SSL`, learning-ai(Python)면 앱이 읽는 키 — 앱 레포 `app/core/config.py`/`app/kafka/` 확인 후 동일 의미 키)를 dev 패턴과 동일하게 추가. **dev에도 누락이면 dev부터 추가**(D-A: 일관 적용).
-
-- [ ] **Step 2: 렌더 + lint (수정한 오버레이 전부)**
-
-Run:
-```bash
-for d in $(git diff --name-only | sed 's#/kustomization.yaml##' | sort -u); do
-  kubectl kustomize "$d" >/dev/null && echo "OK $d" || echo "FAIL $d"
-done
-```
-Expected: 모두 OK. 변경 kustomization.yaml은 각각 yamllint clean.
-
-- [ ] **Step 3: 커밋**
-
-```bash
-git add apps/
-git commit -m "feat(kafka): 잔여 MSK 클라이언트 SSL 일관 적용 (WS3-4, D-A)"
-```
-
-### Task 5: WS3 통합 검증 + PR
-
-- [ ] **Step 1: 전체 오버레이 렌더 회귀 + lint**
-
-Run:
-```bash
-for d in apps/*/overlays/*; do kubectl kustomize "$d" >/dev/null 2>&1 && echo "OK $d" || echo "FAIL $d"; done
-```
-Expected: 모든 오버레이 OK(신규 schema-registry staging/prod 포함, 회귀 없음).
-
-- [ ] **Step 2: applicationset에 schema-registry staging/prod 등록 확인**
-
-Run:
-```bash
-grep -n 'schema-registry' argocd/applicationset*.yaml argocd/*.yaml
-```
-Expected: schema-registry가 dev뿐 아니라 staging/prod ApplicationSet/Application에도 등록돼야 신규 오버레이가 배포된다. 누락 시 해당 ApplicationSet에 추가 후 yamllint + 커밋.
-
-- [ ] **Step 3: 푸시 + PR**
-
-```bash
-git push -u origin feat/kafka-ssl-staging-prod
-gh pr create --repo team-project-final/synapse-gitops --base main --head feat/kafka-ssl-staging-prod \
-  --title "feat: staging/prod Kafka SSL 일관 적용 + schema-registry staging/prod 오버레이 (WS3)" \
-  --body "리포트 §2.5 후속: dev에만 있던 MSK TLS(SECURITY_PROTOCOL=SSL)를 staging/prod로 확장. schema-registry staging/prod 오버레이 신설. D-A 인벤토리 기반 잔여 클라이언트 정합. 렌더/lint 회귀 0. 라이브 검증은 EKS 윈도(WS 라이브 체크리스트)."
-```
-Expected: PR URL, CI `validate-manifests` 통과.
-
----
+- [ ] **Step 1: schema-registry staging/prod 오버레이 신설** — dev 오버레이 복제(namespace synapse-staging/synapse-prod, ns별 kafka-brokers ConfigMap 참조, SSL 동일). prod replica/affinity는 후속.
+- [ ] **Step 2: dev에서 검증된 각 서비스의 staging/prod 오버레이에 WS3-C 동형 패치 적용.**
+- [ ] **Step 3: applicationset(staging/prod)에 schema-registry 등록.**
+- [ ] **Step 4: 전체 오버레이 render 회귀 + lint + PR.**
 
 ## WS2: engagement Kafka 런타임 이미지 (서비스 레포 릴리스 + gitops 태그)
 
