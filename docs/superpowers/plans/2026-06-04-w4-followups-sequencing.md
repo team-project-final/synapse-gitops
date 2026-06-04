@@ -418,7 +418,8 @@ gh pr create --base main --head feat/ws3e-staging-prod-authoring \
 
 - [ ] WS3-D: 4서비스 TLS MSK(9094) bootstrap·group join·Avro produce/consume 무에러 + EVENT_FLOW 체인 E2E (`docs/runbooks/engagement-kafka-enablement.md` 확장).
 - [ ] WS3-C 런타임: WS3-A/B 새 이미지 ECR 도착 후 dev 오버레이 이미지 태그 정합 + 파드 로그 SSL bootstrap 확인.
-- [ ] WS1/WS2 이미지 릴리스(별도 라운드).
+- [ ] WS1 gateway 라이브 확인 (코드 완료 — `synapse-gateway/Dockerfile`이 이미 non-root `adduser -u 101`+`USER app`): EKS 윈도에서 ECR `synapse/gateway` 최신 이미지가 non-root인지 + `kubectl -n synapse-dev get pod -l app=gateway` 파드가 uid 101로 기동(CreateContainerConfigError 없음), ArgoCD `synapse-gateway-dev` Synced/Healthy. (dev 태그 `dev-latest`=mutable → 재빌드 자동 반영. image-updater 미관리 = semver 아님.)
+- [ ] WS2 engagement (자동화 — `argocd/applicationset.yaml` image-updater `update-strategy: semver`, write-back git): engagement-svc가 **semver 릴리스**(ECR `synapse/engagement-svc:X.Y.Z`)를 올리면 image-updater가 dev 오버레이 `newTag`(현재 베이스라인 `1.0.0`)를 자동 bump. 트리거 = engagement 릴리스(별도 이슈). 라이브: 파드 로그 Kafka(#21) 초기화·MSK 연결 확인.
 - [ ] prod netpol 집행·HPA (`docs/runbooks/prod-prereqs-netpol-metrics.md`).
 
 ---
