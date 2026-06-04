@@ -142,7 +142,7 @@ const SYSTEM = {
       {method:"GET",    path:"/api/v1/gamification/leaderboard",                 reqDto:null,                         resDto:"LeaderboardEntryResponse", desc:"리더보드 조회"},
       {method:"POST",   path:"/api/v1/gamification/xp/events",                   reqDto:"AddXpRequest",               resDto:"UserGamificationResponse", desc:"XP 직접 적립 (내부/테스트용)"},
     ], produces:["engagement.gamification.level-up-v1","engagement.gamification.badge-earned-v1"], consumes:["platform.auth.user-registered-v1","learning.card.review-completed-v1"], stores:["postgres:synapse_engagement"], calls:[]},
-    knowledge:    {label:"knowledge-svc", addr:"knowledge-svc", port:8080, tier:"svc", color:"#f778ba", role:"노트/지식 (검색: ES 클라이언트→OpenSearch)", rest:[
+    knowledge:    {label:"knowledge-svc", addr:"knowledge-svc", port:8080, tier:"svc", color:"#f778ba", role:"노트/지식 (검색: Elasticsearch 9.2.1)", rest:[
       {method:"POST",   path:"/api/v1/notes",                         reqDto:"NoteCreateRequest",       resDto:"NoteResponse",            desc:"노트 생성"},
       {method:"GET",    path:"/api/v1/notes",                         reqDto:null,                      resDto:"NoteResponse",            desc:"내 노트 목록 (페이지)"},
       {method:"GET",    path:"/api/v1/notes/{id}",                    reqDto:null,                      resDto:"NoteResponse",            desc:"노트 단건 조회"},
@@ -157,7 +157,7 @@ const SYSTEM = {
       {method:"GET",    path:"/api/v1/graph",                         reqDto:null,                      resDto:"GraphDataResponse",       desc:"특정 노트 인접 그래프 (depth 지정)"},
       {method:"POST",   path:"/api/v1/admin/search/accuracy-test",    reqDto:null,                      resDto:"SearchComparisonReport",  desc:"검색 정확도 테스트 실행 (ADMIN)"},
       {method:"GET",    path:"/api/v1/admin/search/accuracy-report",  reqDto:null,                      resDto:"SearchComparisonReport",  desc:"최신 검색 정확도 리포트 조회 (ADMIN)"},
-    ], produces:["knowledge.note.note-created-v1","knowledge.note.note-updated-v1","knowledge.note.note-search-sync-v1"], consumes:["knowledge.note.note-search-sync-v1"], stores:["postgres:synapse_knowledge","redis","opensearch"], calls:["learning-ai"]},
+    ], produces:["knowledge.note.note-created-v1","knowledge.note.note-updated-v1","knowledge.note.note-search-sync-v1"], consumes:["knowledge.note.note-search-sync-v1"], stores:["postgres:synapse_knowledge","redis","elasticsearch"], calls:["learning-ai"]},
     "learning-ai":{label:"learning-ai", addr:"learning-ai", port:8080, tier:"svc", color:"#e3b341", role:"AI 카드 생성(Python) · 시맨틱검색 pgvector(Postgres)", rest:[
       {method:"POST",   path:"/ai/cards/generate",   reqDto:"AiGenerateRequest",        resDto:"AiCardGenerateResponse",   desc:"노트 내용으로 플래시카드 생성 (LLM)"},
       {method:"POST",   path:"/ai/generate",          reqDto:"AiGenerateRequest",        resDto:"AiGenerateResponse",       desc:"범용 AI 텍스트 생성"},
@@ -192,7 +192,7 @@ const SYSTEM = {
     zookeeper:{label:"zookeeper", addr:"zookeeper", port:2181, kind:"coord"},
     postgres:{label:"postgres", addr:"postgres", port:5432, kind:"db"},
     redis:{label:"redis", addr:"redis", port:6379, kind:"cache"},
-    opensearch:{label:"opensearch", addr:"opensearch", port:9200, kind:"search"},
+    elasticsearch:{label:"elasticsearch", addr:"elasticsearch", port:9200, kind:"search"},
   },
   rest: [
     {from:"gateway", to:"platform",      basePath:"/api/platform/**",  endpoints:["/api/v1/auth/**","/api/v1/admin/**","/api/v1/billing/**","/api/v1/notifications/**"]},
@@ -219,7 +219,7 @@ const SYSTEM = {
     {name:"Schema Registry", addr:"schema-registry:8081", envVars:["SCHEMA_REGISTRY_URL"], protocol:"HTTP", consumers:["platform","engagement","knowledge","learning-ai","learning-card"]},
     {name:"PostgreSQL", addr:"postgres:5432", envVars:["SPRING_DATASOURCE_URL","DATABASE_HOST"], protocol:"JDBC", consumers:["platform","engagement","knowledge","learning-ai","learning-card"]},
     {name:"Redis", addr:"redis:6379", envVars:["SPRING_DATA_REDIS_HOST"], protocol:"RESP", consumers:["gateway","platform","engagement","knowledge","learning-card"]},
-    {name:"OpenSearch 2.11", addr:"opensearch:9200", envVars:["OPENSEARCH_URL"], protocol:"HTTP", consumers:["knowledge"], note:"knowledge-svc는 ES 클라이언트(spring-data-elasticsearch)로 접속 — 풀컨테이너 경로는 Elasticsearch 8.13 (알려진 기술부채). learning-ai는 OPENSEARCH_URL 무시, pgvector 사용."},
+    {name:"Elasticsearch 9.2.1", addr:"elasticsearch:9200", envVars:["ELASTICSEARCH_URIS"], protocol:"HTTP", consumers:["knowledge"], note:"knowledge-svc가 ES 클라이언트(spring-data-elasticsearch)로 접속. #114로 OpenSearch→Elasticsearch 9.2.1 전환 완료(이전 ES클라이언트/OpenSearch서버 기술부채 해소). learning-ai는 검색엔진 미사용 — pgvector(Postgres)."},
   ],
   dtos: {
     /* ── platform-svc ── */
@@ -515,7 +515,7 @@ const SYSTEM = {
       {node:"knowledge", kind:"rest", narration:"knowledge-svc가 노트 저장 (Postgres)"},
       {node:"kafka", kind:"event", narration:"내부 토픽 knowledge.note.note-search-sync-v1 발행 (JSON/CloudEvents, AFTER_COMMIT)"},
       {node:"knowledge", kind:"event", narration:"knowledge 자체 소비 (group knowledge-search-indexer)"},
-      {node:"opensearch", kind:"store", narration:"OpenSearch 색인 upsert/delete (ES 클라이언트로 접속)"}]},
+      {node:"elasticsearch", kind:"store", narration:"Elasticsearch 색인 upsert/delete (ELASTICSEARCH_URIS)"}]},
     {name:"구독 결제", steps:[
       {node:"gateway", kind:"rest", narration:"클라이언트가 gateway로 POST /api/platform/api/v1/billing/checkout"},
       {node:"platform", kind:"rest", narration:"platform-svc가 Stripe Checkout 세션 생성 (외부 Stripe)"},
@@ -547,7 +547,7 @@ const POS = { // [x,y] (viewBox 1000x440)
   gateway:[500,40],
   platform:[120,180], engagement:[300,180], knowledge:[500,180], "learning-ai":[700,180], "learning-card":[880,180],
   kafka:[300,330], "schema-registry":[500,330], zookeeper:[660,330],
-  postgres:[120,400], redis:[300,400], opensearch:[700,400],
+  postgres:[120,400], redis:[300,400], elasticsearch:[700,400],
 };
 let activeLayers = {rest:true, kafka:true, store:true};
 let selectedId = null;
