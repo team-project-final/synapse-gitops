@@ -222,29 +222,3 @@ resource "aws_security_group" "msk" {
 
   lifecycle { create_before_destroy = true }
 }
-
-resource "aws_security_group" "opensearch" {
-  name_prefix = "${local.project}-${local.environment}-opensearch-"
-  vpc_id      = aws_vpc.main.id
-  description = "OpenSearch access from EKS nodes only"
-
-  ingress {
-    description     = "HTTPS from EKS nodes"
-    from_port       = 443
-    to_port         = 443
-    protocol        = "tcp"
-    security_groups = [aws_security_group.eks_nodes.id]
-  }
-
-  ingress {
-    description     = "HTTPS from EKS cluster SG (D-026)"
-    from_port       = 443
-    to_port         = 443
-    protocol        = "tcp"
-    security_groups = [local.eks_cluster_sg]
-  }
-
-  tags = { Name = "${local.project}-${local.environment}-opensearch-sg" }
-
-  lifecycle { create_before_destroy = true }
-}

@@ -65,3 +65,5 @@ locals {
   cluster_name = "${local.project}-${local.environment}"
   azs          = ["${var.aws_region}a", "${var.aws_region}c"]
 }
+
+data "aws_caller_identity" "current" {}
