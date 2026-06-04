@@ -123,6 +123,21 @@ resource "aws_iam_openid_connect_provider" "eks" {
   tags = { Name = "${local.cluster_name}-oidc" }
 }
 
+# ─── VPC CNI Addon (NetworkPolicy 컨트롤러 활성, prod netpol 집행 선행) ────────
+# prod overlays(apps/*/overlays/prod/netpol.yaml) 적용 전 반드시 활성화해야 함.
+# 미활성 시 NetworkPolicy가 조용히 무시(보안 no-op)됨.
+
+resource "aws_eks_addon" "vpc_cni" {
+  cluster_name = aws_eks_cluster.main.name
+  addon_name   = "vpc-cni"
+  configuration_values = jsonencode({
+    enableNetworkPolicy = "true"
+  })
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "OVERWRITE"
+  depends_on                  = [aws_eks_node_group.main]
+}
+
 # ─── bastion access entry (#87) ─────────────────────────────────────────────
 resource "aws_eks_access_entry" "bastion" {
   cluster_name  = aws_eks_cluster.main.name

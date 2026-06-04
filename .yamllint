@@ -22,3 +22,4 @@ ignore: |
   .terraform/
   node_modules/
   .git/
+  infra/k8s-addons/
