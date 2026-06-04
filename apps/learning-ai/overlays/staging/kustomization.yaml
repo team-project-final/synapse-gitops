@@ -31,9 +31,6 @@ patches:
         path: /data/DATABASE_NAME
         value: "synapse"
       - op: add
-        path: /data/OPENSEARCH_URL
-        value: "https://vpc-synapse-dev-qm5l2xdch6nfmkqanpmipou74a.ap-northeast-2.es.amazonaws.com"
-      - op: add
         path: /data/LEARNING_AI_DATABASE_URL
         value: "postgresql+asyncpg://synapse_admin@synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com:5432/synapse"
 
