@@ -25,7 +25,7 @@ require() { command -v "$1" >/dev/null 2>&1 || {
 usage() {
   cat <<USAGE
 사용법: bring-up.sh [옵션]
-  --from <phase>   해당 phase부터 재개 (terraform|eks-auth|tunnel|argocd|eso|oidc-fix|kafka-config|manifests|metrics-server|image-updater|observability|status)
+  --from <phase>   해당 phase부터 재개 (terraform|eks-auth|tunnel|argocd|eso|oidc-fix|alb-controller|kafka-config|manifests|metrics-server|image-updater|observability|status)
   --to <phase>     해당 phase까지만 실행 (예: --to manifests = metrics-server/observability 제외 dev-only)
   --verify         bring-up 대신 W3 잔여 3항목 검증
   --destroy        terraform destroy (비용 차단)
@@ -34,7 +34,7 @@ usage() {
 USAGE
 }
 
-PHASES=(terraform eks-auth tunnel argocd eso oidc-fix kafka-config manifests metrics-server image-updater observability status)
+PHASES=(terraform eks-auth tunnel argocd eso oidc-fix alb-controller kafka-config manifests metrics-server image-updater observability status)
 
 # ─── phase 함수 ───────────────────────────────────────────────────────────
 phase_terraform() {
@@ -123,6 +123,25 @@ phase_oidc_fix() {
   run "kubectl -n external-secrets rollout restart deploy external-secrets"
 }
 
+phase_alb_controller() {
+  # ALB Ingress(infra/ingress/*, infra/ingress/nipio/*) 프로비저닝용 aws-load-balancer-controller.
+  # IRSA: synapse-dev-alb-controller-role (alb-controller-irsa.tf). (W5: 미부트스트랩 → #121 차단 해소)
+  if $DRY_RUN; then echo "+ alb-controller: helm install aws-load-balancer-controller (IRSA + vpcId)"; return; fi
+  local vpc
+  vpc=$(terraform -chdir=$TFDIR output -raw vpc_id)
+  run "helm repo add eks https://aws.github.io/eks-charts >/dev/null 2>&1 || true"
+  run "helm repo update eks >/dev/null"
+  helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller -n kube-system \
+    --set clusterName="$CLUSTER_NAME" \
+    --set serviceAccount.create=true \
+    --set serviceAccount.name=aws-load-balancer-controller \
+    --set "serviceAccount.annotations.eks\.amazonaws\.com/role-arn=arn:aws:iam::${ACCOUNT_ID}:role/synapse-dev-alb-controller-role" \
+    --set region="$AWS_REGION" \
+    --set vpcId="$vpc" \
+    --wait --timeout 5m
+  run "kubectl -n kube-system rollout status deploy/aws-load-balancer-controller --timeout=180s"
+}
+
 phase_kafka_config() {
   # #88: kafka-brokers ConfigMap을 3개 ns에 선생성 (앱 배포 전 KAFKA_BROKERS 주입원).
   # bring-up은 kubectl 스타일 — k8s-kafka-config terraform 모듈과 동일 리소스(터널 kubeconfig).
@@ -164,6 +183,11 @@ phase_image_updater() {
     -f https://raw.githubusercontent.com/argoproj-labs/argocd-image-updater/v0.15.2/manifests/install.yaml
   kubectl -n argocd annotate sa argocd-image-updater \
     eks.amazonaws.com/role-arn=arn:aws:iam::${ACCOUNT_ID}:role/synapse-dev-image-updater-role --overwrite
+  # #122: ECR 인증 — registries.conf(ext 스크립트) + ecr-login.sh를 executable(/app/scripts, 0555)로 마운트.
+  #   IRSA가 ECR read 권한 제공. (W5: registries 자격 미설정으로 태그 조회 실패 → 해소)
+  run "kubectl apply --server-side --force-conflicts -f argocd/image-updater-ecr-auth.yaml"
+  kubectl -n argocd patch deploy argocd-image-updater --type=strategic -p \
+    '{"spec":{"template":{"spec":{"volumes":[{"name":"ecr-auth","configMap":{"name":"argocd-image-updater-ecr-auth","defaultMode":365}}],"containers":[{"name":"argocd-image-updater","volumeMounts":[{"name":"ecr-auth","mountPath":"/app/scripts"}]}]}}}}'
   # git write-back용 ArgoCD repo 자격 — AWS SM(synapse/gitops/git-token) → ESO → repository 시크릿
   run "kubectl apply -f infra/external-secrets/argocd-repo-externalsecret.yaml"
   if ! aws secretsmanager describe-secret --secret-id synapse/gitops/git-token --region "$AWS_REGION" >/dev/null 2>&1; then
