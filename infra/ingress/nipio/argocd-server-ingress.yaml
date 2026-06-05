@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-server-nipio
+  namespace: argocd
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/group.name: synapse-nipio
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    # argocd-server는 443에서 자체 TLS 종료 → ALB가 HTTPS로 백엔드 통신
+    alb.ingress.kubernetes.io/backend-protocol: HTTPS
+    alb.ingress.kubernetes.io/healthcheck-path: /healthz
+    # 라이브: gen-nipio-selfsigned.sh 출력 CERT_ARN으로 치환
+    alb.ingress.kubernetes.io/certificate-arn: <ACM_ARN>
+spec:
+  rules:
+    # 라이브: <ALB_IP>를 ALB IP로 치환 (gen-nipio-selfsigned.sh가 동일 IP로 SAN 발급)
+    - host: argocd.<ALB_IP>.nip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-server
+                port:
+                  number: 443
