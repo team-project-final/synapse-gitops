@@ -21,13 +21,17 @@ registries:
     credsexpire: 10h
 ```
 
+> **갱신 (2026-06-05, PR #124)**: ECR 인증은 위 `pullsecret`(+토큰 갱신 CronJob) 대신 **ext 스크립트**로 구현·자동화됨 — `credentials: ext:/app/scripts/ecr-login.sh`(`aws ecr get-login-password`, v0.15.2 이미지에 aws-cli 포함). IRSA(`synapse-dev-image-updater-role`)만으로 동작, 별도 pull-secret/CronJob 불필요. 매니페스트 `argocd/image-updater-ecr-auth.yaml`, bring-up `phase_image_updater`가 적용+볼륨 마운트(/app/scripts 0555).
+
 ## write-back E2E 잔여 블록 2건
 
 ### ① overlay 태그가 semver 전략과 불일치
 dev overlay가 `newTag: dev-latest`인데 update-strategy=`semver` → "Invalid Semantic Version". semver 전략을 쓰려면 overlay를 semver 태그(예 `1.0.0`)로 핀해야 함. (또는 strategy를 `latest`/`digest`로 변경.)
 
 ### ② main 보호 ruleset이 직접 push 거부
-image-updater write-back은 `git-branch: main`에 **직접 push**. main `main-protection` ruleset = `pull_request`+`required_status_checks`+`non_fast_forward`, **bypass_actors 비어있음** → 봇 직접 push 거부.
+image-updater write-back은 `git-branch: main`에 **직접 push**. main `main-protection` ruleset = `pull_request`+`required_status_checks`+`non_fast_forward` → 봇 직접 push 거부.
+
+> **해소 (2026-06-05, #126 — B안 채택)**: `git-branch`를 `main:image-updater-{{service}}`(base:commit 분리)로 변경(`argocd/applicationset.yaml`) → image-updater가 **main이 아니라 `image-updater-<svc>` 브랜치에 push**(보호 미적용) → `.github/workflows/image-updater-pr.yml`가 그 브랜치를 main으로 **PR 자동 생성**. main은 PR+`validate` required check 유지, **Maintain bypass 불필요**. (PR 생성은 `GITOPS_TOKEN` PAT — `GITHUB_TOKEN`은 pull_request 워크플로 미트리거.)
 
 ## 해소 방안 비교 (A/B)
 
@@ -39,10 +43,10 @@ image-updater write-back은 `git-branch: main`에 **직접 push**. main `main-pr
 | "5분 내 반영"(Step6) | 즉시(유리) | PR+CI 지연(auto-merge 필요) |
 | 감사성 | 약함 | 강함 |
 
-## ✅ 결정 (2026-05-26)
+## ✅ 결정 (2026-05-26 → 2026-06-05 갱신)
 
-- **dev/staging = A** (전용 최소권한 봇 bypass — 이미지 bump는 저위험 newTag)
-- **prod (W4+) = B** (PR 기반 write-back — 감사·게이트)
+- ~~dev/staging = A (봇 bypass) / prod = B~~ (2026-05-26 잠정)
+- **2026-06-05 갱신 (#126): 전 환경 B(PR write-back)로 통일.** gateway 배포 복구 중 main ruleset에 Maintain bypass가 추가된 것이 거버넌스 이슈(#126)로 제기됨 → image-updater는 bypass 의존을 끊고 base:commit 분리 브랜치 + PR 자동화(`.github/workflows/image-updater-pr.yml`)로 전환. A안(`image-updater-bot-bypass.md`)은 보류. (shared `deploy-service.yml` CI 직접 push의 bypass 필요성은 별개 — #126에서 별도 논의)
 
 ## A 실행 절차 (dev/staging) — 차기 라이브 세션
 
