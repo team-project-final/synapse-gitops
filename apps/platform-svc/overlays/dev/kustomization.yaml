@@ -1,11 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
 resources:
   - ../../base
-
 namespace: synapse-dev
-
 patches:
   - target:
       kind: Deployment
@@ -71,7 +68,6 @@ patches:
       - op: add
         path: /data/SPRING_KAFKA_SECURITY_PROTOCOL
         value: "SSL"
-
   - target:
       kind: ExternalSecret
       name: platform-svc-external-secret
@@ -79,8 +75,7 @@ patches:
       - op: replace
         path: /spec/secretStoreRef/name
         value: aws-secrets-manager
-
 images:
   - name: ghcr.io/team-project-final/synapse-platform-svc
     newName: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/platform-svc
-    newTag: dev-latest
+    newTag: d11f74373cf72643f89b77cfcdb37b072365b3c7
