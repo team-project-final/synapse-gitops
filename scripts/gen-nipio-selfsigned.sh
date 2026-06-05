@@ -29,8 +29,12 @@ TARGET="$1"; shift
 while [ $# -gt 0 ]; do
   case "$1" in
     --skip-import) SKIP_IMPORT=true ;;
-    --region) AWS_REGION="$2"; shift ;;
-    --out) OUTDIR="$2"; shift ;;
+    --region)
+      [ $# -ge 2 ] || { err "--region 값 필요"; usage; exit 1; }
+      AWS_REGION="$2"; shift ;;
+    --out)
+      [ $# -ge 2 ] || { err "--out 값 필요"; usage; exit 1; }
+      OUTDIR="$2"; shift ;;
     --help) usage; exit 0 ;;
     *) err "알 수 없는 옵션: $1"; usage; exit 1 ;;
   esac
@@ -74,6 +78,9 @@ openssl x509 -req -in "$OUTDIR/leaf.csr" -days 7 \
   -CA "$OUTDIR/ca.crt" -CAkey "$OUTDIR/ca.key" -CAcreateserial \
   -extfile "$OUTDIR/san.ext" -out "$OUTDIR/leaf.crt"
 ok "인증서 생성: $OUTDIR/leaf.crt (SAN: ${ARGOCD_HOST}, ${DEV_HOST}, *.${IP}.nip.io)"
+
+# 중간 산출물 정리 (leaf.csr 공개키·san.ext·ca.srl 불필요)
+rm -f "$OUTDIR/leaf.csr" "$OUTDIR/san.ext" "$OUTDIR/ca.srl"
 
 if $SKIP_IMPORT; then
   ok "--skip-import: ACM import 생략(로컬 생성만)"

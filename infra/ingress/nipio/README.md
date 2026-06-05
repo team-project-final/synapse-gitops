@@ -3,7 +3,7 @@
 **임시(폐기 전제) nip.io 외부 노출** — 실 도메인 부재 시 #121 검증용. ALB + self-signed ACM import.
 
 ## 파일
-- `argocd-server-ingress.yaml` — ArgoCD UI + webhook(`/api/webhook`) → `argocd-server`(NLB 서비스에 추가되는 ALB ingress, backend-protocol HTTPS).
+- `argocd-server-ingress.yaml` — ArgoCD UI + webhook → `argocd-server` (path `/` Prefix가 UI와 `/api/webhook` 모두 커버. NLB 서비스에 추가되는 ALB ingress, backend-protocol HTTPS).
 - `dev-ingress.yaml` — dev gateway 단일 진입 → `gateway:80`. dev-<app> 세분은 gateway 경로 라우팅으로 충족.
 
 두 ingress는 `group.name: synapse-nipio`로 **ALB 1개를 공유** → IP 1개 → nip.io 베이스 일관.
