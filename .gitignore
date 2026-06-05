@@ -21,6 +21,9 @@ Desktop.ini
 secrets/
 !secrets/.gitkeep
 
+# nip.io 임시 인증서 (private keys — 커밋 금지)
+.nipio-certs/
+
 # === Terraform ===
 infra/aws/dev/tfplan
 infra/aws/dev/*.log
