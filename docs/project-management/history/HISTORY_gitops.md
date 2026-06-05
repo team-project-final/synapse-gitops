@@ -403,6 +403,34 @@ OPEN 이슈 3건을 terraform 영구 코드화 + 라이브 1회 검증. spec/pla
 
 ---
 
+## 2026-06-05 (W4→W5) — 진입 차단 클리어 윈도우 (#91/#92/#120/#121/#122)
+
+W4→W5 이월 차단 5건을 1회 on-demand EKS+MSK 라이브 윈도우로 처리. 브레인스토밍→spec→plan→subagent 실행으로 Phase 0 산출물 선머지(PR #123) 후 라이브. spec/plan `2026-06-05-w5-진입차단-클리어*`, 런북 `docs/runbooks/W5_CLEARANCE_WINDOW.md`. 통보 허브 synapse-shared#20.
+
+### 무엇을 했는지
+- **Phase 0 (무비용 사전, PR #123)**: nip.io ingress 2종(argocd UI+webhook·dev gateway, ALB `group.name` 공유) + `scripts/gen-nipio-selfsigned.sh`(self-signed CA→ACM import, `--skip-import` 로컬검증) + kafka-topics/k8s-kafka-config `.terraform.lock.hcl` 커밋 + 런북.
+- **Phase 1 부트스트랩**: `bring-up.sh --to image-updater`로 terraform 59리소스 apply + ArgoCD HA(`--insecure`)/ESO/ApplicationSet/kafka-brokers/metrics-server/image-updater. dev **5/6 Healthy**.
+- **#120 완료·close**: bastion(AL2023)에 terraform+kafka CLI를 SSM RunShellScript로 설치 → kafka-topics(Mongey/kafka TLS 9094) 토픽 9개·TLS 체인(Amazon RSA 2048 M04)·console produce/consume 라운드트립·MSK SG 접근제한 검증.
+- **갭 4건 규명**: ① gateway-dev ImagePullBackOff+SecretSyncedError = ECR repo·SM키 부재(미릴리스) → synapse-gateway#4 ② platform-svc-staging CrashLoop = `application-staging.yml` main 유실(#48 dev 브랜치만) → #92 ③ #121 ALB ingress 불가 = `aws-load-balancer-controller` 미부트스트랩(IAM/terraform/helm 전무) ④ #122 IU ECR 자격 미설정(`no basic auth credentials`).
+- **자동화 후속 (PR #124)**: #121 ALB 컨트롤러(공식 v2.7.2 IAM 정책 + IRSA + bring-up `alb-controller` helm phase) + #122 IU ECR 자격(`registries.conf` ext + `ecr-login.sh`, bring-up 볼륨 패치). `terraform validate` Success(정적). 머지.
+- 마감: 각 이슈 + shared#20 통보, `terraform destroy`로 과금 차단(59 destroyed).
+
+### 의사결정
+- **D-047 nip.io 임시 도메인 + ALB self-signed ACM; 라이브 갭은 자동화로 수정·검증 차기 이월**:
+  - **결정**: #121 도메인=nip.io 임시(실 도메인 부재), TLS=ALB+self-signed ACM import(리포 ALB 일관성, cert-manager/nginx 미도입). 라이브에서 드러난 ALB 컨트롤러·IU ECR 갭은 *수동 일회성 설치* 대신 *terraform/bring-up 자동화 추가*(PR #124)로 처리, 라이브 검증은 차기 윈도우.
+  - **근거**: self-signed 브라우저 경고 성격은 ALB-import든 cert-manager든 동일 → 종료지점만 차이, ALB가 리포 정본. 폐기될 ephemeral 클러스터에 수동 설치는 근본(자동화 누락) 미해결 → 자동화 수정이 정답. #91 5/5·#121·#122 라이브는 서비스 2건(gateway 릴리스·platform-svc staging main 머지) + PR #124 머지 후 한 윈도우로 마감 가능.
+  - **대안 검토**: cert-manager+ingress-nginx(평행 스택, prod netpol과 갈라짐 → 미채택) · 이번 윈도우 수동 설치 강행(과금↑·일회성 → 미채택) · #122 write-back 즉시 실행(IU ECR 자격 선행 필요로 불가).
+  - **발견(학습)**: bring-up 내부 SSM 터널은 종료 시 닫힘 → 검증은 별도 영구 터널 필요. MSK는 bastion(VPC 내부)에서만 9094 도달(provider SNI 때문에 로컬 포트포워딩 부적합). TLS-only·무인증 MSK는 Kafka principal ACL 무의미 → SG가 접근제어. argocd-image-updater v0.15.2 이미지에 aws-cli 포함(ext 스크립트 가능). image-updater config 볼륨은 `registries.conf`/`commit.template` 키만 투영 → 스크립트는 별도 볼륨 패치 필요.
+
+### 이벤트 (차단·학습)
+- AWS 자격증명 만료(InvalidClientTokenId) — 다른 PC에서 키 회전됨 → 정적 키 재발급으로 해소.
+- gateway·platform-svc-staging = 서비스측 차단 확정(gitops 매니페스트 정상, 각 owner 트랙 귀속).
+
+### 산출물
+- PR #123(nip.io ingress·인증서 스크립트·런북·lock), PR #124(ALB 컨트롤러 IRSA+helm·IU ECR 자격), PR #125(TASK/HISTORY 갱신). 이슈: synapse-gateway#4, gitops #120 close·#91/#92/#121/#122 코멘트, synapse-shared#20 통보. 브랜치 `feat/w5-alb-controller-iu-ecr`·`docs/w5-clearance-design`.
+
+---
+
 ## 다음 항목 템플릿
 
 ### YYYY-MM-DD
