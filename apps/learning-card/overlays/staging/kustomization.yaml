@@ -39,6 +39,18 @@ patches:
       - op: add
         path: /data/SPRING_DATASOURCE_USERNAME
         value: "synapse_admin"
+      - op: add
+        path: /data/KAFKA_ENABLED
+        value: "true"
+      - op: add
+        path: /data/SCHEMA_REGISTRY_URL
+        value: "http://schema-registry:8081"
+      # staging MSK는 TLS 전용 리스너(client_broker=TLS, 9094). Spring Kafka 클라이언트가
+      # SSL로 핸드셰이크하도록 지정(미설정 시 PLAINTEXT 기본→TLS 브로커 연결 실패).
+      # MSK 인증서는 Amazon Trust Services 발급→JDK 기본 truststore로 충분.
+      - op: add
+        path: /data/SPRING_KAFKA_SECURITY_PROTOCOL
+        value: "SSL"
 
   - target:
       kind: ExternalSecret
