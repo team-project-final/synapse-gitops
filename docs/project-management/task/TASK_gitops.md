@@ -126,6 +126,7 @@
 - **Reviewer**: @team-lead
 
 **Status**: [ ] Not Started / [ ] In Progress / [x] Done (매니페스트 + ECR 교체 + 자동 sync 비활성화·svc팀 공유 문서화 완료. 이미지 E2E 3항목 W4 Step 10으로 이월 — D-041)
+<!-- 2026-06-05: W4→W5 클리어 윈도우에서 IU ECR 자격 미설정(no basic auth) 규명+수정(PR #124). 라이브 write-back E2E는 차기 윈도우. ↓ W4→W5 진입 차단 클리어 §, gitops#122 -->
 
 ---
 
@@ -199,6 +200,7 @@
 - **Reviewer**: @team-lead
 
 **Status**: [ ] Not Started / [ ] In Progress / [x] Done (FR-401~404 전부 라이브 증명 — 2026-06-01 prod 5/5 Healthy. 실 도메인 3항목만 W1 이월 잔존(port-forward 대체). team-lead 합의 대기 — D-043)
+<!-- 2026-06-05: 실 도메인 3항목(#121)은 nip.io 임시 도메인으로 진행 — nip.io ingress+self-signed(PR #123) + ALB 컨트롤러 부트스트랩(PR #124). 라이브 외부도달·webhook은 차기 윈도우. ↓ W4→W5 진입 차단 클리어 §, gitops#121 -->
 
 ---
 
@@ -215,6 +217,23 @@
 - **Reviewer**: @team-lead
 
 **Status**: [ ] Not Started / [ ] In Progress / [x] Done (롤백 405/406 라이브 검증(2026-06-01) + 백업/복구 407/408 + 매니페스트/런북/알람 Done. team-lead 사인오프 대기 — D-043)
+
+---
+
+### W4→W5 진입 차단 클리어 윈도우 (2026-06-05, on-demand EKS+MSK)
+
+> W4→W5 이월 차단 5건(gitops #91/#92/#120/#121/#122)을 1회 on-demand 라이브 윈도우로 처리.
+> 설계/플랜: `docs/superpowers/{specs,plans}/2026-06-05-w5-진입차단-클리어*` · 런북: `docs/runbooks/W5_CLEARANCE_WINDOW.md` · 통보 허브: synapse-shared#20.
+
+- [x] **#120 MSK 토픽/TLS/produce-consume/SG 접근제한** — bastion terraform(Mongey/kafka, TLS 9094): 토픽 9개·TLS 체인(Amazon RSA 2048 M04)·console produce/consume 라운드트립·SG 네트워크 접근제한(무인증 TLS-only라 ACL 아닌 SG가 메커니즘) 검증 → **close**.
+- [x] **gitops 부트스트랩 + dev 5/6 Healthy** — ArgoCD HA(`--insecure`)/ESO/ApplicationSet/kafka-brokers/metrics-server/image-updater 기동. (`verify-argocd-deploy.sh`는 shared·team-lead 실행)
+- [~] **#121 외부 노출 (ACM/DNS/Ingress/webhook, W1·Step 9 이월)** — 코드 완료·main 머지: nip.io ingress + self-signed 인증서 스크립트(PR #123) + **aws-load-balancer-controller 부트스트랩 IRSA+helm(PR #124)**. 라이브 검증은 차기 윈도우 — 실제 차단은 *ALB 컨트롤러 미부트스트랩*이었음(gitops#121).
+- [~] **#122 Image Updater write-back E2E (W4 Step 6/10 이월)** — ECR 자격 미설정(`no basic auth credentials`) 규명 + 수정: `registries.conf` ext 스크립트 + `ecr-login.sh`(PR #124). 라이브 E2E는 차기 윈도우(gitops#122).
+- [ ] **#91 dev/staging 5/5** — gateway-dev(서비스 미릴리스: ECR repo·SM키 부재 → synapse-gateway#4) · platform-svc-staging(#92) 서비스 후속 의존.
+- [ ] **#92 platform-svc-staging** — `application-staging.yml`이 main 미머지(dev 브랜치) 규명 → platform-svc main 머지 + `dev-latest` 재빌드 후 재검증.
+- 검증 후 `terraform destroy`로 과금 차단.
+
+**Status**: 진행 중 — #120 **Done·close**. #121/#122 gitops 코드 main 머지(PR #123/#124), 라이브 검증 차기 on-demand 윈도우. #91/#92는 서비스(gateway/platform-svc) 후속 의존. 차기 윈도우 진입 선결 = PR #124 머지(완료) + 서비스 2건(gateway 릴리스·platform-svc staging main 머지).
 
 ---
 
