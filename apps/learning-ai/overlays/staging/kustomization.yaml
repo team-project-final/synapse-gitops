@@ -33,6 +33,18 @@ patches:
       - op: add
         path: /data/LEARNING_AI_DATABASE_URL
         value: "postgresql+asyncpg://synapse_admin@synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com:5432/synapse"
+      - op: add
+        path: /data/LEARNING_AI_KAFKA_ENABLED
+        value: "true"
+      - op: add
+        path: /data/LEARNING_AI_SCHEMA_REGISTRY_URL
+        value: "http://schema-registry:8081"
+      # staging MSK는 TLS 전용 리스너(client_broker=TLS, 9094). aiokafka 클라이언트가
+      # SSL로 핸드셰이크하도록 지정(미설정 시 PLAINTEXT 기본→TLS 브로커 연결 실패).
+      # MSK 인증서는 Amazon Trust Services 발급→JDK/Python 기본 truststore로 충분.
+      - op: add
+        path: /data/LEARNING_AI_KAFKA_SECURITY_PROTOCOL
+        value: "SSL"
 
   - target:
       kind: ExternalSecret
