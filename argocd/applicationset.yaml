@@ -32,7 +32,10 @@ spec:
         argocd-image-updater.argoproj.io/app.allow-tags: "regexp:^[0-9]+\\.[0-9]+\\.[0-9]+$"
         argocd-image-updater.argoproj.io/write-back-method: git
         argocd-image-updater.argoproj.io/write-back-target: kustomization
-        argocd-image-updater.argoproj.io/git-branch: main
+        # PR write-back (#126): main 직접 push(=Maintain bypass 의존) 대신 base:commit 분리 브랜치로 push.
+        # ApplicationSet이 {{service}}를 치환 → 서비스별 write-branch(image-updater-<svc>). main은 보호 유지.
+        # 이 브랜치 push → .github/workflows/image-updater-pr.yml 가 main으로 PR 자동 생성.
+        argocd-image-updater.argoproj.io/git-branch: "main:image-updater-{{service}}"
     spec:
       project: synapse
       source:
