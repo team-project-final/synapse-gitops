@@ -52,6 +52,10 @@ button[aria-pressed="true"]{ border-color:var(--accent); color:var(--accent); }
 #detail code{ font-family:var(--mono); color:var(--accent); word-break:break-all; }
 a:hover{ color:var(--accent) !important; }
 .node:focus rect{ stroke:var(--accent) !important; }
+/* 발표 모드: 슬라이드를 뷰포트 세로 중앙에 구성(고정 푸터 48px 회피) */
+#stage.slidewrap{ min-height:calc(100vh - 44px); display:flex; flex-direction:column;
+  justify-content:center; align-items:center; padding-bottom:48px; }
+#stage.slidewrap .slide{ width:100%; }
 </style>
 </head>
 <body>
@@ -311,6 +315,7 @@ function renderSlide(){
   const c = SYSTEM.chapters[SLIDE];
   const stage = document.getElementById('stage');
   document.getElementById('detail').hidden = true;
+  stage.className = 'slidewrap';
   stage.innerHTML =
     '<article class="slide" style="padding:var(--xl);max-width:1100px;margin:0 auto">'+
       chapterInner(c)+'</article>'+
@@ -329,6 +334,7 @@ function go(d){ SLIDE = Math.max(0, Math.min(SYSTEM.chapters.length-1, SLIDE+d))
 function renderReference(){
   const stage = document.getElementById('stage');
   document.getElementById('detail').hidden = true;
+  stage.className = '';
   const nav = '<nav class="mono" style="position:sticky;top:0;align-self:start;'+
     'display:flex;flex-direction:column;gap:var(--xs);padding:var(--lg);'+
     'border-right:1px solid var(--line);min-width:200px;font-size:12px">'+
