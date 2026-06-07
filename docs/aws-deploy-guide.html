@@ -249,19 +249,17 @@ function renderEnvToggle(){
     b.addEventListener('click', function(){ setEnv(b.dataset.env); });
   });
 }
-function heroHost(){
-  return document.getElementById('hero') || document.getElementById('hero-big-picture');
-}
 function applyEnv(){
-  const host = heroHost();
-  if(!host) return;
-  const badges = host.querySelector('.badges');
-  if(badges){
-    badges.style.opacity = 0;
-    setTimeout(function(){ host.innerHTML = heroHTML(CURRENT_ENV); }, 150);
-  } else {
-    host.innerHTML = heroHTML(CURRENT_ENV);
-  }
+  // 모드와 무관하게 화면에 떠 있는 모든 히어로(.hero-host)를 갱신한다.
+  document.querySelectorAll('.hero-host').forEach(function(host){
+    const badges = host.querySelector('.badges');
+    if(badges){
+      badges.style.opacity = 0;
+      setTimeout(function(){ host.innerHTML = heroHTML(CURRENT_ENV); }, 150);
+    } else {
+      host.innerHTML = heroHTML(CURRENT_ENV);
+    }
+  });
 }
 function setEnv(env){
   CURRENT_ENV = env;
@@ -306,12 +304,13 @@ function renderGlossaryTable(){
 function chapterInner(c){
   let body = '<p style="font-size:16px">'+c.slideBody+'</p>';
   if(c.refBody==="GLOSSARY") body += renderGlossaryTable();
-  if(c.visual==="hero") body += '<section id="hero">'+heroHTML(CURRENT_ENV)+'</section>';
+  if(c.visual==="hero") body += '<section class="hero-host">'+heroHTML(CURRENT_ENV)+'</section>';
   return '<h2 class="mono" style="font-size:18px">'+c.title+'</h2>'+body;
 }
 function renderSlide(){
   const c = SYSTEM.chapters[SLIDE];
   const stage = document.getElementById('stage');
+  document.getElementById('detail').hidden = true;
   stage.innerHTML =
     '<article class="slide" style="padding:var(--xl);max-width:1100px;margin:0 auto">'+
       chapterInner(c)+'</article>'+
@@ -329,6 +328,7 @@ function go(d){ SLIDE = Math.max(0, Math.min(SYSTEM.chapters.length-1, SLIDE+d))
    ========================================================================= */
 function renderReference(){
   const stage = document.getElementById('stage');
+  document.getElementById('detail').hidden = true;
   const nav = '<nav class="mono" style="position:sticky;top:0;align-self:start;'+
     'display:flex;flex-direction:column;gap:var(--xs);padding:var(--lg);'+
     'border-right:1px solid var(--line);min-width:200px;font-size:12px">'+
@@ -341,9 +341,7 @@ function renderReference(){
       if(c.refBody==="GLOSSARY") inner += renderGlossaryTable();
       else inner += '<p style="color:var(--muted)">'+c.refBody+'</p>';
       if(c.visual==="hero"){
-        inner += (c.id==="big-picture")
-          ? '<section id="hero-big-picture">'+heroHTML(CURRENT_ENV)+'</section>'
-          : '<section>'+renderTopology()+'</section>';
+        inner += '<section class="hero-host">'+heroHTML(CURRENT_ENV)+'</section>';
       }
       return inner;
     }).join('')+'</div>';
@@ -373,6 +371,7 @@ function init(){
 
   window.addEventListener('keydown', function(ev){
     if(MODE!=="slide") return;
+    if(ev.target.tagName==="BUTTON"||ev.target.tagName==="A") return;
     if(ev.key==="ArrowRight"||ev.key===" "){ ev.preventDefault(); go(1); }
     if(ev.key==="ArrowLeft"){ ev.preventDefault(); go(-1); }
   });
