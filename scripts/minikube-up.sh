@@ -17,6 +17,7 @@ build_docker() { # <name> <context>
   fi
 }
 build_docker synapse-gateway        "$SIB/synapse-gateway"
+build_docker synapse-frontend       "$SIB/synapse-frontend"
 build_docker synapse-platform-svc   "$SIB/synapse-platform-svc"
 build_docker synapse-engagement-svc "$SIB/synapse-engagement-svc"
 build_docker synapse-knowledge-svc  "$SIB/synapse-knowledge-svc"
@@ -48,13 +49,14 @@ fi
 
 echo "==> 4) 롤아웃 대기"
 kubectl -n synapse-local rollout status deploy/postgres --timeout=120s
-for d in platform-svc engagement-svc knowledge-svc learning-card learning-ai gateway; do
+for d in platform-svc engagement-svc knowledge-svc learning-card learning-ai gateway frontend; do
   kubectl -n synapse-local rollout status "deploy/$d" --timeout=300s || true
 done
 
 cat <<'EOF'
 ==> 완료. 접근(별도 터미널에서 port-forward):
   kubectl -n synapse-local port-forward svc/gateway       8080:80   # 메인 진입점
+  # 브라우저로 SPA: http://localhost:8080/  (gateway가 /api 외 경로를 frontend로 서빙)
   kubectl -n synapse-local port-forward svc/learning-ai   8000:80
   # (직접 접근이 필요하면) svc/platform-svc·engagement-svc·knowledge-svc·learning-card 도 :80
 그 다음: Gateway 경유 curl http://localhost:8080/api/platform/actuator/health , 브라우저로 http://localhost:8000/docs
