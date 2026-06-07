@@ -12,6 +12,7 @@ spec:
           - service: knowledge-svc
           - service: learning-card
           - service: learning-ai
+          - service: frontend
           - service: schema-registry
   template:
     metadata:
