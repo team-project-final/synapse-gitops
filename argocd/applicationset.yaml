@@ -15,6 +15,7 @@ spec:
                 - service: learning-card
                 - service: learning-ai
                 - service: gateway
+                - service: frontend
           - list:
               elements:
                 - env: dev
