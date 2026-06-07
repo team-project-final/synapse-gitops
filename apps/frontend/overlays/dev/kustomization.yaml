@@ -14,4 +14,4 @@ patches:
 images:
   - name: ghcr.io/team-project-final/synapse-frontend
     newName: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/frontend
-    newTag: bcf256f7814d84aa36ddf5ceb5e010eb1c2b4888
+    newTag: a994c2d29be7a42404d309958c7f5275588ab540
