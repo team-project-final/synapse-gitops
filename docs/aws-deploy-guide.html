@@ -101,51 +101,111 @@ const SYSTEM = {
   topology: {
     nodes: [
       { id:"internet", label:"인터넷", kind:"external", x:1, y:1,
-        role:"사용자 브라우저", detail:"공용 인터넷에서 ALB로 진입." },
+        role:"사용자 브라우저 / 외부 트래픽",
+        detail:"모든 외부 트래픽의 출발점. 클러스터로 직접 들어오지 못하고 public 서브넷의 ALB 한 곳으로만 진입한다.",
+        why:"진입점을 ALB 하나로 좁혀 공격면을 최소화하고, 나머지 리소스는 전부 private 서브넷에 숨긴다." },
       { id:"alb", label:"ALB", kind:"edge", x:3, y:1, tfFile:"alb-controller-irsa.tf",
-        role:"L7 로드밸런서", detail:"AWS Load Balancer Controller(IRSA)가 Ingress로 생성. TLS 종단(ACM).",
+        role:"L7 애플리케이션 로드밸런서",
+        spec:"AWS Load Balancer Controller(IRSA로 IAM 권한 부여)가 Ingress 리소스를 보고 자동 생성. ACM 인증서로 HTTPS(TLS) 종단.",
+        detail:"public 서브넷에 위치하는 유일한 외부 노출 지점. TLS를 여기서 끝내고 평문으로 gateway에 전달한다.",
+        why:"인그레스를 코드(Ingress 매니페스트)로 선언하면 컨트롤러가 ALB·리스너·타깃그룹을 알아서 맞춘다. 수동 콘솔 작업 제거.",
         verifyCmd:"kubectl get ingress -A" },
       { id:"gateway", label:"gateway", kind:"svc", color:"#bc8cff", x:5, y:1,
-        role:"단일 진입 게이트웨이",
-        detail:"/api/** → 백엔드(JWT 인증 필수), catch-all(non-/api) → frontend SPA(공개). RoutesConfig/SecurityConfig (#5/#6).",
+        role:"Spring Cloud Gateway — 단일 진입점",
+        spec:"라우팅 2갈래: /api/** → 백엔드 서비스(JWT 인증 필수), catch-all(그 외 모든 경로) → frontend SPA(공개).",
+        detail:"ALB 뒤에서 모든 요청을 받아 분기한다. RoutesConfig가 catch-all을 Ordered.LOWEST_PRECEDENCE로 둬 /api 라우트(order 0)가 항상 먼저 매칭되게 한다. SecurityConfig가 /api/**만 인증 강제.",
+        why:"프론트와 API를 같은 오리진으로 묶어 CORS 문제를 없애고, 인증 경계를 게이트웨이 한 곳에 집중(PR #5 JWT, #6 catch-all).",
         verifyCmd:"curl -k https://<alb>/api/actuator/health" },
       { id:"frontend", label:"frontend", kind:"svc", color:"#8b949e", x:5, y:3,
-        role:"Flutter web SPA(nginx :80)",
-        detail:"synapse-frontend에서 Docker화→ECR→gitops 배포(#21/#22). gateway catch-all이 프록시.",
+        role:"Flutter Web SPA (nginx :80)",
+        spec:"Flutter web 빌드 산출물을 nginx 컨테이너로 패키징. ECR push 후 gitops 태그 bump로 배포(synapse-frontend #21/#22).",
+        detail:"별도 레포에서 Docker화되어 다른 백엔드와 동일한 ECR→ArgoCD 경로로 배포된다. gateway catch-all이 이 서비스로 프록시.",
+        why:"SPA를 gateway 뒤 같은 오리진에서 서빙해 API 호출이 same-origin이 되고, 딥링크·정적 자산이 공개 경로로 자연스럽게 열린다.",
         verifyCmd:"kubectl get deploy frontend" },
       { id:"platform", label:"platform-svc", kind:"svc", color:"#58a6ff", x:7, y:1,
-        role:"인증/플랫폼", detail:"JWT 발급·플랫폼 API.", verifyCmd:"kubectl get deploy platform-svc" },
+        role:"인증 / 플랫폼 코어",
+        spec:"JWT 발급·검증 키 소유, 사용자/플랫폼 도메인 API. Postgres + Redis 사용.",
+        detail:"gateway가 검증하는 JWT를 발급하는 신뢰 소스. 세션/캐시는 Redis, 영속 데이터는 RDS.",
+        why:"인증을 한 서비스에 모아 다른 서비스는 gateway가 전파한 신원 헤더만 신뢰하면 된다.",
+        verifyCmd:"kubectl get deploy platform-svc" },
       { id:"engagement", label:"engagement-svc", kind:"svc", color:"#3fb950", x:7, y:2,
-        role:"커뮤니티/참여", detail:"Kafka 이벤트 발행/구독.", verifyCmd:"kubectl get deploy engagement-svc" },
+        role:"커뮤니티 / 참여",
+        spec:"커뮤니티·모더레이션 도메인. Kafka로 이벤트 발행/구독(Avro), Postgres 영속.",
+        detail:"모더레이션 결과 등을 Kafka 토픽으로 발행해 알림 등 후속 처리를 비동기로 연결.",
+        why:"서비스 간 결합을 이벤트(Kafka)로 느슨하게 — 동기 호출 사슬 대신 발행/구독.",
+        verifyCmd:"kubectl get deploy engagement-svc" },
       { id:"knowledge", label:"knowledge-svc", kind:"svc", color:"#f778ba", x:7, y:3,
-        role:"지식/검색", detail:"Elasticsearch 색인·검색.", verifyCmd:"kubectl get deploy knowledge-svc" },
+        role:"지식 / 검색",
+        spec:"문서 색인·검색. Elasticsearch(클러스터 내 StatefulSet) + Postgres.",
+        detail:"검색 질의는 Elasticsearch로, 원본/메타는 Postgres로. nori 한글 분석기 사용.",
+        why:"검색은 전용 엔진이 필요해 RDS만으로는 부족 — ES에 색인을 별도로 둔다.",
+        verifyCmd:"kubectl get deploy knowledge-svc" },
       { id:"learningcard", label:"learning-card", kind:"svc", color:"#ff7b72", x:7, y:4,
-        role:"학습카드", detail:"학습 카드 도메인.", verifyCmd:"kubectl get deploy learning-card" },
+        role:"학습 카드 도메인",
+        spec:"학습 카드 CRUD·리뷰 통계. Postgres 영속, Kafka 이벤트 소비.",
+        detail:"learning-ai가 발행한 이벤트/알림을 받아 카드·리뷰 통계를 갱신.",
+        why:"학습 도메인을 카드(데이터)와 AI(추론)로 분리해 각자 독립 배포·스케일.",
+        verifyCmd:"kubectl get deploy learning-card" },
       { id:"learningai", label:"learning-ai", kind:"svc", color:"#e3b341", x:7, y:5,
-        role:"AI 추론 컨테이너", detail:"learning 관련 AI.", verifyCmd:"kubectl get deploy learning-ai" },
+        role:"AI 추론 컨테이너",
+        spec:"learning 관련 AI 추론. 비-root(uid 101) 컨테이너로 실행(#42). Kafka로 결과·알림 발행.",
+        detail:"추론 결과를 Avro 이벤트로 발행해 learning-card 등이 소비. 무거운 의존성 때문에 별도 컨테이너.",
+        why:"AI 추론은 자원 프로파일이 달라 일반 백엔드와 분리 — 독립 스케일·이미지.",
+        verifyCmd:"kubectl get deploy learning-ai" },
       { id:"rds", label:"RDS PG16.9", kind:"managed", x:9, y:1, tfFile:"rds.tf",
-        role:"PostgreSQL 16.9", detail:"db.t3.medium, 20GB(max 50), private, EKS SG에서만. dev Multi-AZ 꺼짐.",
-        verifyCmd:"앱 health 또는 psql" },
+        role:"PostgreSQL 16.9 (AWS 관리형)",
+        spec:"db.t3.medium · 스토리지 20GB(오토스케일 max 50) · 저장 암호화 · private 서브넷 · dev Multi-AZ 꺼짐.",
+        detail:"여러 서비스의 영속 데이터 저장소. EKS 노드 보안그룹에서만 접근 허용한다.",
+        why:"DB 운영(백업·패치·HA)을 AWS에 맡기고 앱에 집중. dev는 비용 때문에 단일 AZ, prod에서 Multi-AZ로 승급.",
+        verifyCmd:"앱 health 또는 psql 접속" },
       { id:"msk", label:"MSK 3.6.0", kind:"managed", x:9, y:2, tfFile:"msk.tf",
-        role:"Kafka 3.6.0", detail:"broker 3, kafka.t3.small, TLS. Schema Registry 연동.",
-        verifyCmd:"kafka-broker-api-versions.sh" },
+        role:"Kafka 3.6.0 (AWS 관리형)",
+        spec:"broker 3 · kafka.t3.small · TLS 통신 · private. Schema Registry와 같은 VPC.",
+        detail:"서비스 간 비동기 이벤트 버스. 모든 통신은 TLS로 암호화되고 broker는 외부 비노출.",
+        why:"Kafka 클러스터 운영 부담을 MSK로 위임. broker 3개로 dev 최소 가용성 확보.",
+        verifyCmd:"kafka-broker-api-versions.sh --bootstrap-server <broker>:9094" },
       { id:"sr", label:"Schema Registry", kind:"managed", x:9, y:3,
-        role:"Avro 스키마 레지스트리", detail:"MSK와 같은 VPC 내부. BACKWARD 호환.",
+        role:"Avro 스키마 레지스트리",
+        spec:"Confluent 7.x 호환. BACKWARD 호환 정책 강제. MSK와 같은 VPC 내부.",
+        detail:"Kafka 메시지의 Avro 스키마를 중앙 관리. 생산자/소비자가 스키마 ID로 직렬화·역직렬화.",
+        why:"스키마를 레지스트리에 잠가 호환성을 강제 — 한 서비스의 스키마 변경이 다른 서비스를 깨지 않게.",
         verifyCmd:"GET /subjects" },
       { id:"redis", label:"ElastiCache 7.1", kind:"managed", x:9, y:4, tfFile:"redis.tf",
-        role:"Redis 7.1", detail:"cache.t3.micro 1 node, in-transit 암호화, failover 꺼짐(dev).",
-        verifyCmd:"redis-cli --tls ping" },
+        role:"Redis 7.1 (AWS 관리형)",
+        spec:"cache.t3.micro · 1 node · in-transit 암호화 · AUTH 토큰 · dev failover 꺼짐.",
+        detail:"세션·캐시 저장소. 앱 서브넷에서만 접근, 전송 구간 암호화.",
+        why:"캐시 운영을 ElastiCache로 위임. dev는 단일 노드(비용), prod에서 failover 활성화로 승급.",
+        verifyCmd:"redis-cli --tls -h <endpoint> ping" },
       { id:"es", label:"Elasticsearch", kind:"incluster", x:9, y:5,
-        role:"검색(EKS 내 StatefulSet)", detail:"AWS 관리형 아님. apps/elasticsearch StatefulSet.",
+        role:"검색 엔진 (EKS 내 StatefulSet)",
+        spec:"apps/elasticsearch/base/statefulset.yaml. AWS 관리형 OpenSearch가 아니라 클러스터 안에서 자체 호스팅.",
+        detail:"knowledge-svc의 검색 백엔드. PV에 색인을 저장하는 StatefulSet으로 운영.",
+        why:"관리형 OpenSearch를 쓰다 비용·제어 이유로 EKS 내 ES StatefulSet으로 이전(opensearch.tf 제거됨). 클러스터와 같은 수명주기.",
         verifyCmd:"GET /_cluster/health" },
-      { id:"ecr", label:"ECR", kind:"cicd", x:11, y:1, role:"컨테이너 레지스트리",
-        detail:"GHA가 이미지 push. image-updater가 태그 추적.", verifyCmd:"aws ecr describe-images" },
-      { id:"argocd", label:"ArgoCD", kind:"cicd", x:11, y:2, role:"GitOps 컨트롤러",
-        detail:"ApplicationSet 7대상×3env. dev/staging auto, prod 수동.", verifyCmd:"argocd app list" },
+      { id:"ecr", label:"ECR", kind:"cicd", x:11, y:1,
+        role:"컨테이너 이미지 레지스트리",
+        spec:"서비스별 ECR 리포지토리. GitHub Actions가 IRSA(synapse-gha-deploy-role)로 push.",
+        detail:"각 서비스 CI가 이미지를 빌드해 push하면 image-updater가 새 태그를 감지한다.",
+        why:"이미지 저장을 AWS 관리형으로. IRSA로 키 없이 push 권한 부여(OIDC).",
+        verifyCmd:"aws ecr describe-images --repository-name <svc>" },
+      { id:"argocd", label:"ArgoCD", kind:"cicd", x:11, y:2,
+        role:"GitOps 배포 컨트롤러",
+        spec:"ApplicationSet matrix = 7 대상 × 3 env. dev/staging=automated(prune+selfHeal), prod=수동 sync.",
+        detail:"gitops 레포의 매니페스트를 클러스터 상태와 비교해 동기화. image-updater가 태그를 올리면 ArgoCD가 반영.",
+        why:"git을 단일 진실로 — 배포가 곧 커밋. prod만 수동 게이트(FR-GO-402)로 승인 후 반영.",
+        verifyCmd:"argocd app list" },
       { id:"velero", label:"Velero", kind:"ops", x:11, y:4, tfFile:"velero.tf",
-        role:"백업/복구", detail:"클러스터 리소스·PV 백업.", verifyCmd:"velero backup get" },
+        role:"백업 / 복구",
+        spec:"클러스터 리소스 + PV 스냅샷 백업. S3 백엔드.",
+        detail:"네임스페이스 단위로 리소스와 볼륨을 백업해 클러스터 재해 복구에 사용.",
+        why:"GitOps가 매니페스트는 복원하지만 PV 데이터는 못 살린다 — Velero가 그 공백을 메운다.",
+        verifyCmd:"velero backup get" },
       { id:"bastion", label:"bastion", kind:"ops", x:11, y:5, tfFile:"bastion.tf",
-        role:"점프 호스트", detail:"private 리소스 디버그 접근.", verifyCmd:"ssh bastion" },
+        role:"점프 호스트",
+        spec:"public 서브넷의 소형 EC2. private 리소스로의 SSH 게이트웨이.",
+        detail:"RDS·MSK·Redis 등 private 리소스를 디버깅할 때 거쳐 들어가는 유일한 통로.",
+        why:"private 리소스를 직접 외부 노출하지 않고, 감사 가능한 단일 진입점으로만 접근.",
+        verifyCmd:"ssh ec2-user@<bastion-ip>" },
     ],
     edges: [
       { from:"internet", to:"alb", kind:"route" },
@@ -200,18 +260,19 @@ let SLIDE = 0;
 
 const EDGE_COLOR = { rest:"var(--rest)", kafka:"var(--kafka)",
                      store:"var(--store)", route:"var(--accent)" };
-const GX = 120, GY = 90, NW = 96, NH = 40;
+const GX = 120, GY = 92, NW = 190, NH = 50, NFONT = 19;
 function nodePos(n){ return { cx:n.x*GX, cy:n.y*GY }; }
 
 function renderTopology(){
   const t = SYSTEM.topology;
-  const W = 13*GX, H = 6*GY;
-  const out = ['<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="AWS 토폴로지" style="max-height:62vh">'];
+  // viewBox를 노드 범위에 타이트하게 맞춰 다운스케일 시 텍스트가 뭉개지지 않게 한다.
+  const W = 12.4*GX, H = 6.4*GY;
+  const out = ['<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="AWS 토폴로지" style="max-height:70vh">'];
   for(const e of t.edges){
     const a = nodePos(t.nodes.find(function(n){return n.id===e.from;}));
     const b = nodePos(t.nodes.find(function(n){return n.id===e.to;}));
     out.push('<line x1="'+a.cx+'" y1="'+a.cy+'" x2="'+b.cx+'" y2="'+b.cy+
-      '" style="stroke:'+EDGE_COLOR[e.kind]+';stroke-width:1.5;opacity:.55"/>');
+      '" style="stroke:'+EDGE_COLOR[e.kind]+';stroke-width:2.4;opacity:.5"/>');
   }
   for(const n of t.nodes){
     const p = nodePos(n);
@@ -219,9 +280,9 @@ function renderTopology(){
     out.push(
       '<g class="node" data-id="'+n.id+'" tabindex="0" style="cursor:pointer">'+
       '<rect x="'+(p.cx-NW/2)+'" y="'+(p.cy-NH/2)+'" width="'+NW+'" height="'+NH+
-        '" rx="6" style="fill:var(--panel);stroke:'+stroke+';stroke-width:1.5"/>'+
-      '<text x="'+p.cx+'" y="'+(p.cy+4)+'" text-anchor="middle" '+
-        'style="font-family:var(--mono);font-size:11px;fill:var(--fg)">'+n.label+'</text>'+
+        '" rx="8" style="fill:var(--panel);stroke:'+stroke+';stroke-width:2"/>'+
+      '<text x="'+p.cx+'" y="'+(p.cy+NFONT/3)+'" text-anchor="middle" '+
+        'style="font-family:var(--mono);font-size:'+NFONT+'px;font-weight:500;fill:var(--fg)">'+n.label+'</text>'+
       '</g>');
   }
   out.push('</svg>');
@@ -274,14 +335,31 @@ function setEnv(env){
 /* =========================================================================
    상세 패널
    ========================================================================= */
+const KIND_LABEL = { rest:"REST", kafka:"Kafka", store:"데이터", route:"라우트" };
+function nodeConnections(id){
+  const t = SYSTEM.topology;
+  const nm = function(x){ const n=t.nodes.find(function(z){return z.id===x;}); return n?n.label:x; };
+  const out = [];
+  t.edges.forEach(function(e){
+    if(e.from===id) out.push('→ '+nm(e.to)+'  ('+(KIND_LABEL[e.kind]||e.kind)+')');
+    if(e.to===id)   out.push('← '+nm(e.from)+'  ('+(KIND_LABEL[e.kind]||e.kind)+')');
+  });
+  return out;
+}
 function showDetail(id){
   const n = SYSTEM.topology.nodes.find(function(x){return x.id===id;});
   if(!n) return;
+  const conns = nodeConnections(id);
   const el = document.getElementById('detail');
-  el.innerHTML = '<h3 class="mono" style="font-size:18px;margin:0 0 var(--md)">'+n.label+'</h3>'+
-    '<div>'+n.role+'</div>'+
-    (n.tfFile?'<div class="k">terraform</div><code>infra/aws/dev/'+n.tfFile+'</code>':'')+
+  el.innerHTML =
+    '<h3 class="mono" style="font-size:18px;margin:0 0 var(--xs)">'+n.label+'</h3>'+
+    '<div style="color:var(--muted);margin-bottom:var(--sm)">'+n.role+'</div>'+
+    (n.spec?'<div class="k">스펙</div><div>'+n.spec+'</div>':'')+
     '<div class="k">설명</div><div>'+n.detail+'</div>'+
+    (n.why?'<div class="k">왜 이렇게</div><div>'+n.why+'</div>':'')+
+    (conns.length?'<div class="k">연결</div>'+conns.map(function(c){
+      return '<div style="font-family:var(--mono);font-size:12px;color:var(--muted)">'+c+'</div>';}).join(''):'')+
+    (n.tfFile?'<div class="k">terraform</div><code>infra/aws/dev/'+n.tfFile+'</code>':'')+
     (n.verifyCmd?'<div class="k">접속 확인</div><code>'+n.verifyCmd+'</code>':'');
   el.hidden = false;
 }
@@ -340,7 +418,7 @@ function renderReference(){
     'border-right:1px solid var(--line);min-width:200px;font-size:12px">'+
     SYSTEM.chapters.map(function(c){return '<a href="#ch-'+c.id+'" style="color:var(--muted);text-decoration:none">'+
       c.title+'</a>';}).join('')+'</nav>';
-  const body = '<div style="padding:var(--xl);max-width:900px">'+
+  const body = '<div style="padding:var(--xl);max-width:1040px;flex:1;min-width:0">'+
     SYSTEM.chapters.map(function(c){
       let inner = '<h2 class="mono" id="ch-'+c.id+'" style="font-size:18px;margin-top:24px">'+c.title+'</h2>'+
         '<p style="font-size:16px">'+c.slideBody+'</p>';
