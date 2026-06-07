@@ -71,7 +71,8 @@ SYSTEM = {
 
 ## 4. 히어로: AWS 토폴로지 맵
 
-- 손으로 그린 SVG: **VPC 경계 → public/private 서브넷 → EKS(노드그룹/파드 + 클러스터 내 Elasticsearch StatefulSet) → AWS 관리형 서비스(RDS·MSK+Schema Registry·ElastiCache Redis) → ECR·ArgoCD·ALB → bastion·Velero**.
+- 손으로 그린 SVG: **인터넷 → ALB → gateway(단일 진입점) → EKS(백엔드 5 svc + frontend SPA + 클러스터 내 Elasticsearch StatefulSet) → AWS 관리형 서비스(RDS·MSK+Schema Registry·ElastiCache Redis) → ECR·ArgoCD → bastion·Velero**.
+- **진입/라우팅(2026-06-07 반영)**: gateway가 ALB 뒤 단일 진입점. `/api/**` → 백엔드 서비스(JWT 인증 필수, route 색 퍼플), **catch-all(non-/api) → frontend**(Flutter web/nginx :80, 공개 — SPA 셸·정적 자산·딥링크). 근거: gateway `RoutesConfig.java`(catch-all `Ordered.LOWEST_PRECEDENCE`, `FRONTEND_SVC_URI`) · `SecurityConfig.java`.
 - 검색은 AWS 관리형(OpenSearch)이 아니라 **EKS 위 Elasticsearch StatefulSet**(`apps/elasticsearch`)으로 자체 호스팅됨에 유의 — 토폴로지에서 관리형 박스가 아닌 EKS 내부 노드로 표현.
 - 상단 **dev / staging / prod 세그먼트 토글**. 전환 시 300ms 애니메이션으로 변화:
   - EKS 노드 수, MSK broker 수
@@ -86,10 +87,10 @@ SYSTEM = {
 ## 5. 섹션 구성 (A안 여정형, 실제 repo 근거)
 
 1. **AWS 개념 워밍업** — VPC·서브넷·보안그룹·IAM·IRSA·EKS·관리형 서비스를 입문자용 1줄 비유 + "우리는 왜 쓰나". (`SYSTEM.glossary`)
-2. **전체 그림** — 히어로 맵 + GitOps 한 줄 흐름: `dev/GHA → docker build → ECR push → gitops 이미지 태그 업데이트 → ArgoCD → EKS`.
+2. **전체 그림** — 히어로 맵 + GitOps 한 줄 흐름: `dev/GHA → docker build → ECR push → gitops 이미지 태그 업데이트 → ArgoCD → EKS`. 사용자 트래픽 경로(ALB → gateway → /api 백엔드 / catch-all frontend)도 함께 표시.
 3. **기본 세팅** — 근거: `runbooks/step1-aws-account-setup.md`, `superpowers/plans/2026-05-14-aws-infra-terraform.md`. 계정/OIDC → Terraform 적용 순서(vpc → eks → rds/msk/redis → addons → irsa).
 4. **인프라 구성요소** — 근거: `infra/aws/dev/*.tf`. 카드: EKS(`eks.tf`) · RDS PG16(`rds.tf`) · MSK+Schema Registry(`msk.tf`) · ElastiCache Redis(`redis.tf`) · ECR · ACM(`acm.tf`) · ALB IRSA(`alb-controller-irsa.tf`) · ESO IRSA(`eso-irsa.tf`) · image-updater IRSA(`image-updater-irsa.tf`) · bastion(`bastion.tf`) · Velero(`velero.tf`). 검색은 AWS 관리형이 아닌 **클러스터 내 Elasticsearch StatefulSet**(`apps/elasticsearch/base/statefulset.yaml`)로 별도 카드. 각 카드: 역할 / dev 스펙 / 핵심 설정 / 접속 확인.
-5. **배포가 도는 방식** — 근거: `argocd/applicationset.yaml`(5 svc × 3 env matrix), `argocd/image-updater.yaml`. "커밋하면 무슨 일이 일어나는가" 시퀀스 + autoSync.
+5. **배포가 도는 방식** — 근거: `argocd/applicationset.yaml`. 매트릭스는 이제 **7개 배포 대상**(platform/engagement/knowledge/learning-card/learning-ai 백엔드 + **gateway + frontend**) × 3 env(2026-06-07 frontend·gateway 합류). 서비스별 image-updater write-branch(`image-updater-<svc>`), `argocd/image-updater.yaml`. "커밋하면 무슨 일이 일어나는가" 시퀀스 + autoSync. frontend는 별도 레포(`synapse-frontend`)에서 Flutter web→Docker(nginx)→ECR push(#21/#22) 후 gitops 태그 bump로 배포됨.
 6. **환경 승급** — 근거: `applicationset-staging.yaml` · `applicationset-prod.yaml` · `apps/*/overlays/{dev,staging,prod}`. dev(autoSync) → staging → prod(manual sync) 차이 + prod 하드닝(NetworkPolicy/HPA/non-root/Multi-AZ). 히어로 맵 토글과 연동.
 7. **운영·보안·비용** — 근거: `runbooks/step11-operational-runbook.md`, `velero.tf`, `eso-irsa.tf`. Velero 백업 · ESO 시크릿 흐름 · dev 월 $200 제약 · destroy 주의.
 
@@ -125,6 +126,8 @@ SYSTEM = {
 ## 9. 근거 파일 인덱스
 
 - 인프라: `infra/aws/dev/{vpc,eks,rds,msk,redis,acm,addons,bastion,velero,eso-irsa,alb-controller-irsa,image-updater-irsa}.tf`
-- 배포: `argocd/{applicationset,applicationset-staging,applicationset-prod,image-updater}.yaml`, `apps/*/overlays/{dev,staging,prod}`
+- 배포: `argocd/{applicationset,applicationset-staging,applicationset-prod,image-updater}.yaml`(7 대상 × 3 env), `apps/*/overlays/{dev,staging,prod}`, `apps/frontend/overlays/*`
+- 진입/라우팅: `synapse-gateway` `RoutesConfig.java`·`SecurityConfig.java`(#5 JWT, #6 catch-all→frontend)
+- frontend: `synapse-frontend` Flutter web Dockerize(#21)·ECR deploy CI(#22)
 - 절차: `docs/runbooks/{step1-aws-account-setup,w1-argocd-bootstrap-runbook,w2-dev-deploy-runbook,step11-operational-runbook}.md`
 - 기존 자산: `docs/aws-infra-provisioning-workflow-guide.md`(콘텐츠 소스), `docs/local-k8s-guide.html`(스타일/엔진 레퍼런스)
