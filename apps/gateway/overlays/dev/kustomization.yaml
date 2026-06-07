@@ -40,4 +40,4 @@ patches:
 images:
   - name: ghcr.io/team-project-final/synapse-gateway
     newName: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/gateway
-    newTag: 7ae42397c0483399bb61a196592712d8aa5fd8da
+    newTag: 9e4f190a37efd52abe24c72fb659d98c350f8988
