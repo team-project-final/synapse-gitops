@@ -52,6 +52,117 @@ button[aria-pressed="true"]{ border-color:var(--accent); color:var(--accent); }
 #detail code{ font-family:var(--mono); color:var(--accent); word-break:break-all; }
 a:hover{ color:var(--accent) !important; }
 .node:focus rect{ stroke:var(--accent) !important; }
+/* 발표 모드: 슬라이드를 뷰포트 세로 중앙에 구성(고정 푸터 48px 회피) */
+#stage.slidewrap{ min-height:calc(100vh - 44px); display:flex; flex-direction:column;
+  justify-content:center; align-items:center; padding-bottom:48px; }
+#stage.slidewrap .slide{ width:100%; }
+
+/* ===== DECK — web-presentation 엔진 (발표 모드 캐러셀) ===== */
+#stage.deckwrap{ padding:0; height:calc(100vh - 44px); }
+.presentation{ width:100%; height:calc(100vh - 44px); display:grid; place-items:center; overflow:hidden; }
+.slides{ width:960px; height:540px; position:relative; display:grid;
+  transform:scale(var(--slide-scale,1)); transform-origin:center center; }
+.slide{ grid-area:1/1; width:100%; height:100%; display:flex; flex-direction:column; justify-content:center;
+  padding:36px 52px; opacity:0; visibility:hidden; transition:opacity .5s ease, transform .5s ease, visibility .5s;
+  background:var(--panel); border:1px solid var(--line); border-radius:var(--r-md); overflow:hidden; transform:scale(.97); }
+.slide.active{ opacity:1; visibility:visible; z-index:1; transform:scale(1); }
+.slide-content{ width:100%; max-height:100%; }
+.slide h1{ font-family:var(--mono); font-size:40px; font-weight:600; color:#fff; margin:0 0 10px; letter-spacing:-.01em; line-height:1.25; }
+.slide h2{ font-family:var(--mono); font-size:28px; font-weight:600; color:var(--accent); margin:0 0 14px; line-height:1.3; }
+.slide h3{ font-family:var(--mono); font-size:17px; font-weight:600; color:var(--kafka); margin:0 0 8px; }
+.slide h4{ font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.02em; color:var(--muted); margin:0 0 6px; }
+.slide p{ font-size:16px; line-height:1.5; margin:0 0 8px; }
+.slide ul,.slide ol{ font-size:15px; line-height:1.6; padding-left:22px; margin:0 0 8px; }
+.slide li{ margin-bottom:3px; }
+.slide .subtitle{ font-size:20px; color:var(--muted); }
+.slide.title-slide{ text-align:center; align-items:center; background:linear-gradient(135deg,#161b22,#0e1116 65%,#0b0e13); }
+.slide.title-slide h1{ font-size:44px; background:linear-gradient(135deg,var(--accent),var(--rest));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.slide .hero-host{ display:block; }
+.slide .hero-host svg{ max-height:300px !important; }
+.slide .hero-host .badges{ padding:var(--xs) 0 !important; justify-content:center; }
+.slide table{ font-size:13px; }
+.fragment{ opacity:0; transform:translateY(12px); transition:opacity .4s ease, transform .4s ease; transition-delay:var(--step-delay,0s); }
+.fragment.visible{ opacity:1; transform:translateY(0); }
+.callout{ background:rgba(88,166,255,.07); border-left:4px solid var(--rest); padding:9px 14px;
+  border-radius:0 var(--r-md) var(--r-md) 0; margin:8px 0; font-size:14px; line-height:1.5; }
+.callout.warning{ border-left-color:var(--kafka); background:rgba(210,153,34,.08); }
+.callout.danger{ border-left-color:var(--danger); background:rgba(248,81,73,.08); }
+.callout.ok{ border-left-color:var(--store); background:rgba(63,185,80,.08); }
+.deck-code{ background:#0d1117; border:1px solid var(--line); border-radius:var(--r-md); padding:10px 14px; margin:8px 0; overflow-x:auto; }
+.deck-code pre{ margin:0; font-family:var(--mono); font-size:12.5px; line-height:1.5; color:#d4d4d4; white-space:pre-wrap; word-break:break-all; }
+.code-line{ display:block; padding:0 6px; transition:background-color .3s ease,opacity .3s ease; }
+.code-line.highlighted{ background:rgba(188,140,255,.14); border-left:3px solid var(--accent); padding-left:3px; }
+.deck-code.has-highlight .code-line:not(.highlighted){ opacity:.4; }
+.two-columns{ display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
+.progress-bar{ position:fixed; bottom:0; left:0; width:100%; height:3px; background:rgba(255,255,255,.08); z-index:50; }
+.progress-fill{ height:100%; width:0; background:linear-gradient(90deg,var(--accent),var(--rest)); transition:width .3s ease-out; }
+.slide-counter{ position:fixed; bottom:10px; right:18px; font-family:var(--mono); font-size:12px; color:var(--dim); z-index:50; user-select:none; }
+.deck-help{ position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:120; display:none; place-items:center; }
+.deck-help.show{ display:grid; }
+.deck-help .box{ background:var(--panel); border:1px solid var(--line); border-radius:var(--r-lg); padding:24px 32px; max-width:420px; }
+.deck-help h3{ font-family:var(--mono); color:var(--accent); margin:0 0 12px; }
+.deck-help table{ width:100%; font-size:13px; } .deck-help td{ padding:4px 0; }
+.deck-help kbd{ font-family:var(--mono); background:var(--surface-2); border:1px solid var(--line); border-radius:4px; padding:1px 7px; font-size:12px; }
+body.deck-overview .slides{ grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px; padding:20px;
+  overflow-y:auto; max-height:calc(100vh - 44px); transform:none !important; }
+body.deck-overview .slide{ grid-area:auto; opacity:1; visibility:visible; transform:none !important; cursor:pointer;
+  border:2px solid transparent; content-visibility:auto; contain-intrinsic-size:220px 124px; }
+body.deck-overview .slide.active{ border-color:var(--accent); }
+.vt-active .slide{ transition:none !important; }
+::view-transition-old(root){ animation:vtout .3s ease; } ::view-transition-new(root){ animation:vtin .3s ease; }
+@keyframes vtout{ to{ opacity:0; } } @keyframes vtin{ from{ opacity:0; } }
+@media print{ @page{ size:960px 540px landscape; margin:0; }
+  #topbar,#detail,.progress-bar,.slide-counter,.deck-help{ display:none !important; }
+  .presentation,.slides{ display:block; height:auto; transform:none !important; }
+  .slide{ break-before:page; opacity:1 !important; visibility:visible !important; transform:none !important; width:960px; height:540px; }
+  .fragment{ opacity:1 !important; transform:none !important; } }
+
+/* ===== DECK 컴포넌트 추가 (Step3 콘텐츠 확장) ===== */
+.slide table{ width:100%; border-collapse:collapse; font-size:13px; margin:8px 0; }
+.slide th{ background:rgba(188,140,255,.1); color:var(--accent); font-family:var(--mono); font-size:11px; text-transform:uppercase; text-align:left; padding:6px 9px; border-bottom:1px solid var(--line); }
+.slide td{ padding:6px 9px; border-bottom:1px solid rgba(255,255,255,.06); vertical-align:top; }
+.diagram{ display:flex; align-items:center; justify-content:center; gap:10px; margin:12px 0; flex-wrap:wrap; }
+.diagram-box{ background:rgba(188,140,255,.06); border:1px solid var(--line); border-radius:var(--r-md); padding:8px 16px; text-align:center; min-width:96px; }
+.diagram-box.highlight{ border-color:var(--accent); background:rgba(188,140,255,.14); }
+.diagram-box h4{ font-family:var(--mono); color:var(--accent); margin:0 0 2px; font-size:13px; }
+.diagram-box p{ font-size:11px; color:var(--muted); margin:0; }
+.diagram-arrow{ color:var(--dim); font-size:18px; }
+.compare-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:10px 0; }
+.compare-card{ background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:var(--r-md); padding:12px 14px; }
+.compare-card h4{ font-family:var(--mono); font-size:13px; margin:0 0 6px; }
+.compare-card.good{ border-color:rgba(63,185,80,.4); } .compare-card.good h4{ color:var(--store); }
+.compare-card.bad{ border-color:rgba(248,81,73,.4); } .compare-card.bad h4{ color:var(--danger); }
+.tag{ display:inline-block; font-family:var(--mono); font-size:12px; padding:2px 10px; border-radius:9999px; margin:2px 3px; }
+.tag-purple{ background:rgba(188,140,255,.16); color:var(--accent); }
+.tag-blue{ background:rgba(88,166,255,.16); color:var(--rest); }
+.tag-green{ background:rgba(63,185,80,.16); color:var(--store); }
+.tag-amber{ background:rgba(210,153,34,.16); color:var(--kafka); }
+.tag-red{ background:rgba(248,81,73,.16); color:var(--danger); }
+.refdoc table{ width:100%; border-collapse:collapse; font-size:13px; margin:8px 0; }
+.refdoc th,.refdoc td{ border:1px solid var(--line); padding:6px 9px; text-align:left; vertical-align:top; }
+.refdoc th{ color:var(--accent); font-family:var(--mono); font-size:11px; text-transform:uppercase; }
+.refdoc .diagram{ justify-content:flex-start; }
+.refdoc .deck-code,.refdoc .callout,.refdoc .compare-grid{ max-width:900px; }
+
+/* ===== Step2 폴리시: 노트 패널 · 자동재생 · 발표자 노트 ===== */
+.speaker-notes{ display:none; }
+.notes-panel{ position:fixed; bottom:0; left:0; right:0; max-height:30vh; overflow-y:auto;
+  background:rgba(0,0,0,.92); color:var(--fg); padding:14px 22px; font-size:14px; line-height:1.6;
+  transform:translateY(100%); transition:transform .3s ease; z-index:60; border-top:1px solid var(--line); }
+.notes-panel.show{ transform:translateY(0); }
+.notes-panel .notes-empty{ color:var(--dim); font-style:italic; }
+.autoplay-indicator{ position:fixed; bottom:10px; left:18px; font-size:18px; color:var(--muted); z-index:60;
+  opacity:0; transition:opacity .3s ease; }
+.autoplay-indicator.show{ opacity:1; }
+.autoplay-indicator.fade-out{ animation:autoFade 2s ease forwards; }
+@keyframes autoFade{ 0%{opacity:1} 70%{opacity:1} 100%{opacity:0} }
+@media print{ .notes-panel,.autoplay-indicator{ display:none !important; } }
+/* 명령어 캡션 + env 활성 열 강조 */
+.code-cap{ font-size:12px; color:var(--muted); margin:6px 0 1px; line-height:1.4; }
+.code-cap::before{ content:"› "; color:var(--accent); }
+.env-table .env-on{ background:rgba(188,140,255,.16); }
+.env-table th.env-on{ color:var(--accent); }
 </style>
 </head>
 <body>
@@ -97,51 +208,111 @@ const SYSTEM = {
   topology: {
     nodes: [
       { id:"internet", label:"인터넷", kind:"external", x:1, y:1,
-        role:"사용자 브라우저", detail:"공용 인터넷에서 ALB로 진입." },
+        role:"사용자 브라우저 / 외부 트래픽",
+        detail:"모든 외부 트래픽의 출발점. 클러스터로 직접 들어오지 못하고 public 서브넷의 ALB 한 곳으로만 진입한다.",
+        why:"진입점을 ALB 하나로 좁혀 공격면을 최소화하고, 나머지 리소스는 전부 private 서브넷에 숨긴다." },
       { id:"alb", label:"ALB", kind:"edge", x:3, y:1, tfFile:"alb-controller-irsa.tf",
-        role:"L7 로드밸런서", detail:"AWS Load Balancer Controller(IRSA)가 Ingress로 생성. TLS 종단(ACM).",
+        role:"L7 애플리케이션 로드밸런서",
+        spec:"AWS Load Balancer Controller(IRSA로 IAM 권한 부여)가 Ingress 리소스를 보고 자동 생성. ACM 인증서로 HTTPS(TLS) 종단.",
+        detail:"public 서브넷에 위치하는 유일한 외부 노출 지점. TLS를 여기서 끝내고 평문으로 gateway에 전달한다.",
+        why:"인그레스를 코드(Ingress 매니페스트)로 선언하면 컨트롤러가 ALB·리스너·타깃그룹을 알아서 맞춘다. 수동 콘솔 작업 제거.",
         verifyCmd:"kubectl get ingress -A" },
       { id:"gateway", label:"gateway", kind:"svc", color:"#bc8cff", x:5, y:1,
-        role:"단일 진입 게이트웨이",
-        detail:"/api/** → 백엔드(JWT 인증 필수), catch-all(non-/api) → frontend SPA(공개). RoutesConfig/SecurityConfig (#5/#6).",
+        role:"Spring Cloud Gateway — 단일 진입점",
+        spec:"라우팅 2갈래: /api/** → 백엔드 서비스(JWT 인증 필수), catch-all(그 외 모든 경로) → frontend SPA(공개).",
+        detail:"ALB 뒤에서 모든 요청을 받아 분기한다. RoutesConfig가 catch-all을 Ordered.LOWEST_PRECEDENCE로 둬 /api 라우트(order 0)가 항상 먼저 매칭되게 한다. SecurityConfig가 /api/**만 인증 강제.",
+        why:"프론트와 API를 같은 오리진으로 묶어 CORS 문제를 없애고, 인증 경계를 게이트웨이 한 곳에 집중(PR #5 JWT, #6 catch-all).",
         verifyCmd:"curl -k https://<alb>/api/actuator/health" },
       { id:"frontend", label:"frontend", kind:"svc", color:"#8b949e", x:5, y:3,
-        role:"Flutter web SPA(nginx :80)",
-        detail:"synapse-frontend에서 Docker화→ECR→gitops 배포(#21/#22). gateway catch-all이 프록시.",
+        role:"Flutter Web SPA (nginx :80)",
+        spec:"Flutter web 빌드 산출물을 nginx 컨테이너로 패키징. ECR push 후 gitops 태그 bump로 배포(synapse-frontend #21/#22).",
+        detail:"별도 레포에서 Docker화되어 다른 백엔드와 동일한 ECR→ArgoCD 경로로 배포된다. gateway catch-all이 이 서비스로 프록시.",
+        why:"SPA를 gateway 뒤 같은 오리진에서 서빙해 API 호출이 same-origin이 되고, 딥링크·정적 자산이 공개 경로로 자연스럽게 열린다.",
         verifyCmd:"kubectl get deploy frontend" },
       { id:"platform", label:"platform-svc", kind:"svc", color:"#58a6ff", x:7, y:1,
-        role:"인증/플랫폼", detail:"JWT 발급·플랫폼 API.", verifyCmd:"kubectl get deploy platform-svc" },
+        role:"인증 / 플랫폼 코어",
+        spec:"JWT 발급·검증 키 소유, 사용자/플랫폼 도메인 API. Postgres + Redis 사용.",
+        detail:"gateway가 검증하는 JWT를 발급하는 신뢰 소스. 세션/캐시는 Redis, 영속 데이터는 RDS.",
+        why:"인증을 한 서비스에 모아 다른 서비스는 gateway가 전파한 신원 헤더만 신뢰하면 된다.",
+        verifyCmd:"kubectl get deploy platform-svc" },
       { id:"engagement", label:"engagement-svc", kind:"svc", color:"#3fb950", x:7, y:2,
-        role:"커뮤니티/참여", detail:"Kafka 이벤트 발행/구독.", verifyCmd:"kubectl get deploy engagement-svc" },
+        role:"커뮤니티 / 참여",
+        spec:"커뮤니티·모더레이션 도메인. Kafka로 이벤트 발행/구독(Avro), Postgres 영속.",
+        detail:"모더레이션 결과 등을 Kafka 토픽으로 발행해 알림 등 후속 처리를 비동기로 연결.",
+        why:"서비스 간 결합을 이벤트(Kafka)로 느슨하게 — 동기 호출 사슬 대신 발행/구독.",
+        verifyCmd:"kubectl get deploy engagement-svc" },
       { id:"knowledge", label:"knowledge-svc", kind:"svc", color:"#f778ba", x:7, y:3,
-        role:"지식/검색", detail:"Elasticsearch 색인·검색.", verifyCmd:"kubectl get deploy knowledge-svc" },
+        role:"지식 / 검색",
+        spec:"문서 색인·검색. Elasticsearch(클러스터 내 StatefulSet) + Postgres.",
+        detail:"검색 질의는 Elasticsearch로, 원본/메타는 Postgres로. nori 한글 분석기 사용.",
+        why:"검색은 전용 엔진이 필요해 RDS만으로는 부족 — ES에 색인을 별도로 둔다.",
+        verifyCmd:"kubectl get deploy knowledge-svc" },
       { id:"learningcard", label:"learning-card", kind:"svc", color:"#ff7b72", x:7, y:4,
-        role:"학습카드", detail:"학습 카드 도메인.", verifyCmd:"kubectl get deploy learning-card" },
+        role:"학습 카드 도메인",
+        spec:"학습 카드 CRUD·리뷰 통계. Postgres 영속, Kafka 이벤트 소비.",
+        detail:"learning-ai가 발행한 이벤트/알림을 받아 카드·리뷰 통계를 갱신.",
+        why:"학습 도메인을 카드(데이터)와 AI(추론)로 분리해 각자 독립 배포·스케일.",
+        verifyCmd:"kubectl get deploy learning-card" },
       { id:"learningai", label:"learning-ai", kind:"svc", color:"#e3b341", x:7, y:5,
-        role:"AI 추론 컨테이너", detail:"learning 관련 AI.", verifyCmd:"kubectl get deploy learning-ai" },
+        role:"AI 추론 컨테이너",
+        spec:"learning 관련 AI 추론. 비-root(uid 101) 컨테이너로 실행(#42). Kafka로 결과·알림 발행.",
+        detail:"추론 결과를 Avro 이벤트로 발행해 learning-card 등이 소비. 무거운 의존성 때문에 별도 컨테이너.",
+        why:"AI 추론은 자원 프로파일이 달라 일반 백엔드와 분리 — 독립 스케일·이미지.",
+        verifyCmd:"kubectl get deploy learning-ai" },
       { id:"rds", label:"RDS PG16.9", kind:"managed", x:9, y:1, tfFile:"rds.tf",
-        role:"PostgreSQL 16.9", detail:"db.t3.medium, 20GB(max 50), private, EKS SG에서만. dev Multi-AZ 꺼짐.",
-        verifyCmd:"앱 health 또는 psql" },
+        role:"PostgreSQL 16.9 (AWS 관리형)",
+        spec:"db.t3.medium · 스토리지 20GB(오토스케일 max 50) · 저장 암호화 · private 서브넷 · dev Multi-AZ 꺼짐.",
+        detail:"여러 서비스의 영속 데이터 저장소. EKS 노드 보안그룹에서만 접근 허용한다.",
+        why:"DB 운영(백업·패치·HA)을 AWS에 맡기고 앱에 집중. dev는 비용 때문에 단일 AZ, prod에서 Multi-AZ로 승급.",
+        verifyCmd:"앱 health 또는 psql 접속" },
       { id:"msk", label:"MSK 3.6.0", kind:"managed", x:9, y:2, tfFile:"msk.tf",
-        role:"Kafka 3.6.0", detail:"broker 3, kafka.t3.small, TLS. Schema Registry 연동.",
-        verifyCmd:"kafka-broker-api-versions.sh" },
+        role:"Kafka 3.6.0 (AWS 관리형)",
+        spec:"broker 3 · kafka.t3.small · TLS 통신 · private. Schema Registry와 같은 VPC.",
+        detail:"서비스 간 비동기 이벤트 버스. 모든 통신은 TLS로 암호화되고 broker는 외부 비노출.",
+        why:"Kafka 클러스터 운영 부담을 MSK로 위임. broker 3개로 dev 최소 가용성 확보.",
+        verifyCmd:"kafka-broker-api-versions.sh --bootstrap-server <broker>:9094" },
       { id:"sr", label:"Schema Registry", kind:"managed", x:9, y:3,
-        role:"Avro 스키마 레지스트리", detail:"MSK와 같은 VPC 내부. BACKWARD 호환.",
+        role:"Avro 스키마 레지스트리",
+        spec:"Confluent 7.x 호환. BACKWARD 호환 정책 강제. MSK와 같은 VPC 내부.",
+        detail:"Kafka 메시지의 Avro 스키마를 중앙 관리. 생산자/소비자가 스키마 ID로 직렬화·역직렬화.",
+        why:"스키마를 레지스트리에 잠가 호환성을 강제 — 한 서비스의 스키마 변경이 다른 서비스를 깨지 않게.",
         verifyCmd:"GET /subjects" },
       { id:"redis", label:"ElastiCache 7.1", kind:"managed", x:9, y:4, tfFile:"redis.tf",
-        role:"Redis 7.1", detail:"cache.t3.micro 1 node, in-transit 암호화, failover 꺼짐(dev).",
-        verifyCmd:"redis-cli --tls ping" },
+        role:"Redis 7.1 (AWS 관리형)",
+        spec:"cache.t3.micro · 1 node · in-transit 암호화 · AUTH 토큰 · dev failover 꺼짐.",
+        detail:"세션·캐시 저장소. 앱 서브넷에서만 접근, 전송 구간 암호화.",
+        why:"캐시 운영을 ElastiCache로 위임. dev는 단일 노드(비용), prod에서 failover 활성화로 승급.",
+        verifyCmd:"redis-cli --tls -h <endpoint> ping" },
       { id:"es", label:"Elasticsearch", kind:"incluster", x:9, y:5,
-        role:"검색(EKS 내 StatefulSet)", detail:"AWS 관리형 아님. apps/elasticsearch StatefulSet.",
+        role:"검색 엔진 (EKS 내 StatefulSet)",
+        spec:"apps/elasticsearch/base/statefulset.yaml. AWS 관리형 OpenSearch가 아니라 클러스터 안에서 자체 호스팅.",
+        detail:"knowledge-svc의 검색 백엔드. PV에 색인을 저장하는 StatefulSet으로 운영.",
+        why:"관리형 OpenSearch를 쓰다 비용·제어 이유로 EKS 내 ES StatefulSet으로 이전(opensearch.tf 제거됨). 클러스터와 같은 수명주기.",
         verifyCmd:"GET /_cluster/health" },
-      { id:"ecr", label:"ECR", kind:"cicd", x:11, y:1, role:"컨테이너 레지스트리",
-        detail:"GHA가 이미지 push. image-updater가 태그 추적.", verifyCmd:"aws ecr describe-images" },
-      { id:"argocd", label:"ArgoCD", kind:"cicd", x:11, y:2, role:"GitOps 컨트롤러",
-        detail:"ApplicationSet 7대상×3env. dev/staging auto, prod 수동.", verifyCmd:"argocd app list" },
+      { id:"ecr", label:"ECR", kind:"cicd", x:11, y:1,
+        role:"컨테이너 이미지 레지스트리",
+        spec:"서비스별 ECR 리포지토리. GitHub Actions가 IRSA(synapse-gha-deploy-role)로 push.",
+        detail:"각 서비스 CI가 이미지를 빌드해 push하면 image-updater가 새 태그를 감지한다.",
+        why:"이미지 저장을 AWS 관리형으로. IRSA로 키 없이 push 권한 부여(OIDC).",
+        verifyCmd:"aws ecr describe-images --repository-name <svc>" },
+      { id:"argocd", label:"ArgoCD", kind:"cicd", x:11, y:2,
+        role:"GitOps 배포 컨트롤러",
+        spec:"ApplicationSet matrix = 7 대상 × 3 env. dev/staging=automated(prune+selfHeal), prod=수동 sync.",
+        detail:"gitops 레포의 매니페스트를 클러스터 상태와 비교해 동기화. image-updater가 태그를 올리면 ArgoCD가 반영.",
+        why:"git을 단일 진실로 — 배포가 곧 커밋. prod만 수동 게이트(FR-GO-402)로 승인 후 반영.",
+        verifyCmd:"argocd app list" },
       { id:"velero", label:"Velero", kind:"ops", x:11, y:4, tfFile:"velero.tf",
-        role:"백업/복구", detail:"클러스터 리소스·PV 백업.", verifyCmd:"velero backup get" },
+        role:"백업 / 복구",
+        spec:"클러스터 리소스 + PV 스냅샷 백업. S3 백엔드.",
+        detail:"네임스페이스 단위로 리소스와 볼륨을 백업해 클러스터 재해 복구에 사용.",
+        why:"GitOps가 매니페스트는 복원하지만 PV 데이터는 못 살린다 — Velero가 그 공백을 메운다.",
+        verifyCmd:"velero backup get" },
       { id:"bastion", label:"bastion", kind:"ops", x:11, y:5, tfFile:"bastion.tf",
-        role:"점프 호스트", detail:"private 리소스 디버그 접근.", verifyCmd:"ssh bastion" },
+        role:"점프 호스트",
+        spec:"public 서브넷의 소형 EC2. private 리소스로의 SSH 게이트웨이.",
+        detail:"RDS·MSK·Redis 등 private 리소스를 디버깅할 때 거쳐 들어가는 유일한 통로.",
+        why:"private 리소스를 직접 외부 노출하지 않고, 감사 가능한 단일 진입점으로만 접근.",
+        verifyCmd:"ssh ec2-user@<bastion-ip>" },
     ],
     edges: [
       { from:"internet", to:"alb", kind:"route" },
@@ -163,27 +334,160 @@ const SYSTEM = {
     ],
   },
   chapters: [
-    { id:"warmup", title:"1. AWS 개념 워밍업", visual:"none",
-      slideBody:"AWS를 처음 봐도 괜찮다. 딱 7개 단어만 알면 된다.",
-      refBody:"GLOSSARY" },
-    { id:"big-picture", title:"2. 전체 그림", visual:"hero",
-      slideBody:"커밋 → ECR → ArgoCD → EKS. 사용자는 ALB→gateway로 들어와 /api는 백엔드, 나머지는 frontend.",
-      refBody:"배포 파이프라인과 사용자 트래픽 경로는 분리된 두 흐름이다. 배포: dev/GHA→docker build→ECR push→gitops 태그 bump→ArgoCD sync→EKS. 트래픽: 인터넷→ALB(ACM TLS)→gateway→(/api/** 백엔드 JWT | catch-all frontend SPA)." },
-    { id:"setup", title:"3. 기본 세팅", visual:"none",
-      slideBody:"AWS 계정/OIDC를 잡고 Terraform을 순서대로 적용한다: vpc→eks→rds/msk/redis→addons→irsa.",
-      refBody:"근거: runbooks/step1-aws-account-setup.md, plans/2026-05-14-aws-infra-terraform.md. 순서가 중요한 이유: 네트워크(vpc)가 먼저 있어야 컴퓨트(eks)가 그 위에 뜨고, 데이터 계층이 같은 사설망에 들어가며, addons/IRSA는 클러스터가 존재해야 붙는다." },
-    { id:"components", title:"4. 인프라 구성요소", visual:"hero",
-      slideBody:"각 박스를 클릭하면 역할·terraform 파일·접속 확인이 나온다.",
-      refBody:"EKS(t3.medium×4) · RDS(PG16.9 db.t3.medium) · MSK(3.6.0 broker3 kafka.t3.small TLS) · ElastiCache(Redis7.1 cache.t3.micro) · 검색은 EKS 내 Elasticsearch StatefulSet(관리형 아님) · ECR/ArgoCD/ALB · bastion/Velero. 모두 private 우선, ALB만 public." },
-    { id:"how-deploy", title:"5. 배포가 도는 방식", visual:"none",
-      slideBody:"ApplicationSet이 7개 대상 × 3환경을 matrix로 찍어낸다. 커밋하면 image-updater가 태그를 올리고 ArgoCD가 동기화.",
-      refBody:"근거: argocd/applicationset.yaml. 대상=platform·engagement·knowledge·learning-card·learning-ai·gateway·frontend. frontend는 synapse-frontend에서 Flutter web→Docker(nginx)→ECR(#21/#22) 후 gitops 태그 bump로 합류. dev/staging은 automated(prune+selfHeal)." },
-    { id:"promote", title:"6. 환경 승급", visual:"hero",
-      slideBody:"dev·staging은 자동 sync, prod는 사람이 승인하고 수동 sync. 위 환경 토글로 차이를 보라.",
-      refBody:"근거: applicationset{,-staging,-prod}.yaml + apps/*/overlays/*. prod만 automated가 없다 — main 머지 후 OutOfSync 대기 → gitops-admin 수동 sync(FR-GO-402 승인 게이트). prod 하드닝: NetworkPolicy(5 오버레이)+HPA(10 오버레이)+non-root+Multi-AZ." },
-    { id:"ops", title:"7. 운영·보안·비용", visual:"none",
-      slideBody:"백업은 Velero, 시크릿은 ESO로 외부 주입, dev는 월 $200 제약. 다 쓰면 destroy.",
-      refBody:"근거: runbooks/step11-operational-runbook.md, velero.tf, eso-irsa.tf. ESO(External Secrets)가 AWS Secrets Manager 값을 클러스터 Secret으로 동기화 — 비밀값은 git에 없다. dev 비용 상한 월 $200. 미사용 시 terraform destroy로 정리." },
+    { id:"title", kind:"title", title:"Synapse AWS 배포 가이드",
+      slides:[ { sub:"커밋 한 번으로 EKS까지 — 최초 설정부터 배포 확인·검증까지",
+        tags:["EKS","ECR→ArgoCD","GitOps","dev→staging→prod"] } ] },
+
+    { id:"warmup", title:"1. 개념 워밍업",
+      slides:[ { blocks:[
+        { p:"AWS를 처음 봐도 괜찮다. 이 7개 단어면 충분하다." },
+        { gloss:true }
+      ] } ] },
+
+    { id:"big-picture", title:"2. 전체 그림",
+      slides:[
+        { t:"두 개의 흐름", blocks:[
+          { p:"<strong>배포</strong>와 <strong>트래픽</strong>은 분리된 두 흐름이다." },
+          { dia:[ {h:"커밋",d:"git push"}, {h:"ECR",d:"이미지"}, {h:"ArgoCD",d:"sync"}, {h:"EKS",d:"실행",hi:1} ] },
+          { p:"트래픽: 인터넷 → ALB(ACM TLS) → gateway → <code>/api</code> 백엔드(JWT) | catch-all frontend SPA" }
+        ] },
+        { t:"시스템 토폴로지", blocks:[
+          { hero:true },
+          { p:"박스를 클릭하면 역할·terraform·검증 명령이 열린다. 상단 환경 토글로 dev/staging/prod 차이를 본다." }
+        ] }
+      ] },
+
+    { id:"setup", title:"3. 사전 준비",
+      slides:[
+        { t:"준비물 한눈에", blocks:[
+          { ul:[ "AWS 계정 + <strong>Budget 알람</strong>($10 템플릿)",
+                 "IAM 사용자 <code>synapse-admin</code> + AdministratorAccess",
+                 "Access Key → <code>aws configure</code> (region ap-northeast-2)",
+                 "도구: aws CLI v2 · terraform · kubectl · helm",
+                 "<code>terraform.tfvars</code> 작성(계정 ID·도메인 등)" ] },
+          { co:"이 단계 이후 자원은 시간당 과금 — 끝나면 즉시 destroy. dev 월 상한 $200.", k:"danger" }
+        ] },
+        { t:"인증 설정 + 확인", blocks:[
+          { cap:"AWS 자격증명을 로컬에 저장 — 이후 모든 명령의 인증(1회)", code:"aws configure\n# Access Key / Secret / ap-northeast-2 / json" },
+          { cap:"현재 인증 주체 확인 — Arn이 synapse-admin인지", code:"aws sts get-caller-identity" },
+          { co:"Arn 끝이 <code>user/synapse-admin</code> 이어야 한다 (<code>:root</code>면 IAM 사용자로 재설정).", k:"ok" }
+        ] }
+      ] },
+
+    { id:"provision", title:"4. 인프라 프로비저닝",
+      slides:[
+        { t:"State Backend 수동 생성", blocks:[
+          { co:"<strong>chicken-and-egg</strong>: backend(S3+DynamoDB)가 있어야 <code>terraform init</code>이 된다 → 수동 선생성.", k:"warning" },
+          { two:[
+            [ { cap:"Terraform state 원격 저장용 S3 버킷", code:"aws s3api create-bucket\n  --bucket synapse-terraform-state\n  --region ap-northeast-2\n# + versioning · AES256 · public 차단" } ],
+            [ { cap:"state 동시 수정을 막는 잠금 테이블", code:"aws dynamodb create-table\n  --table-name synapse-terraform-locks\n  --attribute-definitions ...LockID\n  --billing-mode PAY_PER_REQUEST" } ]
+          ] },
+          { co:"⚠️ 자원 생성 시각을 기록하고, 학습 후 즉시 <code>destroy</code>.", k:"danger" }
+        ] },
+        { t:"init → plan → apply", blocks:[
+          { dia:[ {h:"init",d:"provider"}, {h:"plan",d:"-out=tfplan"}, {h:"apply",d:"20~25분",hi:1} ] },
+          { co:"plan 마지막 줄 <code>to destroy: 0</code> 확인 필수 — 아니면 무엇이 삭제되는지 보고 결정.", k:"warning" },
+          { cap:"apply 진행 순서 — 의존성 때문에 이 순서로 생성", code:"1. VPC / Subnet / IGW / RT        (1~2분)\n2. NAT GW x2 · IAM · SG          (2~10분)\n3. EKS Cluster  &lt;- 가장 오래   (5~15분)\n4. RDS · Redis · MSK · OpenSearch\n5. Node Group -&gt; Helm(ArgoCD)", hl:"1|2|3|4|5" }
+        ] },
+        { t:"완료 신호 & 비용", blocks:[
+          { cap:"성공 출력 — outputs로 엔드포인트·네임스페이스 확보", code:"Apply complete! Resources: 40 added, 0 changed, 0 destroyed.\n\nOutputs:\nargocd_namespace = &quot;argocd&quot;\nrds_endpoint     = &quot;...rds.amazonaws.com:5432&quot;" },
+          { co:"<code>argocd_namespace = argocd</code> 출력까지 통과하면 앱 배포로.", k:"ok" },
+          { p:"비용: Cost Explorer / Budgets <code>synapse-gitops-learning</code> 모니터링 시작." }
+        ] }
+      ] },
+
+    { id:"deploy", title:"5. 앱 배포",
+      slides:[
+        { t:"배포 파이프라인", blocks:[
+          { dia:[ {h:"CI",d:"build"}, {h:"ECR",d:"push"}, {h:"image-updater",d:"태그 감지",hi:1}, {h:"git",d:"write-back"}, {h:"ArgoCD",d:"sync"} ] },
+          { p:"<strong>ApplicationSet</strong>이 7대상 × 환경을 matrix로 찍어낸다 — 5 백엔드 + gateway + frontend." },
+          { co:"dev/staging은 automated(prune+selfHeal). prod만 수동 sync.", k:"warning" }
+        ] },
+        { t:"시크릿(ESO) + 이미지 권한", blocks:[
+          { p:"비밀값은 git에 없다 — <strong>ESO</strong>가 AWS Secrets Manager → 클러스터 Secret으로 동기화." },
+          { cap:"비밀값은 git에 없고 Secrets Manager 키만 참조", code:"# ExternalSecret\nremoteRef:\n  key: synapse/dev/platform-svc/db-password" },
+          { p:"ECR push/pull은 <strong>IRSA</strong>(synapse-gha-deploy-role)로 키 없이 — OIDC 신뢰." }
+        ] },
+        { t:"image-updater 자동 반영", blocks:[
+          { p:"새 이미지 push → <strong>2~5분</strong> 내 dev Pod 반영, git log에 태그 커밋(write-back)." },
+          { cap:"image-updater 동작을 지정하는 Application 주석", code:"# Application annotation\nimage-list: ECR/synapse/platform-svc\nupdate-strategy: semver\nwrite-back-method: git" },
+          { co:"검증: <code>kubectl get deploy -n synapse-dev</code> 이미지 태그가 새 버전인지.", k:"ok" }
+        ] }
+      ] },
+
+    { id:"verify", title:"6. 배포 확인·검증",
+      slides:[
+        { t:"검증 5단계", blocks:[
+          { dia:[ {h:"인프라"}, {h:"ArgoCD"}, {h:"워크로드"}, {h:"트래픽"}, {h:"관측",hi:1} ] },
+          { p:"아래로 갈수록 사용자에 가까워진다 — 인프라부터 실제 요청까지 단계별 확인." }
+        ] },
+        { t:"인프라 & ArgoCD", blocks:[
+          { cap:"인프라 출력값 + 노드가 Ready인지 확인", code:"terraform output rds_endpoint\nterraform output eks_cluster_name\nkubectl get nodes        # Ready" },
+          { p:"ArgoCD: 모든 Application이 <strong>Synced + Healthy</strong>." },
+          { cap:"ArgoCD 앱 상태 조회 + UI 포트포워딩 접속", code:"kubectl -n argocd get applications\nkubectl port-forward svc/argocd-server -n argocd 8080:443" }
+        ] },
+        { t:"워크로드 & 트래픽", blocks:[
+          { cap:"파드 Running + ALB 주소(Ingress) 확인", code:"kubectl get pods -n synapse-dev    # 전부 Running\nkubectl get ingress -A             # ALB 주소" },
+          { cap:"실제 요청으로 백엔드/프론트 응답 검증", code:"curl -k https://&lt;alb&gt;/api/actuator/health   # 백엔드 200\ncurl -k https://&lt;alb&gt;/                       # frontend" },
+          { p:"gateway 분기: <code>/api/**</code>=백엔드(JWT), catch-all=frontend SPA." }
+        ] },
+        { t:"관측 + 체크리스트", blocks:[
+          { ul:[ "Grafana 로그인(admin)", "Prometheus targets 5앱 <strong>UP</strong>",
+                 "Loki 로그 조회", "알람 <code>vector(1)</code> 테스트 → Slack 도달" ] },
+          { cmp:[ {h:"정상 신호", html:"Synced+Healthy · pods Running · /health 200 · targets UP"},
+                  {h:"비정상 신호", bad:true, html:"OutOfSync · CrashLoopBackOff · 5xx · target DOWN"} ] }
+        ] }
+      ] },
+
+    { id:"promote", title:"7. 환경 승급",
+      slides:[
+        { t:"dev → staging → prod", blocks:[
+          { env:true, tbl:{ head:["항목","dev","staging","prod"], rows:[
+            ["replicas","1","2","3"],
+            ["sync","auto","auto","manual"],
+            ["TLS","없음","self-signed","CA 인증서"],
+            ["하드닝","non-root","+NetworkPolicy/HPA","+Multi-AZ"] ] } },
+          { p:"상단 환경 토글로 토폴로지·배지가 환경별로 바뀐다." }
+        ] },
+        { t:"prod 승인 게이트", blocks:[
+          { p:"prod만 <strong>automated가 없다</strong> — main 머지 후 OutOfSync로 대기." },
+          { cap:"권한 없으면 거부 — 승인 게이트가 작동하는 증거", code:"# 비권한 계정 -> permission denied\nargocd app sync synapse-platform-svc-prod\n# gitops-admin만 sync 가능" },
+          { co:"FR-GO-402 승인 게이트: Slack 신청 → gitops-admin 승인 → 수동 sync.", k:"warning" }
+        ] }
+      ] },
+
+    { id:"ops", title:"8. 운영·보안·비용",
+      slides:[
+        { t:"백업 · 시크릿 · 비용", blocks:[
+          { ul:[ "<strong>백업</strong>: Velero → S3(IRSA), 스케줄 백업 + 복구 시뮬",
+                 "<strong>시크릿</strong>: ESO가 Secrets Manager 동기화 — git에 비밀값 없음",
+                 "<strong>비용</strong>: dev 월 상한 $200, 매시간 Budget 확인" ] }
+        ] },
+        { t:"정리 (destroy)", blocks:[
+          { co:"학습 완료 즉시 정리 — 방치 시 월 ~$300.", k:"danger" },
+          { code:"cd infra/aws/dev\nterraform destroy -auto-approve" },
+          { p:"destroy 후 orphan 확인: EIP · ENI · CloudWatch Logs (누적 과금 방지)." }
+        ] }
+      ] },
+
+    { id:"trouble", title:"9. 트러블슈팅",
+      slides:[
+        { t:"프로비저닝 단계", blocks:[
+          { tbl:{ head:["증상","해결"], rows:[
+            ["Free Tier 노드 실패","결제수단 verification(24~72h) 또는 kind 로컬"],
+            ["MSK SubscriptionRequired","콘솔서 &quot;Amazon MSK&quot; 진입 후 재apply"],
+            ["OpenSearch SLR 없음","aws iam create-service-linked-role"],
+            ["state lock","terraform force-unlock &lt;ID&gt;"] ] } }
+        ] },
+        { t:"배포·검증 + 접속", blocks:[
+          { tbl:{ head:["증상","해결"], rows:[
+            ["ECR 401","image-updater IRSA · ecr-login 마운트 확인"],
+            ["write-back 실패","Deploy Key write 권한 · branch bypass"],
+            ["ArgoCD 401","argocd-initial-admin-secret 재조회"],
+            ["Grafana 502","ALB target 헬스 · pod readiness"] ] } },
+          { co:"private 리소스 접근은 <strong>bastion + SSM Session Manager</strong>.", k:"ok" }
+        ] }
+      ] },
   ],
 };
 
@@ -196,18 +500,19 @@ let SLIDE = 0;
 
 const EDGE_COLOR = { rest:"var(--rest)", kafka:"var(--kafka)",
                      store:"var(--store)", route:"var(--accent)" };
-const GX = 120, GY = 90, NW = 96, NH = 40;
+const GX = 120, GY = 92, NW = 190, NH = 50, NFONT = 19;
 function nodePos(n){ return { cx:n.x*GX, cy:n.y*GY }; }
 
 function renderTopology(){
   const t = SYSTEM.topology;
-  const W = 13*GX, H = 6*GY;
-  const out = ['<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="AWS 토폴로지" style="max-height:62vh">'];
+  // viewBox를 노드 범위에 타이트하게 맞춰 다운스케일 시 텍스트가 뭉개지지 않게 한다.
+  const W = 12.4*GX, H = 6.4*GY;
+  const out = ['<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="AWS 토폴로지" style="max-height:70vh">'];
   for(const e of t.edges){
     const a = nodePos(t.nodes.find(function(n){return n.id===e.from;}));
     const b = nodePos(t.nodes.find(function(n){return n.id===e.to;}));
     out.push('<line x1="'+a.cx+'" y1="'+a.cy+'" x2="'+b.cx+'" y2="'+b.cy+
-      '" style="stroke:'+EDGE_COLOR[e.kind]+';stroke-width:1.5;opacity:.55"/>');
+      '" style="stroke:'+EDGE_COLOR[e.kind]+';stroke-width:2.4;opacity:.5"/>');
   }
   for(const n of t.nodes){
     const p = nodePos(n);
@@ -215,9 +520,9 @@ function renderTopology(){
     out.push(
       '<g class="node" data-id="'+n.id+'" tabindex="0" style="cursor:pointer">'+
       '<rect x="'+(p.cx-NW/2)+'" y="'+(p.cy-NH/2)+'" width="'+NW+'" height="'+NH+
-        '" rx="6" style="fill:var(--panel);stroke:'+stroke+';stroke-width:1.5"/>'+
-      '<text x="'+p.cx+'" y="'+(p.cy+4)+'" text-anchor="middle" '+
-        'style="font-family:var(--mono);font-size:11px;fill:var(--fg)">'+n.label+'</text>'+
+        '" rx="8" style="fill:var(--panel);stroke:'+stroke+';stroke-width:2"/>'+
+      '<text x="'+p.cx+'" y="'+(p.cy+NFONT/3)+'" text-anchor="middle" '+
+        'style="font-family:var(--mono);font-size:'+NFONT+'px;font-weight:500;fill:var(--fg)">'+n.label+'</text>'+
       '</g>');
   }
   out.push('</svg>');
@@ -249,6 +554,16 @@ function renderEnvToggle(){
     b.addEventListener('click', function(){ setEnv(b.dataset.env); });
   });
 }
+function highlightEnvTables(){
+  // env:true 표(예: 7장 환경 승급)에서 현재 환경 열을 강조 — env 토글에 의미 부여
+  const col = { dev:2, staging:3, prod:4 }[CURRENT_ENV];
+  document.querySelectorAll('.env-table').forEach(function(t){
+    t.querySelectorAll('.env-on').forEach(function(c){ c.classList.remove('env-on'); });
+    if(col) t.querySelectorAll('tr').forEach(function(tr){
+      const cell = tr.children[col-1]; if(cell) cell.classList.add('env-on');
+    });
+  });
+}
 function applyEnv(){
   // 모드와 무관하게 화면에 떠 있는 모든 히어로(.hero-host)를 갱신한다.
   document.querySelectorAll('.hero-host').forEach(function(host){
@@ -260,6 +575,7 @@ function applyEnv(){
       host.innerHTML = heroHTML(CURRENT_ENV);
     }
   });
+  highlightEnvTables();
 }
 function setEnv(env){
   CURRENT_ENV = env;
@@ -270,14 +586,31 @@ function setEnv(env){
 /* =========================================================================
    상세 패널
    ========================================================================= */
+const KIND_LABEL = { rest:"REST", kafka:"Kafka", store:"데이터", route:"라우트" };
+function nodeConnections(id){
+  const t = SYSTEM.topology;
+  const nm = function(x){ const n=t.nodes.find(function(z){return z.id===x;}); return n?n.label:x; };
+  const out = [];
+  t.edges.forEach(function(e){
+    if(e.from===id) out.push('→ '+nm(e.to)+'  ('+(KIND_LABEL[e.kind]||e.kind)+')');
+    if(e.to===id)   out.push('← '+nm(e.from)+'  ('+(KIND_LABEL[e.kind]||e.kind)+')');
+  });
+  return out;
+}
 function showDetail(id){
   const n = SYSTEM.topology.nodes.find(function(x){return x.id===id;});
   if(!n) return;
+  const conns = nodeConnections(id);
   const el = document.getElementById('detail');
-  el.innerHTML = '<h3 class="mono" style="font-size:18px;margin:0 0 var(--md)">'+n.label+'</h3>'+
-    '<div>'+n.role+'</div>'+
-    (n.tfFile?'<div class="k">terraform</div><code>infra/aws/dev/'+n.tfFile+'</code>':'')+
+  el.innerHTML =
+    '<h3 class="mono" style="font-size:18px;margin:0 0 var(--xs)">'+n.label+'</h3>'+
+    '<div style="color:var(--muted);margin-bottom:var(--sm)">'+n.role+'</div>'+
+    (n.spec?'<div class="k">스펙</div><div>'+n.spec+'</div>':'')+
     '<div class="k">설명</div><div>'+n.detail+'</div>'+
+    (n.why?'<div class="k">왜 이렇게</div><div>'+n.why+'</div>':'')+
+    (conns.length?'<div class="k">연결</div>'+conns.map(function(c){
+      return '<div style="font-family:var(--mono);font-size:12px;color:var(--muted)">'+c+'</div>';}).join(''):'')+
+    (n.tfFile?'<div class="k">terraform</div><code>infra/aws/dev/'+n.tfFile+'</code>':'')+
     (n.verifyCmd?'<div class="k">접속 확인</div><code>'+n.verifyCmd+'</code>':'');
   el.hidden = false;
 }
@@ -299,29 +632,265 @@ function renderGlossaryTable(){
 }
 
 /* =========================================================================
-   발표 모드
+   발표 모드 — web-presentation 캐러셀 엔진 (SYSTEM.chapters 구동)
    ========================================================================= */
-function chapterInner(c){
-  let body = '<p style="font-size:16px">'+c.slideBody+'</p>';
-  if(c.refBody==="GLOSSARY") body += renderGlossaryTable();
-  if(c.visual==="hero") body += '<section class="hero-host">'+heroHTML(CURRENT_ENV)+'</section>';
-  return '<h2 class="mono" style="font-size:18px">'+c.title+'</h2>'+body;
+/* 블록 렌더러 — 발표/레퍼런스 공용 (SYSTEM.chapters[].slides[].blocks[]) */
+function renderBlock(b){
+  if(b.p)     return '<p>'+b.p+'</p>';
+  if(b.ul)    return '<ul>'+b.ul.map(function(x){return '<li>'+x+'</li>';}).join('')+'</ul>';
+  if(b.co)    return '<div class="callout'+(b.k?' '+b.k:'')+'">'+b.co+'</div>';
+  if(b.hero)  return '<section class="hero-host">'+heroHTML(CURRENT_ENV)+'</section>';
+  if(b.gloss) return renderGlossaryTable();
+  if(b.code){
+    const cap = b.cap ? '<div class="code-cap">'+b.cap+'</div>' : '';
+    if(b.hl){
+      const lines = b.code.split('\n').map(function(ln,i){
+        return '<span class="code-line" data-line="'+(i+1)+'">'+(ln===''?'&nbsp;':ln)+'</span>';}).join('');
+      return cap+'<div class="deck-code" data-highlight-steps="'+b.hl+'"><pre>'+lines+'</pre></div>';
+    }
+    return cap+'<div class="deck-code"><pre>'+b.code+'</pre></div>';
+  }
+  if(b.dia)   return '<div class="diagram">'+b.dia.map(function(d,i){
+    return (i>0?'<span class="diagram-arrow">→</span>':'')+
+      '<div class="diagram-box'+(d.hi?' highlight':'')+'"><h4>'+d.h+'</h4>'+(d.d?'<p>'+d.d+'</p>':'')+'</div>';}).join('')+'</div>';
+  if(b.cmp)   return '<div class="compare-grid">'+b.cmp.map(function(c){
+    return '<div class="compare-card '+(c.bad?'bad':'good')+'"><h4>'+c.h+'</h4><p>'+c.html+'</p></div>';}).join('')+'</div>';
+  if(b.tbl)   return '<table'+(b.env?' class="env-table"':'')+'><thead><tr>'+b.tbl.head.map(function(h){return '<th>'+h+'</th>';}).join('')+
+    '</tr></thead><tbody>'+b.tbl.rows.map(function(r){return '<tr>'+r.map(function(x){return '<td>'+x+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table>';
+  if(b.two)   return '<div class="two-columns"><div>'+b.two[0].map(renderBlock).join('')+
+    '</div><div>'+b.two[1].map(renderBlock).join('')+'</div></div>';
+  return '';
 }
-function renderSlide(){
-  const c = SYSTEM.chapters[SLIDE];
+function slideHead(c, s, first){
+  if(first) return '<h2>'+c.title+'</h2>'+(s.t?'<p class="subtitle">'+s.t+'</p>':'');
+  return '<h4>'+c.title+'</h4>'+(s.t?'<h2>'+s.t+'</h2>':'');
+}
+function slideInner(c, s, first, frag){
+  if(c.kind==="title"){
+    const tags = (s.tags||[]).map(function(t,i){
+      const cl=['tag-purple','tag-blue','tag-green','tag-amber','tag-red'][i%5];
+      return '<span class="tag '+cl+'">'+t+'</span>';}).join('');
+    return '<h1>'+c.title+'</h1>'+(s.sub?'<p class="subtitle">'+s.sub+'</p>':'')+
+      (tags?'<p style="margin-top:16px">'+tags+'</p>':'');
+  }
+  const blocks = (s.blocks||[]).map(function(b,i){
+    const h = renderBlock(b);
+    return frag ? '<div class="fragment" data-step="'+(i+1)+'">'+h+'</div>' : h;
+  }).join('');
+  return slideHead(c,s,first)+blocks;
+}
+function buildDeckHTML(){
+  let secs='', total=0;
+  SYSTEM.chapters.forEach(function(c){
+    (c.slides||[]).forEach(function(s,si){
+      const first=(si===0), id='ch-'+c.id+(si===0?'':'-'+si), active=(total===0);
+      const cls='slide'+(c.kind==="title"?' title-slide':'')+(active?' active':'');
+      const note=SLIDE_NOTES[id];
+      secs += '<section class="'+cls+'" id="'+id+'" role="group" aria-roledescription="slide" tabindex="-1"'+
+        (active?'':' aria-hidden="true" inert')+'><div class="slide-content">'+
+        slideInner(c,s,first,true)+'</div>'+
+        (note?'<aside class="speaker-notes" hidden>'+note+'</aside>':'')+'</section>';
+      total++;
+    });
+  });
+  return '<div class="presentation" role="region" aria-roledescription="carousel" aria-label="AWS 배포 가이드">'+
+    '<div class="slides" aria-live="polite">'+secs+'</div></div>'+
+    '<div class="progress-bar"><div class="progress-fill" id="dProg"></div></div>'+
+    '<div class="slide-counter"><span id="dCur">1</span> / <span id="dTot">'+total+'</span></div>'+
+    '<div class="notes-panel" id="dNotes"></div>'+
+    '<div class="autoplay-indicator" id="dAuto"></div>'+
+    '<div class="deck-help" id="dHelp"><div class="box"><h3 class="mono">키보드</h3><table>'+
+      '<tr><td><kbd>&rarr;</kbd> <kbd>Space</kbd></td><td>다음</td></tr>'+
+      '<tr><td><kbd>&larr;</kbd></td><td>이전</td></tr>'+
+      '<tr><td><kbd>Home</kbd>/<kbd>End</kbd></td><td>처음/끝</td></tr>'+
+      '<tr><td><kbd>O</kbd></td><td>오버뷰</td></tr>'+
+      '<tr><td><kbd>F</kbd></td><td>풀스크린</td></tr>'+
+      '<tr><td><kbd>N</kbd></td><td>노트 패널</td></tr>'+
+      '<tr><td><kbd>S</kbd></td><td>발표자 뷰</td></tr>'+
+      '<tr><td><kbd>P</kbd></td><td>자동재생</td></tr>'+
+      '<tr><td><kbd>?</kbd></td><td>도움말</td></tr></table>'+
+      '<p style="margin-top:10px;font-size:11px;color:var(--dim)">다크 전용(DESIGN.md) · 레퍼런스 모드는 우상단 버튼</p></div></div>';
+}
+/* 발표자 노트 — 슬라이드 id별 (데이터 모델 비침투) */
+const SLIDE_NOTES = {
+  "ch-title":"가장 밀집한 챕터까지 5슬라이드 안에 들어가도록 설계한 발표 덱. 최초 설정→배포→검증의 시간축.",
+  "ch-warmup":"용어에 막히지 않게 7개만. IRSA(파드에 IAM)와 GitOps(git=단일 진실)가 뒤 내용의 핵심 열쇠.",
+  "ch-big-picture":"배포 흐름과 트래픽 흐름은 별개. 강조: EKS가 최종 실행처, gateway가 단일 진입점.",
+  "ch-big-picture-1":"노드를 클릭해 역할·terraform·검증 명령을 즉석에서 보여주고, env 토글로 dev/prod 차이를 시연.",
+  "ch-setup":"이 단계부터 과금 시작 — Budget 알람을 먼저. AdministratorAccess 누락이 가장 흔한 실수.",
+  "ch-setup-1":"Arn 끝이 user/synapse-admin인지 꼭 확인. :root면 사고로 이어진다.",
+  "ch-provision":"chicken-and-egg가 핵심 포인트 — backend를 손으로 먼저 만든다. 비용 시각 기록 강조.",
+  "ch-provision-1":"plan에서 destroy:0 확인. apply는 EKS가 가장 오래(5~15분). 순서가 의존성 때문에 고정.",
+  "ch-provision-2":"argocd_namespace 출력이 성공 신호. 끝나면 즉시 destroy 습관을 반복 강조.",
+  "ch-deploy":"ApplicationSet=7대상×환경 matrix. dev/staging 자동, prod만 수동이 다음 챕터 복선.",
+  "ch-deploy-1":"비밀값이 git에 없다는 점이 보안 포인트 — ESO + IRSA로 키리스.",
+  "ch-deploy-2":"커밋→2~5분 반영을 라이브로 보여주면 임팩트. write-back으로 git 이력도 남는다.",
+  "ch-verify":"이 챕터가 이번 보강의 핵심. 인프라→사용자 순서로 좁혀 들어간다.",
+  "ch-verify-1":"Synced+Healthy가 ArgoCD의 두 축. UI는 port-forward로 즉시 접속 시연.",
+  "ch-verify-2":"/api는 백엔드(JWT), 나머지는 frontend — gateway 분기를 curl로 증명.",
+  "ch-verify-3":"관측까지 봐야 진짜 끝. 정상/비정상 신호 대조표로 마무리.",
+  "ch-promote":"표 한 장으로 환경 차이를 요약. 상단 env 토글과 연결해 시연.",
+  "ch-promote-1":"prod만 자동 sync가 없다 — 승인 게이트가 의도된 안전장치. permission denied 시연 가능.",
+  "ch-ops":"백업(Velero)·시크릿(ESO)·비용($200) 세 축. git에 비밀 없음 재강조.",
+  "ch-ops-1":"방치 시 월 ~$300. destroy 후 orphan 자원 확인까지가 진짜 정리.",
+  "ch-trouble":"신규 계정에서 실제로 겪는 케이스 모음 — Free Tier·MSK·SLR·state lock.",
+  "ch-trouble-1":"배포/검증 단계 장애 + private 접근은 bastion+SSM. 막히면 여기부터."
+};
+
+const DECK = (function(){
+  let slides=[], cur=0, animating=false, isOverview=false;
+  let isNotesVisible=false, autoOn=false, autoTimer=null; const AUTO_MS=7000;
+  let onKey=null,onResize=null,onPD=null,onPU=null,onHash=null,onSlidesClick=null,pX=0,pY=0;
+  const pchan = (typeof BroadcastChannel!=='undefined') ? new BroadcastChannel('presenter-sync') : null;
+  function fit(){
+    const pres=document.querySelector('.presentation'), sl=document.querySelector('.slides');
+    if(!pres||!sl) return;
+    const W=960,H=540,M=.04, aw=pres.clientWidth*(1-M*2), ah=pres.clientHeight*(1-M*2);
+    sl.style.setProperty('--slide-scale', Math.min(aw/W, ah/H));
+  }
+  function reveal(s){ s.querySelectorAll('.fragment').forEach(function(f){ const st=parseInt(f.dataset.step)||1;
+    f.style.setProperty('--step-delay',(st-1)*0.18+'s'); f.classList.add('visible'); }); }
+  function resetFrag(s){ s.querySelectorAll('.fragment').forEach(function(f){ f.style.setProperty('--step-delay','0s'); f.classList.remove('visible'); }); }
+  function hl(s){ s.querySelectorAll('.deck-code[data-highlight-steps]').forEach(function(b){
+    const groups=b.dataset.highlightSteps.split('|').map(function(g){ return g.split(',').flatMap(function(r){
+      const p=r.trim().split('-').map(Number); return p[1]?Array.from({length:p[1]-p[0]+1},function(_,i){return p[0]+i;}):[p[0]]; }); });
+    if(groups[0]){ b.classList.add('has-highlight'); b.querySelectorAll('.code-line').forEach(function(el){
+      el.classList.toggle('highlighted', groups[0].indexOf(parseInt(el.dataset.line))>=0); }); } }); }
+  function curNotes(){ const s=slides[cur]; const n=s?s.querySelector('.speaker-notes'):null; return n?n.innerHTML:''; }
+  function updateNotes(){ const np=document.getElementById('dNotes'); if(!np||!isNotesVisible) return;
+    const t=curNotes(); np.innerHTML = t ? t : '<span class="notes-empty">노트 없음</span>'; }
+  function toggleNotes(){ isNotesVisible=!isNotesVisible; const np=document.getElementById('dNotes');
+    if(np) np.classList.toggle('show',isNotesVisible); updateNotes(); }
+  function syncPresenter(){ if(!pchan||!slides[cur]) return;
+    pchan.postMessage({ type:'slide-change', index:cur, total:slides.length, notes:curNotes(),
+      slideHTML:slides[cur].outerHTML, nextSlideHTML: cur<slides.length-1?slides[cur+1].outerHTML:'' }); }
+  function showAutoInd(icon){ const a=document.getElementById('dAuto'); if(!a) return;
+    a.textContent=icon; a.className='autoplay-indicator show'; setTimeout(function(){ a.className='autoplay-indicator fade-out'; },100); }
+  function stopAutoTimer(){ if(autoTimer){ clearTimeout(autoTimer); autoTimer=null; } }
+  function startAuto(){ if(!autoOn) return; stopAutoTimer();
+    autoTimer=setTimeout(function(){ if(cur<slides.length-1){ show(cur+1); startAuto(); } else { autoOn=false; showAutoInd('⏹'); } }, AUTO_MS); }
+  function toggleAuto(){ autoOn=!autoOn; if(autoOn){ showAutoInd('▶'); startAuto(); } else { stopAutoTimer(); showAutoInd('⏸'); } }
+  function onUserInput(){ if(autoOn){ stopAutoTimer(); startAuto(); } }
+  function show(i){
+    if(i<0||i>=slides.length) return; if(animating&&!isOverview) return;
+    const old=cur;
+    function run(){ animating=true;
+      var _dt=document.getElementById('detail'); if(_dt) _dt.hidden=true;   // 슬라이드 전환 시 노드 상세 패널 닫기
+      slides[old].setAttribute('aria-hidden','true'); slides[old].setAttribute('inert',''); resetFrag(slides[old]); slides[old].classList.remove('active');
+      cur=i;
+      slides[cur].removeAttribute('aria-hidden'); slides[cur].removeAttribute('inert'); slides[cur].classList.add('active'); slides[cur].focus({preventScroll:true});
+      setTimeout(function(){ reveal(slides[cur]); },140); hl(slides[cur]);
+      history.replaceState(null,'','#'+slides[cur].id);
+      const pf=document.getElementById('dProg'), cc=document.getElementById('dCur');
+      if(pf) pf.style.width=(slides.length>1?(cur/(slides.length-1))*100:100)+'%'; if(cc) cc.textContent=cur+1;
+      updateNotes(); syncPresenter();
+      setTimeout(function(){ animating=false; },600);
+    }
+    if(!isOverview && document.startViewTransition){ document.body.classList.add('vt-active');
+      document.startViewTransition(run).finished.then(function(){ document.body.classList.remove('vt-active'); }); }
+    else run();
+  }
+  function overview(){ isOverview=!isOverview; document.body.classList.toggle('deck-overview',isOverview);
+    slides.forEach(function(s,j){ if(isOverview){ s.removeAttribute('inert'); s.removeAttribute('aria-hidden'); }
+      else if(j!==cur){ s.setAttribute('inert',''); s.setAttribute('aria-hidden','true'); } }); }
+  function fsToggle(){ if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(function(){}); else document.exitFullscreen(); }
+  function buildPresenterHTML(styleContent){
+    return '<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>Presenter View</title><style>'+styleContent+'\n'+
+      'body{display:grid;grid-template-columns:2fr 1fr;grid-template-rows:auto 1fr auto;gap:12px;padding:16px;height:100vh;background:#0e1116;color:#e6edf3;font-family:sans-serif;}'+
+      '.pres-header{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.1);}'+
+      '.pres-timer{font-size:28px;font-family:monospace;color:#bc8cff;} .pres-counter{font-size:18px;color:rgba(255,255,255,.6);}'+
+      '.pres-current{border:2px solid #bc8cff;border-radius:8px;overflow:hidden;display:grid;place-items:center;}'+
+      '.pres-current .slide{position:relative;opacity:1;visibility:visible;transform:none;}'+
+      '.pres-sidebar{display:flex;flex-direction:column;gap:12px;} .pres-next{border:1px solid rgba(255,255,255,.2);border-radius:8px;overflow:hidden;flex:0 0 auto;max-height:40%;display:grid;place-items:center;}'+
+      '.pres-next .slide{position:relative;opacity:1;visibility:visible;transform:none;font-size:10px;}'+
+      '.pres-next-label,.pres-notes-label{font-size:12px;color:rgba(255,255,255,.4);margin-bottom:4px;}'+
+      '.pres-notes{flex:1;overflow-y:auto;background:rgba(0,0,0,.3);border-radius:8px;padding:16px;font-size:15px;line-height:1.6;}'+
+      '.pres-controls{grid-column:1/-1;display:flex;gap:8px;justify-content:center;padding:8px 0;border-top:1px solid rgba(255,255,255,.1);}'+
+      '.pres-controls button{padding:6px 16px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:#e6edf3;border-radius:4px;cursor:pointer;font-size:14px;}'+
+      '</style></head><body>'+
+      '<div class="pres-header"><span class="pres-counter" id="pc">1 / 1</span><span class="pres-timer" id="pt">00:00:00</span></div>'+
+      '<div class="pres-current" id="pcur"></div>'+
+      '<div class="pres-sidebar"><div><div class="pres-next-label">다음 슬라이드</div><div class="pres-next" id="pnext"></div></div>'+
+      '<div style="flex:1;display:flex;flex-direction:column;"><div class="pres-notes-label">발표자 노트</div><div class="pres-notes" id="pnotes"></div></div></div>'+
+      '<div class="pres-controls"><button onclick="nav(-1)">◀ 이전</button><button onclick="nav(1)">다음 ▶</button></div>'+
+      '<script>var ch=new BroadcastChannel("presenter-sync");var t0=Date.now();'+
+      'setInterval(function(){var e=Math.floor((Date.now()-t0)/1000);'+
+      'function z(n){return String(n).padStart(2,"0");}'+
+      'document.getElementById("pt").textContent=z(Math.floor(e/3600))+":"+z(Math.floor((e%3600)/60))+":"+z(e%60);},1000);'+
+      'ch.onmessage=function(e){if(e.data.type==="slide-change"){'+
+      'document.getElementById("pc").textContent=(e.data.index+1)+" / "+e.data.total;'+
+      'document.getElementById("pcur").innerHTML=e.data.slideHTML;'+
+      'document.getElementById("pnext").innerHTML=e.data.nextSlideHTML||"<div style=\\"padding:20px;color:rgba(255,255,255,0.3)\\">마지막</div>";'+
+      'document.getElementById("pnotes").innerHTML=e.data.notes||"<span style=\\"color:rgba(255,255,255,0.3);font-style:italic\\">노트 없음</span>";}};'+
+      'function nav(d){ch.postMessage({type:"navigate",index:d});}<\/script></body></html>';
+  }
+  function openPresenter(){
+    const w=window.open('','presenter','width=1000,height=700');
+    if(!w){ alert('팝업이 차단되었습니다. 팝업을 허용해 주세요.'); return; }
+    const st=document.querySelector('style'); w.document.write(buildPresenterHTML(st?st.textContent:''));
+    w.document.close(); setTimeout(syncPresenter, 300);
+  }
+  return {
+    init:function(){
+      slides=Array.prototype.slice.call(document.querySelectorAll('#stage .slide'));
+      cur=0; animating=false; isOverview=false;
+      slides.forEach(function(s,i){ s.setAttribute('aria-label','슬라이드 '+(i+1)+' / '+slides.length);
+        if(i===0){ resetFrag(s); reveal(s); hl(s); } else resetFrag(s); });
+      const h=location.hash.slice(1), idx=slides.findIndex(function(s){return s.id===h;});
+      if(idx>0) show(idx);
+      fit(); onResize=fit; window.addEventListener('resize',onResize);
+      onKey=function(ev){
+        if(MODE!=='slide') return;
+        if(ev.target.tagName==='BUTTON'||ev.target.tagName==='A'||ev.target.isContentEditable) return;
+        const help=document.getElementById('dHelp');
+        if(help&&help.classList.contains('show')){ if(ev.key==='Escape'||ev.key==='?'){ help.classList.remove('show'); ev.preventDefault(); } return; }
+        switch(ev.key){
+          case 'ArrowRight': case 'ArrowDown': case ' ': case 'PageDown': ev.preventDefault(); onUserInput(); show(cur+1); break;
+          case 'ArrowLeft': case 'ArrowUp': case 'PageUp': ev.preventDefault(); onUserInput(); show(cur-1); break;
+          case 'Home': ev.preventDefault(); onUserInput(); show(0); break;
+          case 'End': ev.preventDefault(); onUserInput(); show(slides.length-1); break;
+          case 'f': case 'F': ev.preventDefault(); fsToggle(); break;
+          case 'o': case 'O': ev.preventDefault(); overview(); break;
+          case 'n': case 'N': ev.preventDefault(); toggleNotes(); break;
+          case 's': case 'S': ev.preventDefault(); openPresenter(); break;
+          case 'p': case 'P': ev.preventDefault(); toggleAuto(); break;
+          case '?': ev.preventDefault(); if(help) help.classList.toggle('show'); break;
+          case 'Escape': if(isOverview) overview(); else if(isNotesVisible) toggleNotes(); else if(document.fullscreenElement) document.exitFullscreen(); break;
+        }
+      };
+      window.addEventListener('keydown',onKey);
+      onPD=function(e){ pX=e.clientX; pY=e.clientY; };
+      onPU=function(e){ if(MODE!=='slide'||isOverview) return; const dx=e.clientX-pX, dy=e.clientY-pY;
+        if(Math.abs(dx)>50 && Math.abs(dy)<100){ onUserInput(); (dx<0?show(cur+1):show(cur-1)); } };
+      document.addEventListener('pointerdown',onPD); document.addEventListener('pointerup',onPU);
+      onHash=function(){ if(MODE!=='slide'||isOverview) return; const hh=location.hash.slice(1),
+        k=slides.findIndex(function(s){return s.id===hh;}); if(k>=0&&k!==cur) show(k); };
+      window.addEventListener('hashchange',onHash);
+      const sc=document.querySelector('.slides');
+      if(sc){ onSlidesClick=function(e){ if(!isOverview) return; const t=e.target.closest('.slide'); if(!t) return;
+        const k=slides.indexOf(t); if(k!==-1){ overview(); show(k); } }; sc.addEventListener('click',onSlidesClick); }
+      if(pchan){ pchan.onmessage=function(e){ if(e.data&&e.data.type==='navigate'){ const t=cur+e.data.index; if(t>=0&&t<slides.length){ onUserInput(); show(t); } } }; }
+    },
+    destroy:function(){
+      if(onResize) window.removeEventListener('resize',onResize);
+      if(onKey) window.removeEventListener('keydown',onKey);
+      if(onPD) document.removeEventListener('pointerdown',onPD);
+      if(onPU) document.removeEventListener('pointerup',onPU);
+      if(onHash) window.removeEventListener('hashchange',onHash);
+      stopAutoTimer(); autoOn=false; isNotesVisible=false;
+      const np=document.getElementById('dNotes'); if(np) np.classList.remove('show');
+      document.body.classList.remove('deck-overview'); isOverview=false;
+    }
+  };
+})();
+function renderDeck(){
   const stage = document.getElementById('stage');
   document.getElementById('detail').hidden = true;
-  stage.innerHTML =
-    '<article class="slide" style="padding:var(--xl);max-width:1100px;margin:0 auto">'+
-      chapterInner(c)+'</article>'+
-    '<footer class="mono" style="position:fixed;bottom:0;left:0;right:0;'+
-      'display:flex;justify-content:center;align-items:center;gap:var(--sm);padding:var(--md);'+
-      'border-top:1px solid var(--line);color:var(--dim);font-size:11px">'+
-      SYSTEM.chapters.map(function(_,i){return '<span style="color:'+(i===SLIDE?'var(--accent)':'var(--dim)')+'">●</span>';}).join('')+
-      '<span>&nbsp;'+(SLIDE+1)+' / '+SYSTEM.chapters.length+'</span></footer>';
-  location.hash = 'ch-'+c.id;
+  stage.className = 'deckwrap';
+  stage.innerHTML = buildDeckHTML();
+  DECK.init();
+  highlightEnvTables();
 }
-function go(d){ SLIDE = Math.max(0, Math.min(SYSTEM.chapters.length-1, SLIDE+d)); renderSlide(); }
 
 /* =========================================================================
    레퍼런스 모드
@@ -329,23 +898,24 @@ function go(d){ SLIDE = Math.max(0, Math.min(SYSTEM.chapters.length-1, SLIDE+d))
 function renderReference(){
   const stage = document.getElementById('stage');
   document.getElementById('detail').hidden = true;
+  stage.className = '';
   const nav = '<nav class="mono" style="position:sticky;top:0;align-self:start;'+
     'display:flex;flex-direction:column;gap:var(--xs);padding:var(--lg);'+
     'border-right:1px solid var(--line);min-width:200px;font-size:12px">'+
-    SYSTEM.chapters.map(function(c){return '<a href="#ch-'+c.id+'" style="color:var(--muted);text-decoration:none">'+
-      c.title+'</a>';}).join('')+'</nav>';
-  const body = '<div style="padding:var(--xl);max-width:900px">'+
-    SYSTEM.chapters.map(function(c){
-      let inner = '<h2 class="mono" id="ch-'+c.id+'" style="font-size:18px;margin-top:24px">'+c.title+'</h2>'+
-        '<p style="font-size:16px">'+c.slideBody+'</p>';
-      if(c.refBody==="GLOSSARY") inner += renderGlossaryTable();
-      else inner += '<p style="color:var(--muted)">'+c.refBody+'</p>';
-      if(c.visual==="hero"){
-        inner += '<section class="hero-host">'+heroHTML(CURRENT_ENV)+'</section>';
-      }
-      return inner;
-    }).join('')+'</div>';
+    SYSTEM.chapters.filter(function(c){return c.kind!=="title";}).map(function(c){
+      return '<a href="#ch-'+c.id+'" style="color:var(--muted);text-decoration:none">'+c.title+'</a>';}).join('')+'</nav>';
+  let inner='';
+  SYSTEM.chapters.forEach(function(c){
+    if(c.kind==="title") return;
+    inner += '<h2 class="mono" id="ch-'+c.id+'" style="font-size:20px;margin-top:28px;color:var(--accent)">'+c.title+'</h2>';
+    (c.slides||[]).forEach(function(s){
+      if(s.t) inner += '<h3 class="mono" style="font-size:15px;color:var(--kafka);margin-top:14px">'+s.t+'</h3>';
+      inner += (s.blocks||[]).map(renderBlock).join('');
+    });
+  });
+  const body = '<div class="refdoc" style="padding:var(--xl);max-width:1040px;flex:1;min-width:0">'+inner+'</div>';
   stage.innerHTML = '<div style="display:flex;gap:var(--lg)">'+nav+body+'</div>';
+  highlightEnvTables();
 }
 
 /* =========================================================================
@@ -354,28 +924,19 @@ function renderReference(){
 function setMode(m){
   MODE = m;
   document.getElementById('mode-btn').textContent = (m==="slide") ? "레퍼런스 모드" : "발표 모드";
-  if(m==="slide") renderSlide(); else renderReference();
+  if(m==="slide"){ renderDeck(); } else { DECK.destroy(); renderReference(); }
 }
 
 function init(){
   renderEnvToggle();
-  if(location.hash.indexOf('#ch-')===0){
-    const i = SYSTEM.chapters.findIndex(function(c){return ('ch-'+c.id)===location.hash.slice(1);});
-    if(i>=0) SLIDE = i;
-  }
-  renderSlide();
+  renderDeck();
 
   document.getElementById('mode-btn').addEventListener('click', function(){
     setMode(MODE==="slide" ? "ref" : "slide");
+    this.blur();   // 포커스를 떼어 직후 키보드 네비가 막히지 않게
   });
 
-  window.addEventListener('keydown', function(ev){
-    if(MODE!=="slide") return;
-    if(ev.target.tagName==="BUTTON"||ev.target.tagName==="A") return;
-    if(ev.key==="ArrowRight"||ev.key===" "){ ev.preventDefault(); go(1); }
-    if(ev.key==="ArrowLeft"){ ev.preventDefault(); go(-1); }
-  });
-
+  // 노드 클릭/Enter → 상세 패널 (위임 — 재렌더에도 #stage에 생존, 두 모드 공통)
   const stage = document.getElementById('stage');
   stage.addEventListener('click', function(ev){
     const g = ev.target.closest('.node'); if(g) showDetail(g.dataset.id);
