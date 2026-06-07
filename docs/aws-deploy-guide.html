@@ -158,6 +158,11 @@ body.deck-overview .slide.active{ border-color:var(--accent); }
 .autoplay-indicator.fade-out{ animation:autoFade 2s ease forwards; }
 @keyframes autoFade{ 0%{opacity:1} 70%{opacity:1} 100%{opacity:0} }
 @media print{ .notes-panel,.autoplay-indicator{ display:none !important; } }
+/* 명령어 캡션 + env 활성 열 강조 */
+.code-cap{ font-size:12px; color:var(--muted); margin:6px 0 1px; line-height:1.4; }
+.code-cap::before{ content:"› "; color:var(--accent); }
+.env-table .env-on{ background:rgba(188,140,255,.16); }
+.env-table th.env-on{ color:var(--accent); }
 </style>
 </head>
 <body>
@@ -363,8 +368,8 @@ const SYSTEM = {
           { co:"이 단계 이후 자원은 시간당 과금 — 끝나면 즉시 destroy. dev 월 상한 $200.", k:"danger" }
         ] },
         { t:"인증 설정 + 확인", blocks:[
-          { code:"aws configure\n# Access Key / Secret / ap-northeast-2 / json" },
-          { code:"aws sts get-caller-identity" },
+          { cap:"AWS 자격증명을 로컬에 저장 — 이후 모든 명령의 인증(1회)", code:"aws configure\n# Access Key / Secret / ap-northeast-2 / json" },
+          { cap:"현재 인증 주체 확인 — Arn이 synapse-admin인지", code:"aws sts get-caller-identity" },
           { co:"Arn 끝이 <code>user/synapse-admin</code> 이어야 한다 (<code>:root</code>면 IAM 사용자로 재설정).", k:"ok" }
         ] }
       ] },
@@ -374,18 +379,18 @@ const SYSTEM = {
         { t:"State Backend 수동 생성", blocks:[
           { co:"<strong>chicken-and-egg</strong>: backend(S3+DynamoDB)가 있어야 <code>terraform init</code>이 된다 → 수동 선생성.", k:"warning" },
           { two:[
-            [ { code:"aws s3api create-bucket\n  --bucket synapse-terraform-state\n  --region ap-northeast-2\n# + versioning · AES256 · public 차단" } ],
-            [ { code:"aws dynamodb create-table\n  --table-name synapse-terraform-locks\n  --attribute-definitions ...LockID\n  --billing-mode PAY_PER_REQUEST" } ]
+            [ { cap:"Terraform state 원격 저장용 S3 버킷", code:"aws s3api create-bucket\n  --bucket synapse-terraform-state\n  --region ap-northeast-2\n# + versioning · AES256 · public 차단" } ],
+            [ { cap:"state 동시 수정을 막는 잠금 테이블", code:"aws dynamodb create-table\n  --table-name synapse-terraform-locks\n  --attribute-definitions ...LockID\n  --billing-mode PAY_PER_REQUEST" } ]
           ] },
           { co:"⚠️ 자원 생성 시각을 기록하고, 학습 후 즉시 <code>destroy</code>.", k:"danger" }
         ] },
         { t:"init → plan → apply", blocks:[
           { dia:[ {h:"init",d:"provider"}, {h:"plan",d:"-out=tfplan"}, {h:"apply",d:"20~25분",hi:1} ] },
           { co:"plan 마지막 줄 <code>to destroy: 0</code> 확인 필수 — 아니면 무엇이 삭제되는지 보고 결정.", k:"warning" },
-          { code:"1. VPC / Subnet / IGW / RT        (1~2분)\n2. NAT GW x2 · IAM · SG          (2~10분)\n3. EKS Cluster  &lt;- 가장 오래   (5~15분)\n4. RDS · Redis · MSK · OpenSearch\n5. Node Group -&gt; Helm(ArgoCD)", hl:"1|2|3|4|5" }
+          { cap:"apply 진행 순서 — 의존성 때문에 이 순서로 생성", code:"1. VPC / Subnet / IGW / RT        (1~2분)\n2. NAT GW x2 · IAM · SG          (2~10분)\n3. EKS Cluster  &lt;- 가장 오래   (5~15분)\n4. RDS · Redis · MSK · OpenSearch\n5. Node Group -&gt; Helm(ArgoCD)", hl:"1|2|3|4|5" }
         ] },
         { t:"완료 신호 & 비용", blocks:[
-          { code:"Apply complete! Resources: 40 added, 0 changed, 0 destroyed.\n\nOutputs:\nargocd_namespace = &quot;argocd&quot;\nrds_endpoint     = &quot;...rds.amazonaws.com:5432&quot;" },
+          { cap:"성공 출력 — outputs로 엔드포인트·네임스페이스 확보", code:"Apply complete! Resources: 40 added, 0 changed, 0 destroyed.\n\nOutputs:\nargocd_namespace = &quot;argocd&quot;\nrds_endpoint     = &quot;...rds.amazonaws.com:5432&quot;" },
           { co:"<code>argocd_namespace = argocd</code> 출력까지 통과하면 앱 배포로.", k:"ok" },
           { p:"비용: Cost Explorer / Budgets <code>synapse-gitops-learning</code> 모니터링 시작." }
         ] }
@@ -400,12 +405,12 @@ const SYSTEM = {
         ] },
         { t:"시크릿(ESO) + 이미지 권한", blocks:[
           { p:"비밀값은 git에 없다 — <strong>ESO</strong>가 AWS Secrets Manager → 클러스터 Secret으로 동기화." },
-          { code:"# ExternalSecret\nremoteRef:\n  key: synapse/dev/platform-svc/db-password" },
+          { cap:"비밀값은 git에 없고 Secrets Manager 키만 참조", code:"# ExternalSecret\nremoteRef:\n  key: synapse/dev/platform-svc/db-password" },
           { p:"ECR push/pull은 <strong>IRSA</strong>(synapse-gha-deploy-role)로 키 없이 — OIDC 신뢰." }
         ] },
         { t:"image-updater 자동 반영", blocks:[
           { p:"새 이미지 push → <strong>2~5분</strong> 내 dev Pod 반영, git log에 태그 커밋(write-back)." },
-          { code:"# Application annotation\nimage-list: ECR/synapse/platform-svc\nupdate-strategy: semver\nwrite-back-method: git" },
+          { cap:"image-updater 동작을 지정하는 Application 주석", code:"# Application annotation\nimage-list: ECR/synapse/platform-svc\nupdate-strategy: semver\nwrite-back-method: git" },
           { co:"검증: <code>kubectl get deploy -n synapse-dev</code> 이미지 태그가 새 버전인지.", k:"ok" }
         ] }
       ] },
@@ -417,13 +422,13 @@ const SYSTEM = {
           { p:"아래로 갈수록 사용자에 가까워진다 — 인프라부터 실제 요청까지 단계별 확인." }
         ] },
         { t:"인프라 & ArgoCD", blocks:[
-          { code:"terraform output rds_endpoint\nterraform output eks_cluster_name\nkubectl get nodes        # Ready" },
+          { cap:"인프라 출력값 + 노드가 Ready인지 확인", code:"terraform output rds_endpoint\nterraform output eks_cluster_name\nkubectl get nodes        # Ready" },
           { p:"ArgoCD: 모든 Application이 <strong>Synced + Healthy</strong>." },
-          { code:"kubectl -n argocd get applications\nkubectl port-forward svc/argocd-server -n argocd 8080:443" }
+          { cap:"ArgoCD 앱 상태 조회 + UI 포트포워딩 접속", code:"kubectl -n argocd get applications\nkubectl port-forward svc/argocd-server -n argocd 8080:443" }
         ] },
         { t:"워크로드 & 트래픽", blocks:[
-          { code:"kubectl get pods -n synapse-dev    # 전부 Running\nkubectl get ingress -A             # ALB 주소" },
-          { code:"curl -k https://&lt;alb&gt;/api/actuator/health   # 백엔드 200\ncurl -k https://&lt;alb&gt;/                       # frontend" },
+          { cap:"파드 Running + ALB 주소(Ingress) 확인", code:"kubectl get pods -n synapse-dev    # 전부 Running\nkubectl get ingress -A             # ALB 주소" },
+          { cap:"실제 요청으로 백엔드/프론트 응답 검증", code:"curl -k https://&lt;alb&gt;/api/actuator/health   # 백엔드 200\ncurl -k https://&lt;alb&gt;/                       # frontend" },
           { p:"gateway 분기: <code>/api/**</code>=백엔드(JWT), catch-all=frontend SPA." }
         ] },
         { t:"관측 + 체크리스트", blocks:[
@@ -437,7 +442,7 @@ const SYSTEM = {
     { id:"promote", title:"7. 환경 승급",
       slides:[
         { t:"dev → staging → prod", blocks:[
-          { tbl:{ head:["항목","dev","staging","prod"], rows:[
+          { env:true, tbl:{ head:["항목","dev","staging","prod"], rows:[
             ["replicas","1","2","3"],
             ["sync","auto","auto","manual"],
             ["TLS","없음","self-signed","CA 인증서"],
@@ -446,7 +451,7 @@ const SYSTEM = {
         ] },
         { t:"prod 승인 게이트", blocks:[
           { p:"prod만 <strong>automated가 없다</strong> — main 머지 후 OutOfSync로 대기." },
-          { code:"# 비권한 계정 -> permission denied\nargocd app sync synapse-platform-svc-prod\n# gitops-admin만 sync 가능" },
+          { cap:"권한 없으면 거부 — 승인 게이트가 작동하는 증거", code:"# 비권한 계정 -> permission denied\nargocd app sync synapse-platform-svc-prod\n# gitops-admin만 sync 가능" },
           { co:"FR-GO-402 승인 게이트: Slack 신청 → gitops-admin 승인 → 수동 sync.", k:"warning" }
         ] }
       ] },
@@ -549,6 +554,16 @@ function renderEnvToggle(){
     b.addEventListener('click', function(){ setEnv(b.dataset.env); });
   });
 }
+function highlightEnvTables(){
+  // env:true 표(예: 7장 환경 승급)에서 현재 환경 열을 강조 — env 토글에 의미 부여
+  const col = { dev:2, staging:3, prod:4 }[CURRENT_ENV];
+  document.querySelectorAll('.env-table').forEach(function(t){
+    t.querySelectorAll('.env-on').forEach(function(c){ c.classList.remove('env-on'); });
+    if(col) t.querySelectorAll('tr').forEach(function(tr){
+      const cell = tr.children[col-1]; if(cell) cell.classList.add('env-on');
+    });
+  });
+}
 function applyEnv(){
   // 모드와 무관하게 화면에 떠 있는 모든 히어로(.hero-host)를 갱신한다.
   document.querySelectorAll('.hero-host').forEach(function(host){
@@ -560,6 +575,7 @@ function applyEnv(){
       host.innerHTML = heroHTML(CURRENT_ENV);
     }
   });
+  highlightEnvTables();
 }
 function setEnv(env){
   CURRENT_ENV = env;
@@ -626,19 +642,20 @@ function renderBlock(b){
   if(b.hero)  return '<section class="hero-host">'+heroHTML(CURRENT_ENV)+'</section>';
   if(b.gloss) return renderGlossaryTable();
   if(b.code){
+    const cap = b.cap ? '<div class="code-cap">'+b.cap+'</div>' : '';
     if(b.hl){
       const lines = b.code.split('\n').map(function(ln,i){
         return '<span class="code-line" data-line="'+(i+1)+'">'+(ln===''?'&nbsp;':ln)+'</span>';}).join('');
-      return '<div class="deck-code" data-highlight-steps="'+b.hl+'"><pre>'+lines+'</pre></div>';
+      return cap+'<div class="deck-code" data-highlight-steps="'+b.hl+'"><pre>'+lines+'</pre></div>';
     }
-    return '<div class="deck-code"><pre>'+b.code+'</pre></div>';
+    return cap+'<div class="deck-code"><pre>'+b.code+'</pre></div>';
   }
   if(b.dia)   return '<div class="diagram">'+b.dia.map(function(d,i){
     return (i>0?'<span class="diagram-arrow">→</span>':'')+
       '<div class="diagram-box'+(d.hi?' highlight':'')+'"><h4>'+d.h+'</h4>'+(d.d?'<p>'+d.d+'</p>':'')+'</div>';}).join('')+'</div>';
   if(b.cmp)   return '<div class="compare-grid">'+b.cmp.map(function(c){
     return '<div class="compare-card '+(c.bad?'bad':'good')+'"><h4>'+c.h+'</h4><p>'+c.html+'</p></div>';}).join('')+'</div>';
-  if(b.tbl)   return '<table><thead><tr>'+b.tbl.head.map(function(h){return '<th>'+h+'</th>';}).join('')+
+  if(b.tbl)   return '<table'+(b.env?' class="env-table"':'')+'><thead><tr>'+b.tbl.head.map(function(h){return '<th>'+h+'</th>';}).join('')+
     '</tr></thead><tbody>'+b.tbl.rows.map(function(r){return '<tr>'+r.map(function(x){return '<td>'+x+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table>';
   if(b.two)   return '<div class="two-columns"><div>'+b.two[0].map(renderBlock).join('')+
     '</div><div>'+b.two[1].map(renderBlock).join('')+'</div></div>';
@@ -758,6 +775,7 @@ const DECK = (function(){
     if(i<0||i>=slides.length) return; if(animating&&!isOverview) return;
     const old=cur;
     function run(){ animating=true;
+      var _dt=document.getElementById('detail'); if(_dt) _dt.hidden=true;   // 슬라이드 전환 시 노드 상세 패널 닫기
       slides[old].setAttribute('aria-hidden','true'); slides[old].setAttribute('inert',''); resetFrag(slides[old]); slides[old].classList.remove('active');
       cur=i;
       slides[cur].removeAttribute('aria-hidden'); slides[cur].removeAttribute('inert'); slides[cur].classList.add('active'); slides[cur].focus({preventScroll:true});
@@ -871,6 +889,7 @@ function renderDeck(){
   stage.className = 'deckwrap';
   stage.innerHTML = buildDeckHTML();
   DECK.init();
+  highlightEnvTables();
 }
 
 /* =========================================================================
@@ -896,6 +915,7 @@ function renderReference(){
   });
   const body = '<div class="refdoc" style="padding:var(--xl);max-width:1040px;flex:1;min-width:0">'+inner+'</div>';
   stage.innerHTML = '<div style="display:flex;gap:var(--lg)">'+nav+body+'</div>';
+  highlightEnvTables();
 }
 
 /* =========================================================================
