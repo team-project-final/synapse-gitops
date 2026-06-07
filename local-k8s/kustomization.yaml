@@ -6,6 +6,7 @@ resources:
   - infra
   - secrets.yaml
   - apps/gateway
+  - apps/frontend
   - apps/platform-svc
   - apps/engagement-svc
   - apps/knowledge-svc

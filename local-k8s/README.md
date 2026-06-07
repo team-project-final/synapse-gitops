@@ -78,6 +78,11 @@ kubectl -n synapse-local rollout restart deploy/platform-svc
 ```bash
 kubectl -n synapse-local port-forward svc/gateway     8080:80   # 메인 진입점
 kubectl -n synapse-local port-forward svc/learning-ai 8000:80
+```
+
+- 브라우저로 SPA 접속: `http://localhost:8080/` — gateway가 `/api/**` 외 경로를 `frontend`(nginx)로 프록시. 딥링크/새로고침은 nginx SPA fallback으로 `index.html` 반환.
+
+```bash
 # 상태: kubectl -n synapse-local get pods
 ```
 
