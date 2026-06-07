@@ -58,7 +58,20 @@ spec:
             runAsUser: 101
             runAsGroup: 101
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
             seccompProfile:
               type: RuntimeDefault
+          # readOnlyRootFilesystem 사용 시 nginx-unprivileged가 쓰는 경로를 emptyDir로 제공
+          # (pid=/tmp/nginx.pid, 임시·캐시 디렉터리=/var/cache/nginx)
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: nginx-cache
+          emptyDir: {}
