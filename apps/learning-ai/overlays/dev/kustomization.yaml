@@ -29,10 +29,10 @@ patches:
         value: "5432"
       - op: add
         path: /data/DATABASE_NAME
-        value: "synapse"
+        value: "synapse_ai"
       - op: add
         path: /data/LEARNING_AI_DATABASE_URL
-        value: "postgresql+asyncpg://synapse_admin@synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com:5432/synapse"
+        value: "postgresql+asyncpg://synapse_admin@synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com:5432/synapse_ai"
       - op: add
         path: /data/LEARNING_AI_KAFKA_ENABLED
         value: "true"

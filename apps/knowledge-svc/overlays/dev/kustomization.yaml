@@ -32,13 +32,13 @@ patches:
         value: "5432"
       - op: add
         path: /data/DATABASE_NAME
-        value: "synapse"
+        value: "synapse_knowledge"
       - op: add
         path: /data/ELASTICSEARCH_URIS
         value: "http://elasticsearch:9200"
       - op: add
         path: /data/SPRING_DATASOURCE_URL
-        value: "jdbc:postgresql://synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com:5432/synapse"
+        value: "jdbc:postgresql://synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com:5432/synapse_knowledge"
       - op: add
         path: /data/SPRING_DATASOURCE_USERNAME
         value: "synapse_admin"

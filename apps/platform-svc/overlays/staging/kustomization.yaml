@@ -32,7 +32,7 @@ patches:
         value: "5432"
       - op: add
         path: /data/DATABASE_NAME
-        value: "synapse"
+        value: "synapse_platform"
       # 앱은 spring.data.redis.* 만 읽음 → relaxed-binding 키 사용 (REDIS_HOST/PORT 는 무시됨)
       - op: add
         path: /data/SPRING_DATA_REDIS_HOST
@@ -46,7 +46,7 @@ patches:
         value: "true"
       - op: add
         path: /data/DB_URL
-        value: "jdbc:postgresql://synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com:5432/synapse"
+        value: "jdbc:postgresql://synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com:5432/synapse_platform"
       - op: add
         path: /data/DB_USERNAME
         value: "synapse_admin"
