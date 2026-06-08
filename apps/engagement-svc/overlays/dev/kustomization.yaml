@@ -1,74 +1,71 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
 resources:
-  - ../../base
-
+- ../../base
 namespace: synapse-dev
-
 patches:
-  - target:
-      kind: Deployment
-      name: engagement-svc
-    patch: |
-      - op: replace
-        path: /spec/replicas
-        value: 1
-  - target:
-      kind: ConfigMap
-      name: engagement-svc-config
-    patch: |
-      - op: replace
-        path: /data/LOG_LEVEL
-        value: "DEBUG"
-      - op: replace
-        path: /data/SPRING_PROFILES_ACTIVE
-        value: "dev"
-      - op: add
-        path: /data/DATABASE_HOST
-        value: "synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com"
-      - op: add
-        path: /data/DATABASE_PORT
-        value: "5432"
-      - op: add
-        path: /data/DATABASE_NAME
-        value: "synapse_engagement"
-      - op: add
-        path: /data/REDIS_HOST
-        value: "master.synapse-dev-redis.v6lpdh.apn2.cache.amazonaws.com"
-      - op: add
-        path: /data/REDIS_PORT
-        value: "6379"
-      - op: add
-        path: /data/SPRING_DATASOURCE_URL
-        value: "jdbc:postgresql://synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com:5432/synapse_engagement"
-      - op: add
-        path: /data/SPRING_DATASOURCE_USERNAME
-        value: "synapse_admin"
-      - op: add
-        path: /data/KAFKA_ENABLED
-        value: "true"
-      - op: add
-        path: /data/SCHEMA_REGISTRY_URL
-        value: "http://schema-registry:8081"
-      # dev MSK는 TLS 전용 리스너(client_broker=TLS, 9094). Spring Kafka 클라이언트가
-      # SSL로 핸드셰이크하도록 지정(미설정 시 PLAINTEXT 기본→TLS 브로커 연결 실패).
-      # MSK 인증서는 Amazon Trust Services 발급→JDK 기본 truststore로 충분.
-      - op: add
-        path: /data/SPRING_KAFKA_SECURITY_PROTOCOL
-        value: "SSL"
-
-  - target:
-      kind: ExternalSecret
-      name: engagement-svc-external-secret
-    patch: |
-      - op: replace
-        path: /spec/secretStoreRef/name
-        value: aws-secrets-manager
-
+- target:
+    kind: Deployment
+    name: engagement-svc
+  patch: |
+    - op: replace
+      path: /spec/replicas
+      value: 1
+- target:
+    kind: ConfigMap
+    name: engagement-svc-config
+  patch: |
+    - op: replace
+      path: /data/LOG_LEVEL
+      value: "DEBUG"
+    - op: replace
+      path: /data/SPRING_PROFILES_ACTIVE
+      value: "dev"
+    - op: add
+      path: /data/DATABASE_HOST
+      value: "synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com"
+    - op: add
+      path: /data/DATABASE_PORT
+      value: "5432"
+    - op: add
+      path: /data/DATABASE_NAME
+      value: "synapse_engagement"
+    - op: add
+      path: /data/REDIS_HOST
+      value: "master.synapse-dev-redis.v6lpdh.apn2.cache.amazonaws.com"
+    - op: add
+      path: /data/REDIS_PORT
+      value: "6379"
+    - op: add
+      path: /data/SPRING_DATASOURCE_URL
+      value: "jdbc:postgresql://synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com:5432/synapse_engagement"
+    - op: add
+      path: /data/SPRING_DATASOURCE_USERNAME
+      value: "synapse_admin"
+    - op: add
+      path: /data/KAFKA_ENABLED
+      value: "true"
+    - op: add
+      path: /data/SCHEMA_REGISTRY_URL
+      value: "http://schema-registry:8081"
+    # dev MSK는 TLS 전용 리스너(client_broker=TLS, 9094). Spring Kafka 클라이언트가
+    # SSL로 핸드셰이크하도록 지정(미설정 시 PLAINTEXT 기본→TLS 브로커 연결 실패).
+    # MSK 인증서는 Amazon Trust Services 발급→JDK 기본 truststore로 충분.
+    - op: add
+      path: /data/SPRING_KAFKA_SECURITY_PROTOCOL
+      value: "SSL"
+- target:
+    kind: ExternalSecret
+    name: engagement-svc-external-secret
+  patch: |
+    - op: replace
+      path: /spec/secretStoreRef/name
+      value: aws-secrets-manager
 images:
-  - name: ghcr.io/team-project-final/synapse-engagement-svc
-    newName: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/engagement-svc
-    # image-updater A안: semver update-strategy 호환 위해 semver 베이스라인으로 핀 (was dev-latest).
-    # 라이브(T12)에서 ECR에 상위 semver(2.0.0) push → write-back 검증. 베이스 1.0.0 ECR 존재 필요.
-    newTag: 1.0.0
+- name: ghcr.io/team-project-final/synapse-engagement-svc
+  newName: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/engagement-svc
+  # image-updater A안: semver update-strategy 호환 위해 semver 베이스라인으로 핀 (was dev-latest).
+  # 라이브(T12)에서 ECR에 상위 semver(2.0.0) push → write-back 검증. 베이스 1.0.0 ECR 존재 필요.
+  newTag: 1.0.0
+- name: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/engagement-svc
+  newTag: 9.9.9
