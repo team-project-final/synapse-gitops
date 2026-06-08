@@ -5,6 +5,11 @@
 > **상위 문서**: [w5-stabilize-runbook.md](./w5-stabilize-runbook.md) Step 11
 > **사전 조건**: W4 완료 (prod 15 Applications + Velero 백업 + 롤백 검증), staging 정상 가동
 
+> **2026-06-08 결정 변경 (스펙: [`2026-06-08-w5-step11-runbook-window2-design.md`](../superpowers/specs/2026-06-08-w5-step11-runbook-window2-design.md)):**
+> ① 11-B 산출물 작성 완료 — [`incidents/`](./incidents/) 5종 + [`on-call.md`](./on-call.md). 인증서 시나리오는 cert-manager가 아닌 **self-signed ACM import 실스택** 기준.
+> ② 11-C 시뮬레이션의 staging 직접 주입 방식은 **selfHeal=true와 충돌해 폐기** — 전용 sim Application 방식으로 대체 ([`W5_WINDOW_2.md`](./W5_WINDOW_2.md) Phase 5).
+> ③ 11-D는 실제 팀 구성 기준 2레벨로 간소화 (PagerDuty 제외) — [`on-call.md`](./on-call.md).
+
 ---
 
 ## 11-A. 장애 유형 도출 (30분)
