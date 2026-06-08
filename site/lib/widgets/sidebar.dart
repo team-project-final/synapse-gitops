@@ -75,6 +75,11 @@ class _SidebarState extends State<Sidebar> {
           title: const Text('현황'),
           onTap: () => context.go('/dashboard'),
         ),
+        ListTile(
+          leading: const Icon(Icons.hub),
+          title: const Text('핸드오프 허브'),
+          onTap: () => context.go('/hub'),
+        ),
         const Divider(),
         for (final cat in DocCategory.values)
           if (grouped.containsKey(cat))

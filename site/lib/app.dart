@@ -7,6 +7,7 @@ import 'package:synapse_runbooks/pages/onboarding_page.dart';
 import 'package:synapse_runbooks/pages/doc_page.dart';
 import 'package:synapse_runbooks/pages/search_page.dart';
 import 'package:synapse_runbooks/pages/dashboard_page.dart';
+import 'package:synapse_runbooks/pages/hub_page.dart';
 import 'package:synapse_runbooks/widgets/sidebar.dart';
 
 final _router = GoRouter(
@@ -27,6 +28,10 @@ final _router = GoRouter(
         GoRoute(
           path: '/dashboard',
           builder: (context, state) => const DashboardPage(),
+        ),
+        GoRoute(
+          path: '/hub',
+          builder: (context, state) => const HubPage(),
         ),
         GoRoute(
           path: '/docs/:category/:slug',
@@ -93,6 +98,11 @@ class AppShell extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.dashboard),
             onPressed: () => context.go('/dashboard'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.hub),
+            tooltip: '핸드오프 허브',
+            onPressed: () => context.go('/hub'),
           ),
         ],
       ),

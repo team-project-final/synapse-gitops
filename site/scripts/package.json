@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "node build_docs.mjs",
-    "build:no-ai": "NO_AI=1 node build_docs.mjs"
+    "build:no-ai": "NO_AI=1 node build_docs.mjs",
+    "test": "node --test"
   },
   "dependencies": {
     "gray-matter": "^4.0.3"
