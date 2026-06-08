@@ -30,7 +30,9 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           BRANCH="${GITHUB_REF_NAME}"
-          if gh pr view "$BRANCH" --repo "$GITHUB_REPOSITORY" --json number >/dev/null 2>&1; then
+          # gh pr view는 closed PR도 매칭 → 닫힌 PR이 있으면 새 PR을 영영 안 만드는 버그.
+          # open 상태만 idempotent 체크.
+          if [ -n "$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" --state open --json number --jq '.[0].number')" ]; then
             echo "PR already open for $BRANCH — image-updater가 브랜치를 갱신하면 기존 PR에 반영됨."
             exit 0
           fi
