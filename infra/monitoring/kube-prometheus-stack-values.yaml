@@ -48,6 +48,8 @@ alertmanager:
       - name: slack
         slack_configs:
           - api_url_file: /etc/alertmanager/secrets/alertmanager-slack/slack-webhook-url
-            channel: "#synapse-gitops"
+            # #final-project-1-team (C0B3JEU46R1). 기존 #synapse-gitops는 미존재 채널이라 알람 미도착.
+            # incoming webhook은 생성 시 채널 고정 → 이 채널 webhook URL을 secret alertmanager-slack에 시드해야 실제 도착.
+            channel: "#final-project-1-team"
             send_resolved: true
             title: '{{ .CommonAnnotations.summary }}'
