@@ -228,8 +228,8 @@
 
 - [x] **#120 MSK 토픽/TLS/produce-consume/SG 접근제한** — bastion terraform(Mongey/kafka, TLS 9094): 토픽 9개·TLS 체인(Amazon RSA 2048 M04)·console produce/consume 라운드트립·SG 네트워크 접근제한(무인증 TLS-only라 ACL 아닌 SG가 메커니즘) 검증 → **close**.
 - [x] **gitops 부트스트랩 + dev 5/6 Healthy** — ArgoCD HA(`--insecure`)/ESO/ApplicationSet/kafka-brokers/metrics-server/image-updater 기동. (`verify-argocd-deploy.sh`는 shared·team-lead 실행)
-- [~] **#121 외부 노출 (ACM/DNS/Ingress/webhook, W1·Step 9 이월)** — 코드 완료·main 머지: nip.io ingress + self-signed 인증서 스크립트(PR #123) + **aws-load-balancer-controller 부트스트랩 IRSA+helm(PR #124)**. 라이브 검증은 차기 윈도우 — 실제 차단은 *ALB 컨트롤러 미부트스트랩*이었음(gitops#121).
-- [~] **#122 Image Updater write-back E2E (W4 Step 6/10 이월)** — ECR 자격 미설정(`no basic auth credentials`) 규명 + 수정: `registries.conf` ext 스크립트 + `ecr-login.sh`(PR #124). 라이브 E2E는 차기 윈도우(gitops#122).
+- [x] **#121 외부 노출 (ACM/DNS/Ingress/webhook) — 06-08 윈도우2 라이브 close** — nip.io ingress + self-signed ACM import. `curl --cacert` argocd 200·dev/actuator/health 200·webhook 200, 체인 `Verify return code 0`. 라이브 수정: ALB IAM v2.7.2→v3.4.0(PR #145)·ingress backend HTTPS→HTTP(argocd insecure).
+- [x] **#122 Image Updater write-back E2E — 06-08 윈도우2 라이브 close** — engagement-svc 1.0.0→1.0.1→롤백. 반영 45s·롤백 19s. App 토큰 PR 자동생성(#126). 라이브 수정 4건(PR #148): ECR인증 HOME=/tmp·kustomize.image-name·idempotent·yamllint.
 - [x] **#91 dev/staging 5/5 — 06-08 라이브 달성·close** — EKS 재apply → `verify-argocd-deploy.sh` **dev 16/0/0 · staging 20/0/0 ALL PASSED** + 롤백 124s(06-02, <3분). 이전 차단 gateway-dev(JWT 매핑, PR #136)·platform-svc-staging(#92) 모두 Healthy(shared HANDOFF_HUB §1).
 - [x] **#92 platform-svc-staging — 06-08 라이브 해소·close** — ① datasource(`application-staging.yml` main `${DB_URL}`) + ② flyway 충돌(공유 DB) 모두 PR #136으로 해소. 06-08 EKS 재apply `verify-argocd-deploy.sh staging 20/0/0 ALL PASSED`, platform-svc staging Healthy(shared HANDOFF_HUB §1). 잔존 관찰=staging가 dev RDS·DB 공유(§4 감사, 환경격리는 별도).
 - 검증 후 `terraform destroy`로 과금 차단.
@@ -248,15 +248,16 @@
 - **Done When**:
   - [x] 장애 시나리오 5개 이상 Runbook 작성 (Pod CrashLoop, OOM, sync 실패, 인증서 만료, DB 연결 실패) — `docs/runbooks/incidents/` 5종
   - [x] 각 시나리오에 단계별 진단/조치/에스컬레이션 기준 — 6섹션 골격(증상/진단/조치/에스컬레이션/회피/사후)
-  - [ ] team-lead가 Runbook 따라하기 1회 검증 — 윈도우 2 Phase 5 (`docs/runbooks/W5_WINDOW_2.md`)
+  - [ ] team-lead가 Runbook 따라하기 1회 검증 — 06-08 윈도우2에서 시뮬/알람 완료, 따라하기만 team-lead 가용 시 비동기 후속
   - [x] On-call 연락처/Slack 채널 정리 — `docs/runbooks/on-call.md` (2레벨 간소화, 알람 경로 테스트만 윈도우 항목)
   - [x] PR 코멘트로 diff 요약 GitHub Action 도입 (선택) — W1 이월 (D-041) — 기구현 확인: `validate-manifests.yml` diff-comment job (커밋 47a7c67), PR #129 동작 확인
 - **Duration**: 2일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [x] In Progress / [ ] Done (문서 산출물 완료. 시뮬레이션·team-lead 검증·알람 테스트는 윈도우 2 Phase 5 — 2026-06-08 스펙)
-<!-- 2026-06-08: 장애 런북 5종(incidents/)·on-call·윈도우 2 런북(W5_WINDOW_2.md) 머지. 라이브 3항목(시뮬레이션·따라하기·알람)은 차기 on-demand 윈도우. 설계: docs/superpowers/specs/2026-06-08-w5-step11-runbook-window2-design.md -->
+**Status**: [ ] Not Started / [x] In Progress / [ ] Done (문서 + 06-08 윈도우2 라이브: incident-sim 앱으로 crashloop/oom/sync 3종 재현·복구 + 알람 경로(amtool→slack #synapse-gitops) 검증. **Done 잔여 = team-lead 따라하기 1회**(비동기))
+<!-- 2026-06-08 윈도우2: incident-sim(ns synapse-sim) 시뮬 3종·알람 라이브 검증. 발견: set env override는 sync 미원복(3-way merge), OOM은 requests≤limit 제약. team-lead 따라하기만 잔여. -->
+<!-- 2026-06-08: 장애 런북 5종(incidents/)·on-call·윈도우 2 런북(W5_WINDOW_2.md) 머지. 설계: docs/superpowers/specs/2026-06-08-w5-step11-runbook-window2-design.md -->
 
 ---
 
