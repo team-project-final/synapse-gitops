@@ -20,14 +20,35 @@ jobs:
         with:
           kustomize-version: '5.4.3'
 
+      - name: Cache pip (yamllint)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-yamllint-${{ runner.os }}
+
       - name: Install yamllint
         run: pip install yamllint
 
+      # kustomize build 자체는 sub-second라 결과 캐싱 이득이 미미 → 실제 CI 비용인
+      # kubeconform 바이너리 다운로드를 버전 키로 캐싱한다(W1 이월 D-041, CI 속도 개선).
+      - name: Cache kubeconform
+        id: cache-kubeconform
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/bin/kubeconform
+          key: kubeconform-v0.6.7-${{ runner.os }}-amd64
+
       - name: Install kubeconform
+        if: steps.cache-kubeconform.outputs.cache-hit != 'true'
         run: |
+          mkdir -p ~/.local/bin
           curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz kubeconform
-          sudo mv kubeconform /usr/local/bin/
-          kubeconform -v
+          mv kubeconform ~/.local/bin/
+
+      - name: Add kubeconform to PATH
+        run: |
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/kubeconform" -v
 
       - name: Lint YAML
         run: yamllint -c .yamllint apps/ argocd/ infra/

@@ -267,7 +267,7 @@
   - [ ] HPA 동작 검증 (5개 앱 중 트래픽 변동 큰 2개)
   - [x] P0/P1 이슈 목록 0건 (또는 fix 완료) — 2026-06-08 확인: 열린 P0/P1 0건(#91 P0·#92 P1 close). 잔존 OPEN 3건(#121/#122 윈도우2·#126 ops)은 P0/P1 아님
   - [ ] 핸드오프 문서 마지막 검토
-  - [ ] kustomize build 결과 캐싱 (CI 속도 개선, 선택) — W1 이월 (D-041)
+  - [x] kustomize build 결과 캐싱 (CI 속도 개선, 선택) — W1 이월 (D-041). 2026-06-08: build는 sub-second라 이득 미미 → 실제 비용인 kubeconform 바이너리 + pip(yamllint) 캐싱으로 대체 적용(`validate-manifests.yml`)
 - **Duration**: 2일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
