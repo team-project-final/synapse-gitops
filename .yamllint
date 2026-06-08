@@ -7,7 +7,9 @@ rules:
     level: warning
   indentation:
     spaces: 2
-    indent-sequences: true
+    # consistent: 파일 내 일관되면 0/2 모두 허용. argocd-image-updater(kyaml) write-back은
+    # 시퀀스를 0-indent로 재직렬화 → indent-sequences:true와 충돌(validate fail)하던 것 해소.
+    indent-sequences: consistent
   document-start: disable
   truthy:
     check-keys: false
