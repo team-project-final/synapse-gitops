@@ -63,7 +63,9 @@ platform-svc-staging은 **서로 다른 두 층의 원인**이 얽혀 있었고,
 - 증상: `flyway_schema_history ... checksum mismatch` — 5서비스가 단일 RDS `synapse` DB를 공유해 다른 서비스 이력을 검증.
 - 해소: **PR #136**으로 서비스별 DB 분리(`synapse_platform`/`synapse_engagement`/`synapse_knowledge`/`synapse_learning`/`synapse_ai`). gitops 층 완결.
 
-> ①과 ②는 독립 원인이다. ②는 PR #136으로 코드 해소 완료, ①은 재빌드+라이브 재검증만 남았다. 둘 다 충족되면 #92 close 가능(윈도우 2).
+> ①과 ②는 독립 원인이다. 둘 다 PR #136으로 해소.
+
+> **갱신(2026-06-08 라이브 해소):** 본 감사는 작성 시점 gitops 측 정보로 #92를 "윈도우 2 잔여"로 보았으나, shared `HANDOFF_HUB.md`(team-lead 유지, 06-08)가 **EKS 재apply → `verify-argocd-deploy.sh` dev 16/0/0·staging 20/0/0 ALL PASSED, platform-svc staging Healthy(CrashLoop 해소)** 를 기록 — 윈도우 2를 기다리지 않고 **이미 라이브 해소**됨. → **#92 close**. 이 gitops↔shared 시점차가 바로 하위프로젝트 B(포털 핸드오프 허브 뷰, PR #139)가 가시화하려는 문제다.
 
 ## 4. 신규 발견 — staging가 dev RDS·DB 공유
 
