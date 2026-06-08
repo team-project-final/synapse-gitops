@@ -57,6 +57,7 @@
   - [x] kubeconform 추가 (Kubernetes 스키마 + CRD 카탈로그 검증)
   - [x] yamllint 룰 보강 (`.yamllint`: line-length 160, indentation 2)
   <!-- 2026-05-28 D-041로 W5 Step 11/12로 이월: PR 코멘트로 diff 요약 (선택) — W3 이월 표시 후 미진행. -->
+  <!-- 2026-06-08: PR diff 요약은 기구현 확인 — validate-manifests.yml diff-comment job(47a7c67, PR #129 동작). Step 11에서 완료 처리. -->
   - [x] CI 실패 시 머지 차단 (scripts/setup-branch-protection.sh, Task 13)
 - **Scope**:
   - In Scope: GitHub Actions 워크플로우 보강
@@ -243,16 +244,17 @@
 
 - **Step Goal**: 운영자가 첫 1주차 장애를 Runbook만 보고 처리할 수 있다.
 - **Done When**:
-  - [ ] 장애 시나리오 5개 이상 Runbook 작성 (Pod CrashLoop, OOM, sync 실패, 인증서 만료, DB 연결 실패)
-  - [ ] 각 시나리오에 단계별 진단/조치/에스컬레이션 기준
-  - [ ] team-lead가 Runbook 따라하기 1회 검증
-  - [ ] On-call 연락처/Slack 채널 정리
-  - [ ] PR 코멘트로 diff 요약 GitHub Action 도입 (선택) — W1 이월 (D-041)
+  - [x] 장애 시나리오 5개 이상 Runbook 작성 (Pod CrashLoop, OOM, sync 실패, 인증서 만료, DB 연결 실패) — `docs/runbooks/incidents/` 5종
+  - [x] 각 시나리오에 단계별 진단/조치/에스컬레이션 기준 — 6섹션 골격(증상/진단/조치/에스컬레이션/회피/사후)
+  - [ ] team-lead가 Runbook 따라하기 1회 검증 — 윈도우 2 Phase 5 (`docs/runbooks/W5_WINDOW_2.md`)
+  - [x] On-call 연락처/Slack 채널 정리 — `docs/runbooks/on-call.md` (2레벨 간소화, 알람 경로 테스트만 윈도우 항목)
+  - [x] PR 코멘트로 diff 요약 GitHub Action 도입 (선택) — W1 이월 (D-041) — 기구현 확인: `validate-manifests.yml` diff-comment job (커밋 47a7c67), PR #129 동작 확인
 - **Duration**: 2일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [ ] In Progress / [ ] Done
+**Status**: [ ] Not Started / [x] In Progress / [ ] Done (문서 산출물 완료. 시뮬레이션·team-lead 검증·알람 테스트는 윈도우 2 Phase 5 — 2026-06-08 스펙)
+<!-- 2026-06-08: 장애 런북 5종(incidents/)·on-call·윈도우 2 런북(W5_WINDOW_2.md) 머지. 라이브 3항목(시뮬레이션·따라하기·알람)은 차기 on-demand 윈도우. 설계: docs/superpowers/specs/2026-06-08-w5-step11-runbook-window2-design.md -->
 
 ---
 
