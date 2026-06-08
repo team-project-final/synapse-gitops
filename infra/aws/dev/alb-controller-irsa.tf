@@ -1,6 +1,7 @@
 # aws-load-balancer-controller IRSA (SA: kube-system/aws-load-balancer-controller).
 # ALB Ingress(infra/ingress/*, infra/ingress/nipio/*) 프로비저닝에 필요.
-# 정책은 공식 v2.7.2 iam_policy.json(alb-controller-iam-policy.json)을 그대로 사용.
+# 정책은 공식 v3.4.0 iam_policy.json(alb-controller-iam-policy.json)을 그대로 사용.
+# (컨트롤러 이미지 v3.4.0과 정합 — v2.7.2 정책은 GetSecurityGroupsForVpc·DescribeListenerAttributes 등 누락으로 ALB 생성 403.)
 # (W5 clearance window 발견: 컨트롤러 미부트스트랩 → #121 차단. gitops#121 참조.)
 
 data "aws_iam_policy_document" "alb_controller_assume" {
