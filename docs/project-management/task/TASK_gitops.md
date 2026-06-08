@@ -149,7 +149,7 @@
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [ ] In Progress / [x] Done (auto-sync·승격문서·Ingress매니페스트 완료(PR #47), A2 라이브 4/5 검증. platform-svc 5/5만 app 레포 조건부)
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (auto-sync·승격문서·Ingress매니페스트 완료(PR #47), A2 라이브 4/5 검증. platform-svc-staging 5/5는 #92 — gitops 층은 PR #136(서비스별 DB 분리)으로 해소, 잔여=재빌드·라이브 재검증(윈도우 2). 상세: docs/superpowers/specs/2026-06-08-w3-w4-incomplete-audit-design.md §3)
 
 ---
 
@@ -231,7 +231,7 @@
 - [~] **#121 외부 노출 (ACM/DNS/Ingress/webhook, W1·Step 9 이월)** — 코드 완료·main 머지: nip.io ingress + self-signed 인증서 스크립트(PR #123) + **aws-load-balancer-controller 부트스트랩 IRSA+helm(PR #124)**. 라이브 검증은 차기 윈도우 — 실제 차단은 *ALB 컨트롤러 미부트스트랩*이었음(gitops#121).
 - [~] **#122 Image Updater write-back E2E (W4 Step 6/10 이월)** — ECR 자격 미설정(`no basic auth credentials`) 규명 + 수정: `registries.conf` ext 스크립트 + `ecr-login.sh`(PR #124). 라이브 E2E는 차기 윈도우(gitops#122).
 - [ ] **#91 dev/staging 5/5** — gateway-dev(서비스 미릴리스: ECR repo·SM키 부재 → synapse-gateway#4) · platform-svc-staging(#92) 서비스 후속 의존.
-- [ ] **#92 platform-svc-staging** — `application-staging.yml`이 main 미머지(dev 브랜치) 규명 → platform-svc main 머지 + `dev-latest` 재빌드 후 재검증.
+- [ ] **#92 platform-svc-staging** — ① datasource 부재: `application-staging.yml` **main 머지 확인**(`datasource.url: ${DB_URL}`) + gitops staging 오버레이 `DB_URL` 주입 확인(PR #136). ② flyway 충돌(W5 Day1): 서비스별 DB 분리(PR #136)로 해소. 잔여 = 머지 이후 시점 **재빌드** + 라이브 재검증(윈도우 2). 발견: staging가 dev RDS·DB 공유(§4 감사).
 - 검증 후 `terraform destroy`로 과금 차단.
 
 **Status**: 진행 중 — #120 **Done·close**. #121/#122 gitops 코드 main 머지(PR #123/#124), 라이브 검증 차기 on-demand 윈도우. #91/#92는 서비스(gateway/platform-svc) 후속 의존. 차기 윈도우 진입 선결 = PR #124 머지(완료) + 서비스 2건(gateway 릴리스·platform-svc staging main 머지).
