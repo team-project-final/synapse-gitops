@@ -230,11 +230,11 @@
 - [x] **gitops 부트스트랩 + dev 5/6 Healthy** — ArgoCD HA(`--insecure`)/ESO/ApplicationSet/kafka-brokers/metrics-server/image-updater 기동. (`verify-argocd-deploy.sh`는 shared·team-lead 실행)
 - [~] **#121 외부 노출 (ACM/DNS/Ingress/webhook, W1·Step 9 이월)** — 코드 완료·main 머지: nip.io ingress + self-signed 인증서 스크립트(PR #123) + **aws-load-balancer-controller 부트스트랩 IRSA+helm(PR #124)**. 라이브 검증은 차기 윈도우 — 실제 차단은 *ALB 컨트롤러 미부트스트랩*이었음(gitops#121).
 - [~] **#122 Image Updater write-back E2E (W4 Step 6/10 이월)** — ECR 자격 미설정(`no basic auth credentials`) 규명 + 수정: `registries.conf` ext 스크립트 + `ecr-login.sh`(PR #124). 라이브 E2E는 차기 윈도우(gitops#122).
-- [ ] **#91 dev/staging 5/5** — gateway-dev(서비스 미릴리스: ECR repo·SM키 부재 → synapse-gateway#4) · platform-svc-staging(#92) 서비스 후속 의존.
+- [x] **#91 dev/staging 5/5 — 06-08 라이브 달성·close** — EKS 재apply → `verify-argocd-deploy.sh` **dev 16/0/0 · staging 20/0/0 ALL PASSED** + 롤백 124s(06-02, <3분). 이전 차단 gateway-dev(JWT 매핑, PR #136)·platform-svc-staging(#92) 모두 Healthy(shared HANDOFF_HUB §1).
 - [x] **#92 platform-svc-staging — 06-08 라이브 해소·close** — ① datasource(`application-staging.yml` main `${DB_URL}`) + ② flyway 충돌(공유 DB) 모두 PR #136으로 해소. 06-08 EKS 재apply `verify-argocd-deploy.sh staging 20/0/0 ALL PASSED`, platform-svc staging Healthy(shared HANDOFF_HUB §1). 잔존 관찰=staging가 dev RDS·DB 공유(§4 감사, 환경격리는 별도).
 - 검증 후 `terraform destroy`로 과금 차단.
 
-**Status**: 진행 중 — #120 **Done·close**. #121/#122 gitops 코드 main 머지(PR #123/#124), 라이브 검증 차기 on-demand 윈도우. #91/#92는 서비스(gateway/platform-svc) 후속 의존. 차기 윈도우 진입 선결 = PR #124 머지(완료) + 서비스 2건(gateway 릴리스·platform-svc staging main 머지).
+**Status**: 진행 중 — #120 **Done·close**. **#91·#92 06-08 라이브 달성·close**(EKS 재apply → dev 16/0/0·staging 20/0/0 ALL PASSED, gateway JWT·platform DB 분리 PR #136, shared HANDOFF_HUB §1). #121/#122 gitops 코드 main 머지(PR #123/#124), 라이브 검증만 차기 on-demand 윈도우(`W5_WINDOW_2.md`).
 
 ---
 
