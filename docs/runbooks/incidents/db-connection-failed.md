@@ -1,6 +1,6 @@
 # Incident: DB 연결 실패
 
-> 대상: RDS PostgreSQL (Spring 5svc) — dev/staging/prod 가 단일 인스턴스(db.t3.small)를 **서비스별 DB로 분리** (`synapse_platform`/`synapse_engagement`/`synapse_knowledge`/`synapse_learning`/`synapse_ai`, PR #136)
+> 대상: RDS PostgreSQL (백엔드 5svc — learning-ai만 Python/asyncpg, 나머지 4 Spring/Flyway) — dev/staging/prod 가 단일 인스턴스(db.t3.small)를 **서비스별 DB로 분리** (`synapse_platform`/`synapse_engagement`/`synapse_knowledge`/`synapse_learning`/`synapse_ai`, PR #136)
 > 관련 실사례: T-030, T-031, T-040(D-026), T-073 패턴 + W4 학습(연결 한도) + W5 Day1(flyway 충돌)
 
 ## 증상
@@ -42,7 +42,9 @@ aws ec2 describe-security-groups --group-ids <RDS_SG> \
 
 ```bash
 kubectl get cm <svc>-config -n <ns> -o jsonpath='{.data.DATABASE_NAME}'   # synapse_<svc> 여야 함
-kubectl get secret <svc-secret> -n <ns> -o jsonpath='{.data.SPRING_DATASOURCE_URL}' | base64 -d
+# URL은 ConfigMap <svc>-config 에 평문(base64 아님). 키 이름이 서비스마다 다름:
+#   platform-svc → DB_URL · learning-ai → LEARNING_AI_DATABASE_URL · 나머지 3 → SPRING_DATASOURCE_URL
+kubectl get cm <svc>-config -n <ns> -o jsonpath='{.data.SPRING_DATASOURCE_URL}'   # platform=DB_URL, learning-ai=LEARNING_AI_DATABASE_URL
 # ↑ 1번에서 확인한 실제 RDS 엔드포인트 + /synapse_<svc> 인지 확인
 ```
 - DB가 `synapse`(공유)로 남아 있으면 → overlay의 `DATABASE_NAME`/`SPRING_DATASOURCE_URL`을 `synapse_<svc>`로 수정 (PR #136 패턴). flyway checksum 충돌의 근본 원인.
