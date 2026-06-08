@@ -266,7 +266,7 @@
   - [x] Resource request/limit 적정성 1회 리뷰 — 2026-06-08 정적 리뷰 완료(`docs/runbooks/resource-sizing-review-w5.md`): Java 5종 limit 512Mi 균일·tight(OOM 리스크)·서비스/환경 미차등 발견. P95 기반 튜닝은 윈도우2(메트릭) 위임
   - [ ] HPA 동작 검증 (5개 앱 중 트래픽 변동 큰 2개)
   - [x] P0/P1 이슈 목록 0건 (또는 fix 완료) — 2026-06-08 확인: 열린 P0/P1 0건(#91 P0·#92 P1 close). 잔존 OPEN 3건(#121/#122 윈도우2·#126 ops)은 P0/P1 아님
-  - [ ] 핸드오프 문서 마지막 검토
+  - [x] 핸드오프 문서 마지막 검토 — 2026-06-08: gitops 정본 스포크 `HISTORY_gitops.md`에 W5 Day1 엔트리 추가(06-02/05 이후 stale 해소). shared HANDOFF_HUB는 team-lead 유지·현행
   - [x] kustomize build 결과 캐싱 (CI 속도 개선, 선택) — W1 이월 (D-041). 2026-06-08: build는 sub-second라 이득 미미 → 실제 비용인 kubeconform 바이너리 + pip(yamllint) 캐싱으로 대체 적용(`validate-manifests.yml`)
 - **Duration**: 2일
 - **Assignee**: @VelkaressiaBlutkrone
