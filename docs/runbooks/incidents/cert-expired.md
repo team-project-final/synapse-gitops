@@ -14,11 +14,12 @@
 
 ```bash
 # 1. 실제 서빙 중인 인증서 만료일
-openssl s_client -connect argocd.<IP>.nip.io:443 -servername argocd.<IP>.nip.io </dev/null 2>/dev/null \
+echo "" | openssl s_client -connect argocd.<IP>.nip.io:443 -servername argocd.<IP>.nip.io 2>/dev/null \
   | openssl x509 -noout -dates
 # 2. ACM 쪽 만료일 대조
 aws acm list-certificates --region ap-northeast-2 \
-  --query 'CertificateSummaryList[].{arn:CertificateArn,domain:DomainName,exp:NotAfter}'
+  --query 'CertificateSummaryList[].{arn:CertificateArn,domain:DomainName}'
+# 만료일 정본은 describe-certificate (list-certificates의 NotAfter는 구 CLI에서 null)
 aws acm describe-certificate --certificate-arn <ARN> --query 'Certificate.NotAfter'
 # 3. ingress가 어떤 ARN을 쓰는지
 kubectl get ingress -A -o yaml | grep certificate-arn
@@ -37,14 +38,14 @@ bash scripts/gen-nipio-selfsigned.sh <ALB_DNS>   # → CERT_ARN=arn:aws:acm:...
 #    - 상시 운영 중이면: infra/ingress/nipio/*.yaml 수정 → PR → 머지 → sync
 #    - 윈도우(폐기 전제) 중이면: kubectl annotate 로 직접 교체 후 윈도우 종료 시 destroy
 # 4. 검증
-curl --cacert .nipio-certs/ca.crt https://argocd.<IP>.nip.io   # 200 + 체인 유효
+curl --cacert .nipio-certs/ca.crt https://argocd.<IP>.nip.io   # 리포 루트에서 실행, 200 + 체인 유효
 ```
 
 > ALB IP가 바뀌었으면 nip.io 호스트도 무효 — 스크립트가 새 IP 기준 SAN으로 재생성하므로 ingress의 host도 함께 치환한다.
 
 ### B. ArgoCD NLB self-signed (W1 유산 경로 사용 시)
 
-기본 접근은 SSM 터널 + `--insecure`라 외부 TLS 비의존. NLB 노출을 유지 중인 경우에만:
+기본 접근은 SSM 터널 + `--insecure`라 외부 TLS 비의존(이 모드에선 argocd-server-tls 무의미). NLB로 TLS 종료하는 경우(argocd-server `--insecure` 미적용)에만:
 
 ```bash
 kubectl delete secret argocd-server-tls -n argocd   # 재생성 트리거 (자체 생성 경로)
@@ -71,5 +72,5 @@ aws acm delete-certificate --certificate-arn <OLD_ARN>   # ingress 참조 해제
 ## 사후 점검
 
 - [ ] 새 ARN이 git의 ingress 매니페스트와 일치하는지 (윈도우 외 상시 운영 시)
-- [ ] `.nipio-certs/` 로컬 파일이 커밋되지 않았는지 (`git status` — gitignore 확인)
+- [ ] `.nipio-certs/` 가 `git status` 출력에 **없는지** 확인 (있으면 gitignore 깨진 것)
 - [ ] webhook 외부 도달 재검증 (GitHub ping → `/api/webhook` 200)
