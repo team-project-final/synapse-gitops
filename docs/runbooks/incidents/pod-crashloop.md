@@ -1,7 +1,7 @@
 # Incident: Pod CrashLoopBackOff
 
 > 대상 환경: synapse-dev / synapse-staging / synapse-prod (EKS)
-> 관련 실사례: T-050, T-051, T-052, T-054, T-055, T-056, T-057, T-072 (`docs/runbooks/troubleshooting-infra.md`)
+> 관련 실사례: T-050, T-051, T-052, T-053, T-054, T-055, T-056, T-057, T-072 (`docs/runbooks/troubleshooting-infra.md`)
 
 ## 증상
 
@@ -15,7 +15,7 @@
 
 ```bash
 # 1. 대상 식별
-kubectl get pods -n <ns> | grep -v Running
+kubectl get pods -n <ns> | grep -E "CrashLoop|Error|OOMKilled"
 # 2. 이벤트·종료 사유
 kubectl describe pod <pod> -n <ns>          # Events, Last State, Exit Code
 # 3. 직전 컨테이너 로그 (핵심)
@@ -30,7 +30,7 @@ kubectl logs <pod> -n <ns> --previous --tail=100
 | 2 | `missing table` / `missing column` / Flyway 에러 | DB 스키마 미시드 — prod는 Hibernate validate (T-050/056, D-024) | 해당 svc Flyway 이력·DB 스키마 확인 |
 | 3 | `AES secret key must be 32 bytes` | SM 시크릿 형식 오류 (T-055, D-030) | SM 값이 Base64 32B인지 |
 | 4 | 기동은 되나 probe 실패 반복 | 포트 불일치 (T-051) 또는 probe 타이밍 (T-052, D-028) | containerPort vs probe port vs Service targetPort; initialDelay |
-| 5 | 정상 로그인데 구버전 동작 | 구 이미지 캐시 (T-057/072) | Pod imageID(digest) vs ECR 최신 digest |
+| 5 | 정상 로그인데 구버전 동작 | 구 이미지 캐시 (T-057/072) | `kubectl get pod <pod> -n <ns> -o jsonpath='{.status.containerStatuses[0].imageID}'` vs ECR 최신 digest |
 
 > local-k8s(minikube)는 별도: kafka `enableServiceLinks`, 이미지 로드 이슈 — `local-k8s/README.md` 참조.
 
@@ -40,7 +40,7 @@ kubectl logs <pod> -n <ns> --previous --tail=100
    - 매니페스트 원인 → `apps/<svc>/overlays/<env>/` 수정 → PR → 머지 → auto sync (prod는 수동 sync)
    - SM 시크릿 원인 → AWS SM 값 수정 → ExternalSecret 강제 갱신:
      ```bash
-     kubectl annotate externalsecret <name> -n <ns> force-sync="$(date +%s)" --overwrite
+     kubectl annotate externalsecret <name> -n <ns> force-sync=$(date +%s) --overwrite
      kubectl rollout restart deploy/<svc> -n <ns>
      ```
    - 서비스 코드/스키마 원인 → 해당 서비스 레포에 이슈 이관 (`synapse-<svc>` 레포)
