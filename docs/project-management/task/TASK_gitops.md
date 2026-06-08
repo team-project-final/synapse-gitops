@@ -263,7 +263,7 @@
 - **Step Goal**: 운영 비용 가시성 확보 + 5주차 P0/P1 이슈 0건.
 - **Done When**:
   - [ ] AWS Cost Explorer 태그 기반 비용 가시성 확보
-  - [ ] Resource request/limit 적정성 1회 리뷰
+  - [x] Resource request/limit 적정성 1회 리뷰 — 2026-06-08 정적 리뷰 완료(`docs/runbooks/resource-sizing-review-w5.md`): Java 5종 limit 512Mi 균일·tight(OOM 리스크)·서비스/환경 미차등 발견. P95 기반 튜닝은 윈도우2(메트릭) 위임
   - [ ] HPA 동작 검증 (5개 앱 중 트래픽 변동 큰 2개)
   - [x] P0/P1 이슈 목록 0건 (또는 fix 완료) — 2026-06-08 확인: 열린 P0/P1 0건(#91 P0·#92 P1 close). 잔존 OPEN 3건(#121/#122 윈도우2·#126 ops)은 P0/P1 아님
   - [ ] 핸드오프 문서 마지막 검토
