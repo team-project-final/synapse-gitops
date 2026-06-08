@@ -149,7 +149,7 @@
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [ ] In Progress / [x] Done (auto-sync·승격문서·Ingress매니페스트 완료(PR #47), A2 라이브 4/5 검증. platform-svc 5/5만 app 레포 조건부)
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (auto-sync·승격문서·Ingress매니페스트 완료(PR #47), A2 라이브 4/5 검증. platform-svc-staging 5/5는 #92 — gitops 층은 PR #136(서비스별 DB 분리)으로 해소, 잔여=재빌드·라이브 재검증(윈도우 2). 상세: docs/superpowers/specs/2026-06-08-w3-w4-incomplete-audit-design.md §3)
 
 ---
 
