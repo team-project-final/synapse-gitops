@@ -33,6 +33,9 @@ spec:
         argocd-image-updater.argoproj.io/app.allow-tags: "regexp:^[0-9]+\\.[0-9]+\\.[0-9]+$"
         argocd-image-updater.argoproj.io/write-back-method: git
         argocd-image-updater.argoproj.io/write-back-target: kustomization
+        # kustomize.image-name: image-list는 ECR 주소(조회용)이나 kustomization images의 name은
+        # ghcr.io 원본 → 불일치 시 IU가 set image에서 새 항목 추가+들여쓰기 손상. ghcr name으로 매칭.
+        argocd-image-updater.argoproj.io/app.kustomize.image-name: "ghcr.io/team-project-final/synapse-{{service}}"
         # PR write-back (#126): main 직접 push(=Maintain bypass 의존) 대신 base:commit 분리 브랜치로 push.
         # ApplicationSet이 {{service}}를 치환 → 서비스별 write-branch(image-updater-<svc>). main은 보호 유지.
         # 이 브랜치 push → .github/workflows/image-updater-pr.yml 가 main으로 PR 자동 생성.
