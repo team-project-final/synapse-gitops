@@ -25,10 +25,10 @@
 
 ## Phase 2 — #91/#92 fleet 검증
 
-- [ ] (team-lead) `bash scripts/verify-argocd-deploy.sh synapse-dev` → **7앱 ALL PASSED** (5svc+gateway+frontend)
+- [ ] (team-lead) `bash scripts/verify-argocd-deploy.sh synapse-dev` (스크립트는 **synapse-shared 레포**) → **7앱 ALL PASSED** (5svc+gateway+frontend)
 - [ ] gateway-dev 기동 확인 — 윈도우 1 갭(ECR·SM 2종) 해소 검증 (gateway#4)
 - [ ] platform-svc-dev 기동 확인 — flyway checksum 충돌 없음 (PR #136 DB 분리 효과)
-- [ ] staging sync 확인 (auto) → `verify-argocd-deploy.sh synapse-staging` → **7앱** (5svc+frontend+schema-registry)
+- [ ] staging sync 확인 (auto) → `bash scripts/verify-argocd-deploy.sh synapse-staging` (synapse-shared 레포) → **7앱** (5svc+frontend+schema-registry)
 - [ ] platform-svc-staging Running (= #92 해소: 서비스별 DB 분리로 flyway 충돌 제거, PR #136)
 - [ ] 롤백 1회: `kubectl -n synapse-dev rollout undo deploy/<svc>` → 복구 <3분
 - [ ] → #91·#92 close (결과 코멘트)
@@ -62,7 +62,7 @@
 > 시뮬레이션은 **전용 sim Application** — staging은 selfHeal=true라 직접 주입 불가(즉시 원복). fleet 무접촉.
 
 - [ ] 스냅샷: `kubectl get pods -n synapse-staging -o wide > /tmp/staging-before.txt`
-- [ ] sim 앱 생성 (manual sync — selfHeal 없음):
+- [ ] sim 앱 생성 (manual sync — selfHeal 없음). 전제: `argocd login` 또는 `--core` 모드 (`docs/runbooks/argocd-ui-access.md` 참고):
   ```bash
   argocd app create incident-sim \
     --repo https://github.com/team-project-final/synapse-gitops \
@@ -72,15 +72,15 @@
     --sync-option CreateNamespace=true
   argocd app sync incident-sim   # 기동 확인 (Java svc — ESO/RDS/MSK 실의존 동작)
   ```
-- [ ] **시나리오 1 CrashLoop**: `kubectl set env deploy/engagement-svc -n synapse-sim SPRING_DATASOURCE_URL=jdbc:broken` → `incidents/pod-crashloop.md` 따라 진단 → 원복(`kubectl set env ... SPRING_DATASOURCE_URL-` 후 re-sync)
-- [ ] **시나리오 2 OOM**: limit 10Mi 패치 → `incidents/oom-killed.md` 따라 진단 → `argocd app sync incident-sim` 으로 원복
+- [ ] **시나리오 1 CrashLoop**: `kubectl set env deploy/engagement-svc -n synapse-sim SPRING_DATASOURCE_URL=jdbc:broken` → `docs/runbooks/incidents/pod-crashloop.md` 따라 진단 → 원복: `argocd app sync incident-sim` (git 상태로 복원 — set env 해제 불필요, sync가 덮어씀)
+- [ ] **시나리오 2 OOM**: limit 10Mi 패치 → `docs/runbooks/incidents/oom-killed.md` 따라 진단 → `argocd app sync incident-sim` 으로 원복
   ```bash
   kubectl patch deploy engagement-svc -n synapse-sim --type=json \
     -p='[{"op":"replace","path":"/spec/template/spec/containers/0/resources/limits/memory","value":"10Mi"}]'
   ```
-- [ ] **시나리오 3 sync 실패**: sim 브랜치에 존재하지 않는 리소스 참조 커밋 push → `argocd app sync incident-sim` Failed → `incidents/argocd-sync-failed.md` 따라 진단 → revert push → sync OK
+- [ ] **시나리오 3 sync 실패**: sim 브랜치에 존재하지 않는 리소스 참조 커밋 push → `argocd app sync incident-sim` Failed → `docs/runbooks/incidents/argocd-sync-failed.md` 따라 진단 → revert push → sync OK
 - [ ] **team-lead 따라하기**: 시나리오 1택 재현 → team-lead가 런북만 보고 독립 복구 (1회 통과 = Step 11 검증 완료. 당일 불가 시: 비동기 후속으로 분리 기록)
-- [ ] **알람 경로 테스트**: `on-call.md` 절차 (amtool warning) → Slack `#synapse-gitops` 수신 확인
+- [ ] **알람 경로 테스트**: `docs/runbooks/on-call.md` 절차 (amtool warning) → Slack `#synapse-gitops` 수신 확인
 - [ ] 정리: `argocd app delete incident-sim --yes` → `kubectl delete ns synapse-sim` → `git push origin --delete sim/incident-window2`
 - [ ] fleet 무접촉 확인: `diff /tmp/staging-before.txt <(kubectl get pods -n synapse-staging -o wide)`
 
