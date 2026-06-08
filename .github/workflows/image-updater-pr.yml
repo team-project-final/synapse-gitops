@@ -1,7 +1,8 @@
 # argocd-image-updater PR write-back (#126): image-updater가 push한 image-updater-<svc> 브랜치를
 # main으로 자동 PR. main 직접 push(Maintain bypass) 대신 PR+required check(validate) 흐름 유지.
-# 토큰: GITOPS_TOKEN(PAT) 사용 — GITHUB_TOKEN으로 만든 PR은 pull_request 워크플로(validate)를
-#       트리거하지 않아 required check가 영원히 미보고되므로 PAT가 필요.
+# 토큰: #126 옵션3(전용 자동화 ID) — GitHub App(synapse-gitops-bot) 설치토큰 사용.
+#       GITHUB_TOKEN으로 만든 PR은 pull_request 워크플로(validate)를 트리거하지 않아 required
+#       check가 영원히 미보고되므로 App 토큰(비-GITHUB_TOKEN)이 필요. App 토큰은 런타임 발급(만료 1h).
 name: image-updater PR
 
 on:
@@ -18,9 +19,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Generate App token (#126 옵션3 전용 자동화 ID)
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.GITOPS_APP_ID }}
+          private-key: ${{ secrets.GITOPS_APP_PRIVATE_KEY }}
       - name: Open PR to main (idempotent)
         env:
-          GH_TOKEN: ${{ secrets.GITOPS_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           BRANCH="${GITHUB_REF_NAME}"
           if gh pr view "$BRANCH" --repo "$GITHUB_REPOSITORY" --json number >/dev/null 2>&1; then
