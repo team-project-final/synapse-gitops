@@ -9,8 +9,8 @@ metadata:
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/group.name: synapse-nipio
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
-    # argocd-server는 443에서 자체 TLS 종료 → ALB가 HTTPS로 백엔드 통신
-    alb.ingress.kubernetes.io/backend-protocol: HTTPS
+    # argocd-server는 --insecure 모드(80/443→8080 HTTP) → ALB가 TLS 종료, 백엔드는 HTTP
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
     alb.ingress.kubernetes.io/healthcheck-path: /healthz
     # 라이브: gen-nipio-selfsigned.sh 출력 CERT_ARN으로 치환
     alb.ingress.kubernetes.io/certificate-arn: <ACM_ARN>
@@ -26,4 +26,4 @@ spec:
               service:
                 name: argocd-server
                 port:
-                  number: 443
+                  number: 80
