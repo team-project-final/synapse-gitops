@@ -240,6 +240,8 @@
 
 ## W5 (2026-06-08 ~ 2026-06-12, 5 영업일) — 안정화 + Runbook
 
+> **윈도우 2(라이브) 이관**: 비용 0 작업 완료. 라이브 검증/튜닝 + 팀 결정만 잔여 → 다음 세션 핸드오프 [`docs/superpowers/HANDOFF_W5.md`](../../superpowers/HANDOFF_W5.md) (실행 런북 `docs/runbooks/W5_WINDOW_2.md`).
+
 ### Step 11: Runbook + 장애 시나리오
 
 - **Step Goal**: 운영자가 첫 1주차 장애를 Runbook만 보고 처리할 수 있다.
