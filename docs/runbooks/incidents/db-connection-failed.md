@@ -44,7 +44,8 @@ aws ec2 describe-security-groups --group-ids <RDS_SG> \
 kubectl get cm <svc>-config -n <ns> -o jsonpath='{.data.DATABASE_NAME}'   # synapse_<svc> 여야 함
 # URL은 ConfigMap <svc>-config 에 평문(base64 아님). 키 이름이 서비스마다 다름:
 #   platform-svc → DB_URL · learning-ai → LEARNING_AI_DATABASE_URL · 나머지 3 → SPRING_DATASOURCE_URL
-kubectl get cm <svc>-config -n <ns> -o jsonpath='{.data.SPRING_DATASOURCE_URL}'   # platform=DB_URL, learning-ai=LEARNING_AI_DATABASE_URL
+URL_KEY=SPRING_DATASOURCE_URL   # platform-svc=DB_URL, learning-ai=LEARNING_AI_DATABASE_URL 로 대체
+kubectl get cm <svc>-config -n <ns> -o jsonpath="{.data.$URL_KEY}"
 # ↑ 1번에서 확인한 실제 RDS 엔드포인트 + /synapse_<svc> 인지 확인
 ```
 - DB가 `synapse`(공유)로 남아 있으면 → overlay의 `DATABASE_NAME`/`SPRING_DATASOURCE_URL`을 `synapse_<svc>`로 수정 (PR #136 패턴). flyway checksum 충돌의 근본 원인.
