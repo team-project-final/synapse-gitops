@@ -33,7 +33,7 @@ aws eks describe-cluster --name synapse-dev --query 'cluster.status' --region ap
 | 2 | **#122 IU write-back E2E** | `W5_WINDOW_2.md` Phase 4 · `image-updater-pr.yml`(#127 경로) | ECR 재태그 → IU 감지 → PR 자동생성 → 머지 → 반영 ≤5분 + 롤백 1회 → #122 close |
 | 3 | **Step 11 시뮬레이션 3종** | `W5_WINDOW_2.md` Phase 5 · 전용 `incident-sim` 앱(ns synapse-sim) | crashloop/oom/sync 재현 → incidents 런북 따라 복구 |
 | 4 | **Step 11 team-lead 따라하기** | Phase 5 | team-lead가 런북만 보고 1택 독립 복구 1회 → Step 11 Done |
-| 5 | **Step 11 알람 경로 테스트** | Phase 5 · `on-call.md` amtool | amtool warning → Slack `#synapse-gitops` 수신 |
+| 5 | **Step 11 알람 경로 테스트** (경로✅·도착 후속) | Phase 5 · `on-call.md` amtool | amtool warning → route slack·webhook 형식 검증 완료. **`#synapse-gitops` 채널 미존재로 실제 미도착 → `#final-project-1-team`(C0B3JEU46R1)로 수정(PR #153)**. 도착 보장은 §4 webhook 후속 |
 | 6 | **HPA 동작 검증** | prod overlay `hpa.yaml` 5종 존재 · TASK Step 12 | 트래픽 변동 큰 2개 앱 부하 → replica 스케일아웃/인 관찰 |
 | 7 | **resource P95 튜닝** | `docs/runbooks/resource-sizing-review-w5.md` | Grafana P95×1.3 측정 → Java 5종 limit(512Mi tight) 재산정 → overlay patch. dev 축소(비용) |
 | 8 | **staging 환경 DB 분리** | 감사 `2026-06-08-w3-w4-incomplete-audit-design.md` §4 | staging가 dev RDS·DB(`synapse_platform`) 공유 → 환경 격리(전용 DB/인스턴스). **team-lead 비용 결정 선행** |
@@ -46,6 +46,7 @@ aws eks describe-cluster --name synapse-dev --query 'cluster.status' --region ap
 - **항목 7 선결**: Observability(Grafana/Prometheus) 가동 — bring-up `observability` phase 포함. 메트릭 수집 후 P95.
 - **항목 8 선결**: **team-lead 비용 결정** — 전용 인스턴스/DB 추가는 사이징·과금 영향. 미결정 시 항목 8 보류.
 - **항목 4 의존**: team-lead 가용 시간. 당일 불가 시 시뮬레이션·알람만 완료, 따라하기는 비동기 후속(Step 11 Done은 따라하기 시점).
+- **항목 5 알람 도착 후속**: `#synapse-gitops` 채널 부재 발견 → alertmanager channel을 `#final-project-1-team`로 수정(PR #153 머지). **실제 도착은 그 채널 Incoming Webhook URL을 AWS SM `synapse/monitoring/alertmanager`(`slack-webhook-url`)에 갱신해야**(incoming webhook은 채널 고정, channel 파라미터만으론 부족). 사용자 작업: ① Slack `#final-project-1-team` webhook 생성 → ② `aws secretsmanager put-secret-value --secret-id synapse/monitoring/alertmanager --secret-string '{"slack-webhook-url":"<URL>"}'` → ③ 다음 윈도우에서 amtool warning 도착 확인.
 
 ## 5. 팀 결정 대기 (윈도우 무관)
 
