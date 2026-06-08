@@ -16,17 +16,17 @@ kubectl get pods -n <ns> -o json | jq -r '.items[] | select(.status.containerSta
 # 2. 현재 사용량 vs limit
 kubectl top pods -n <ns>
 kubectl get deploy <svc> -n <ns> -o jsonpath='{.spec.template.spec.containers[0].resources}'
-# 3. 추세 확인 — Grafana "Synapse 개요" 대시보드 메모리 패널에서 P95 확인
+# 3. 추세 확인 — Grafana 기본 대시보드 "Kubernetes / Compute Resources / Namespace (Pods)"에서 P95 확인 (SynapseHighMemory 알람: infra/monitoring/prometheus-rules.yaml)
 ```
 
-- Java 서비스(5svc + gateway)는 힙 외 메모리(metaspace/direct buffer) 포함해 limit을 초과할 수 있음 — JVM 옵션(`-XX:MaxRAMPercentage`) 확인.
+- Java 서비스(learning-ai 제외 4svc + gateway)는 힙 외 메모리(metaspace/direct buffer) 포함해 limit을 초과할 수 있음 — JVM 옵션(`-XX:MaxRAMPercentage`) 확인.
 - 기동 직후 OOM이면 limit 절대 부족, 장시간 후 OOM이면 릭 의심.
 
 ## 조치
 
-**limit 상향은 반드시 git 경유** — dev/staging은 selfHeal이라 `kubectl patch`가 즉시 원복된다 (긴급 패치 불가, sim 환경 제외).
+**limit 상향은 반드시 git 경유** — dev/staging은 selfHeal이라 `kubectl patch`가 즉시 원복된다 (긴급 패치 불가. 예외: 윈도우 시뮬레이션 전용 `incident-sim` 앱 — `W5_WINDOW_2.md` Phase 5).
 
-1. `apps/<svc>/overlays/<env>/kustomization.yaml` 의 리소스 패치에서 `resources.limits.memory`를 **P95 × 1.3** 으로 상향
+1. `resources.limits.memory`를 **P95 × 1.3** 으로 상향 — 전 환경 공통이면 `apps/<svc>/base/deployment.yaml` 직접 수정, 환경별 차등이면 `apps/<svc>/overlays/<env>/kustomization.yaml` 에 Deployment 대상 patch **신규 추가** (기존 limits 패치 없음)
 2. PR → CI(렌더 diff 코멘트로 변경 확인) → 머지 → dev/staging auto sync (prod 수동 sync)
 3. 복구 확인: `kubectl top pods -n <ns>` 사용량/limit 비율 < 0.8
 
