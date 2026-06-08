@@ -14,7 +14,7 @@
 
 | 구분 | 작업 | 시점 |
 |------|------|------|
-| 단계 A (비용 0) | incidents 런북 5개 + `on-call.md` + PR diff 요약 Action | 지금 작성·머지 |
+| 단계 A (비용 0) | incidents 런북 5개 + `on-call.md` (+ PR diff Action 기구현 확인·TASK 체크) | 지금 작성·머지 |
 | 단계 B (비용 0) | `docs/runbooks/W5_WINDOW_2.md` 윈도우 실행 런북 | 지금 작성·머지 |
 | 단계 C (과금) | 윈도우 2 실행 — #91/#92/#121/#122 클리어 + Step 11 라이브 항목 | 차기 세션 (on-demand) |
 
@@ -29,7 +29,7 @@
 
 ### 성공 기준
 
-- 단계 A+B: incidents 5개·on-call·W5_WINDOW_2 런북 main 머지, CI(yamllint/validate) 통과, PR diff Action 동작 1회 확인.
+- 단계 A+B: incidents 5개·on-call·W5_WINDOW_2 런북 main 머지, CI 통과. (PR diff Action은 기구현 — PR #129 동작 확인 완료)
 - 단계 C(윈도우): #91/#92/#121/#122 전부 close + Step 11 Done When 라이브 3항목 완료 + destroy.
 
 ## 2. 결정 사항 (브레인스토밍 합의)
@@ -39,7 +39,8 @@
 | Step 11 라이브 항목 처리 | **윈도우 2에 통합** | 시뮬레이션·team-lead 검증·알람 테스트는 staging 필요. 윈도우 비용 1회로 차단 클리어와 일괄 수행 |
 | 인증서 만료 런북 스택 | **실제 스택 기준** (self-signed ACM import + ArgoCD NLB) | cert-manager 미도입 결정(윈도우 1, D-047 경로)과 정합. 실행 불가능한 문서 배제 |
 | On-call 체계 | **실제 팀 기준 2레벨 간소화** | 트랙 1인 + team-lead 구조. 채널 = Slack(W3 검증된 Alertmanager 경로) + GitHub(synapse-shared 허브). PagerDuty 제외 |
-| PR diff 요약 Action (W1 이월, 선택) | **단계 A에 포함** | 비용 0·소규모. Step 11 Done When 선택 항목 해소 |
+| PR diff 요약 Action (W1 이월, 선택) | **기구현 확인 — 작성 불필요** | `validate-manifests.yml`의 `diff-comment` job으로 이미 존재(커밋 47a7c67), PR #129에서 동작 확인. TASK 체크박스 갱신만 수행 |
+| 시뮬레이션 실행 방식 | **전용 sim Application** (manual sync, sim 브랜치, ns `synapse-sim`) | staging ApplicationSet이 `selfHeal: true` — kubectl 기반 장애 주입이 즉시 자동 원복되어 가이드 11-C 방식 불가. 전용 앱은 selfHeal 간섭 없음 + fleet 무영향 + 삭제로 완전 원복 |
 | 스펙 구조 | 단일 스펙·플랜 (접근 A) | 시뮬레이션이 윈도우에 통합되어 두 작업이 결합됨. 윈도우 1과 동일 패턴 |
 | #91 성공 기준 재정의 | dev **7/7** · staging **7/7** | 현 ApplicationSet 기준 — dev = 5svc+gateway+frontend, staging = 5svc+frontend+schema-registry(gateway는 dev 전용). 원문 "5/5"는 frontend·schema-registry 이전 기준 |
 
@@ -79,11 +80,9 @@ docs/runbooks/
 - **야간/주말**: critical만 즉시, warning은 다음 영업일.
 - **알람 경로 테스트 절차**(amtool) 수록 — "윈도우 실행 항목" 표시.
 
-### PR diff 요약 Action
+### PR diff 요약 Action — 기구현 확인
 
-- `.github/workflows/pr-diff-summary.yml`: PR 시 변경된 overlay 대상 `kustomize build` diff를 PR 코멘트로 게시.
-- base/head 각각 빌드 → diff → 코멘트(갱신형, 중복 코멘트 방지). 변경 없는 앱은 생략.
-- 기존 `validate-manifests.yml`과 분리(검증 vs 가시성).
+설계 단계에서 신규 작성으로 가정했으나, `validate-manifests.yml`의 `diff-comment` job(커밋 47a7c67, "W1 Step 3 carry-over")으로 **이미 구현·동작 중**(PR #129 코멘트 확인). 신규 워크플로는 작성하지 않고 `TASK_gitops.md`의 W1 이월 체크박스 2곳(Step 3·Step 11)만 완료 처리한다.
 
 ## 4. 단계 B 산출물 — 윈도우 2 런북
 
@@ -119,9 +118,10 @@ Phase 4 — #122 Image Updater write-back E2E (Phase 3과 상호 독립, 병행 
      → 머지 → 반영시간 측정(≤5분) → argocd rollback 1회 → #122 close
 
 Phase 5 — Step 11 라이브 항목 (Phase 2 완료 후 가능)
-  ├─ 시뮬레이션 3건 (staging): crashloop / oom / sync 실패 — incidents 런북 따라 복구
+  ├─ 시뮬레이션 3건: crashloop / oom / sync 실패 — 전용 sim Application
+  │   (manual sync·sim 브랜치·ns synapse-sim — staging selfHeal 간섭 회피, 삭제로 원복)
   ├─ team-lead 따라하기 1회 (런북만 보고 독립 복구)
-  └─ 알람 경로 테스트 (amtool → Slack 수신)
+  └─ 알람 경로 테스트 (amtool → Slack #synapse-gitops 수신)
 
 Phase 6 — 마감
   └─ 이슈 코멘트/close + TASK/HISTORY 갱신 + synapse-shared#20 통보 + terraform destroy
@@ -132,7 +132,7 @@ Phase 6 — 마감
 - **Phase 3·4 병행**: ALB 프로비저닝 대기(~3분) 동안 Phase 4 진행 → 윈도우 시간 압축.
 - **#122 검증 경로 변경**: 윈도우 1 당시 direct push(bypass) 전제였으나 PR #127로 **PR write-back**으로 전환됨 — E2E 판정에 `image-updater-pr.yml`의 PR 자동 생성·머지 단계 포함.
 - **team-lead 폴백**: 윈도우 당일 team-lead 불가 시 "시뮬레이션·알람만 완료, 따라하기는 비동기 후속"으로 분리 — Step 11 Done은 따라하기 완료 시점.
-- **시뮬레이션 원복 보증**: 시뮬레이션 전 staging 스냅샷 → 종료 후 ArgoCD 강제 sync + diff 비교(가이드 11-C).
+- **시뮬레이션 원복 보증**: 전용 sim Application + `synapse-sim` 네임스페이스만 사용 — 종료 시 앱·ns·sim 브랜치 삭제로 완전 원복. staging fleet 무접촉(가이드 11-C의 직접 주입 방식은 selfHeal과 충돌해 폐기).
 
 ## 5. 선결 조건 현황 (2026-06-08 확인)
 
@@ -153,13 +153,12 @@ Phase 6 — 마감
 | ALB 컨트롤러 첫 라이브 실패 (PR #124 미검증 경로) | #121 차단 | bring-up 로그로 IRSA/helm 단계 분리 진단 — 실패 시 윈도우 1 방식(수동 helm) 폴백, 결과를 PR로 반영 |
 | IU PR write-back 미동작 (#127 미검증 경로) | #122 차단 | image-updater 로그 → 브랜치 push 여부 → workflow 트리거 여부 단계 분리. GITOPS_TOKEN 권한 사전 점검(Phase 0) |
 | team-lead 윈도우 당일 불가 | Step 11 따라하기 미완 | 폴백: 비동기 후속으로 분리(§4) |
-| 시뮬레이션 잔여물 (staging 오염) | 이후 검증 왜곡 | 스냅샷 + 강제 sync 원복 + diff 검증을 런북 필수 단계로 |
+| 시뮬레이션 잔여물 | 이후 검증 왜곡 | 전용 sim Application/ns로 격리 — 앱·ns·sim 브랜치 삭제를 런북 필수 단계로(스냅샷 diff로 fleet 무접촉 확인) |
 | 윈도우 시간 초과 | 과금 | Phase 3·4 병행, Phase 5는 staging 검증 직후 즉시 착수, 종료 시 즉시 destroy |
 
 ## 7. 산출물 요약
 
 - **문서(단계 A):** `docs/runbooks/incidents/{pod-crashloop,oom-killed,argocd-sync-failed,cert-expired,db-connection-failed}.md`, `docs/runbooks/on-call.md`
-- **코드(단계 A):** `.github/workflows/pr-diff-summary.yml`
 - **문서(단계 B):** `docs/runbooks/W5_WINDOW_2.md`
 - **갱신:** `TASK_gitops.md` Step 11 진행 반영, `step11-operational-runbook.md`에 결정 변경(인증서 스택·on-call 간소화) 주석
 - **윈도우 실행(단계 C):** 차기 세션 — 본 스펙 범위는 계획·런북 머지까지
