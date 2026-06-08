@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { createHash } from 'crypto';
 import matter from 'gray-matter';
+import { buildHubModel } from './parse_hub.mjs';
 
 const WORKSPACE = path.resolve('../../../');
 const GITOPS_DOCS = path.join(WORKSPACE, 'synapse-gitops/docs/runbooks');
@@ -260,6 +261,15 @@ async function main() {
       summary: doc.summary,
       metadata: doc.metadata,
     });
+
+    if (relKey === 'shared/docs/project-management/HANDOFF_HUB.md') {
+      const hubModel = buildHubModel(body, getLastModified(absPath));
+      fs.writeFileSync(
+        path.join(OUTPUT_DIR, 'hub.json'),
+        JSON.stringify(hubModel, null, 2),
+      );
+      console.log(`Wrote hub.json (statusTable rows: ${hubModel.statusTable.length})`);
+    }
   }
 
   saveCache(cache);
