@@ -58,4 +58,7 @@ patches:
 images:
   - name: ghcr.io/team-project-final/synapse-learning-card
     newName: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/learning-card
-    newTag: 3774e2e6bcf216c62eea3578e75a74d1dca00be5
+    # image-updater A안: semver update-strategy 호환 위해 semver 베이스라인으로 핀 (was 3774e2e6…SHA).
+    # ECR에 1.0.0 태그 존재 필요 — 다음 라이브 윈도우에서 SHA→1.0.0 재태그
+    # (aws ecr batch-get-image | put-image, 동일 digest) 선결. 미선결 시 sync 후 ImagePullBackOff.
+    newTag: 1.0.0
