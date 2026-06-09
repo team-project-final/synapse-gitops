@@ -26,7 +26,7 @@ patches:
         value: "staging"
       - op: add
         path: /data/DATABASE_HOST
-        value: "synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com"
+        value: "synapse-staging-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com"
       - op: add
         path: /data/DATABASE_PORT
         value: "5432"
@@ -46,7 +46,7 @@ patches:
         value: "true"
       - op: add
         path: /data/DB_URL
-        value: "jdbc:postgresql://synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com:5432/synapse_platform"
+        value: "jdbc:postgresql://synapse-staging-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com:5432/synapse_platform"
       - op: add
         path: /data/DB_USERNAME
         value: "synapse_admin"

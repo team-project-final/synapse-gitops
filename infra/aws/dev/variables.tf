@@ -34,6 +34,13 @@ variable "rds_instance_class" {
   default     = "db.t3.medium"
 }
 
+# #156: staging 전용 RDS 인스턴스 클래스(dev와 분리, 비용 절감 위해 small).
+variable "rds_staging_instance_class" {
+  description = "Staging RDS instance class (separate from dev)"
+  type        = string
+  default     = "db.t3.small"
+}
+
 variable "rds_db_name" {
   description = "RDS database name"
   type        = string

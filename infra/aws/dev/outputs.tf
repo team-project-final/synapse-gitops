@@ -45,6 +45,12 @@ output "rds_port" {
   value       = aws_db_instance.main.port
 }
 
+# #156: staging 전용 RDS 엔드포인트(staging 오버레이 DATABASE_HOST 전환용).
+output "rds_staging_endpoint" {
+  description = "Staging RDS PostgreSQL endpoint"
+  value       = aws_db_instance.staging.endpoint
+}
+
 # ─── MSK ────────────────────────────────────────────────────────────────────
 
 output "msk_bootstrap_brokers_tls" {
