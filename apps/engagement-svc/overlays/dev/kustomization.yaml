@@ -64,4 +64,6 @@ patches:
 images:
 - name: ghcr.io/team-project-final/synapse-engagement-svc
   newName: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/engagement-svc
-  newTag: 1.0.1
+  # was 1.0.1 — #122 데모 IU 자동 bump(302af89) 잔재. 해당 1.0.1 이미지가 ECR에서 사라져
+  # ImagePullBackOff. ECR 실재 semver 태그 1.0.0(=dev-latest 동일 digest)로 정정.
+  newTag: 1.0.0
