@@ -1,65 +1,54 @@
-# W5 핸드오프: synapse-gitops — 윈도우 2(라이브) 이관
+# W5 핸드오프: synapse-gitops — 잔여 5건 (윈도우2 완료 후)
 
-> **작성**: 2026-06-08 (W5 Day1) · **대상**: 다음 세션(1회 on-demand EKS 윈도우, 과금)
-> **상태 요약**: 비용 0 작업 전부 완료. 남은 건 **라이브 검증/튜닝 + 팀 결정** 뿐.
-> **발표**: 2026-06-15 · **정본 허브**: synapse-shared `HANDOFF_HUB.md`(team-lead 유지, 현행)
+> **갱신**: 2026-06-09 · **이전**: 2026-06-08(윈도우2 이관, 현재 stale 해소) · **발표**: 2026-06-15
+> **정본 허브**: synapse-shared `HANDOFF_HUB.md`(team-lead 유지)
 
----
+## 0. 윈도우2 완료 (2026-06-08, PR #145~#152, destroy로 과금0)
 
-## 1. 이번 세션 완료 사항 (2026-06-08, 비용 0)
+#121(prod 외부노출)·#122(IU write-back E2E) **close**. Step11 시뮬 3종+알람 경로·HPA 검증. #126 옵션3(GitHub App 토큰) 라이브. #144(learning-ai aiokafka ssl_context) 신규 발견. 상세: 메모리 `w5-window2-live-complete` / `HISTORY_gitops.md`.
 
-- **Step 11 문서**(PR #137): `incidents/` 5종 + `on-call.md` + `W5_WINDOW_2.md`.
-- **W3/W4 감사 + 정합**(PR #138/#140/#141): 처분표, #92 이중원인, **#91·#92 라이브 해소 정합·close**.
-- **포털 핸드오프 허브 뷰**(PR #139): `/hub` 상태 대시보드(`parse_hub.mjs`→`hub.json`).
-- **Step 12 진행분**(PR #142): P0/P1 0건 달성 · CI 캐싱 · resource 정적 리뷰 · HISTORY 최신화 · #126 옵션 분석.
+## 1. 잔여 5건 (정본 표)
 
-> **#91·#92는 이미 close** — shared HANDOFF_HUB 06-08 라이브(dev 16/0/0·staging 20/0/0 ALL PASSED, gitops#136)로 해소 확인됨. 윈도우 2 대상 아님.
+| # | 항목 | owner | blocker | next-action | 완료조건 | 추적 |
+|---|------|-------|---------|-------------|---------|------|
+| 1 | Step11 team-lead 따라하기 | team-lead | 가용시간 | 런북만 보고 1택 독립 복구 1회 | Step11 Done | #155 |
+| 2 | staging 환경 DB 분리(항목8) | velka | **team-lead 비용 결정** | 전용 DB/인스턴스 terraform | staging≠dev RDS(환경 격리) | #156 |
+| 3 | #126 ruleset 축소 | velka | shared `deploy-service.yml` App 전환 동기화 | deploy-service GitHub App 토큰화 후 bypass 축소 | Maintain bypass 제거/축소 | #126 |
+| 4 | learning-ai dev 복구 | velka | (앱팀 PR #63 머지·`3774e2e6` bump 완료 — 라이브 확인만 잔여) | 다음 윈도우 sync 후 learning-ai-dev CrashLoop→Running 확인 | #144 close | #144 |
+| 5 | dev overlay SHA→semver 핀 | velka | overlay분 없음(PR #158) / ECR 재태그는 윈도우 | overlay 핀(PR #158 머지)→ECR 재태그(윈도우) | 6앱 IU semver 정상(skip 해소) | #157 |
 
-## 2. 다음 세션 시작점 — 클러스터 상태부터 확인
+**블로커 분류**: 1·2는 외부(team-lead) 블록 → 이슈/대기 트래킹. 3은 cross-repo(shared)+org admin. 4는 앱팀 수정 완료, 라이브 확인만(윈도우). 5는 overlay분 완결(PR #158), 런타임만 윈도우 의존.
+
+## 2. 다음 라이브 윈도우 선결 절차 (항목5 ECR 재태그)
+
+overlay는 PR #158로 `1.0.0` 핀됨. bring-up/sync 전 ECR에 1.0.0 태그가 없으면 ImagePullBackOff → **6앱 각각 재태그**(현재 박혀있던 digest를 1.0.0으로도 태깅, 동일 digest):
+
+| 앱 | 1.0.0 ← 재태그 대상(직전 SHA/태그) |
+|----|-----------------------------------|
+| knowledge-svc | dev-latest 가리키던 digest |
+| platform-svc | `bc5440144780…` |
+| gateway | `9e4f190a37ef…` |
+| frontend | `e4532fee2168…` |
+| learning-card | `3774e2e6bcf2…` |
+| learning-ai | `3774e2e6bcf2…` (= #144 수정 이미지, 앱팀 PR #63) |
 
 ```bash
-aws eks describe-cluster --name synapse-dev --query 'cluster.status' --region ap-northeast-2
+REGION=ap-northeast-2
+for pair in "knowledge-svc:dev-latest" "platform-svc:bc5440144780fbaaa53a74e2e6d8baef0b8beafd" \
+            "gateway:9e4f190a37efd52abe24c72fb659d98c350f8988" "frontend:e4532fee21683cf88b21937f9b8977d7f9037ad3" \
+            "learning-card:3774e2e6bcf216c62eea3578e75a74d1dca00be5" "learning-ai:3774e2e6bcf216c62eea3578e75a74d1dca00be5"; do
+  app="${pair%%:*}"; src="${pair##*:}"
+  MANIFEST=$(aws ecr batch-get-image --repository-name synapse/$app --image-ids imageTag=$src \
+    --region $REGION --query 'images[0].imageManifest' --output text)
+  aws ecr put-image --repository-name synapse/$app --image-tag 1.0.0 \
+    --image-manifest "$MANIFEST" --region $REGION
+done
 ```
-- **ACTIVE면**(06-08 검증 후 유지 중일 수 있음 — HANDOFF_HUB "Day4 후 destroy 판단"): bring-up 생략 가능, 바로 §3 검증 진입. ArgoCD 터널은 `scripts/lib/eks-tunnel.sh`.
-- **없으면/destroy됐으면**: `bash scripts/bring-up.sh`로 부트스트랩(`W5_WINDOW_2.md` Phase 1) 후 진입.
+learning-ai의 1.0.0은 #144 수정 이미지 `3774e2e6`에 매핑되므로, 재태그 후 dev sync로 learning-ai-dev CrashLoop→Running 확인 = 항목4 #144 close 절차와 합류.
 
-## 3. 윈도우 2 작업 항목 (라이브)
+## 3. 레포 상태
 
-> 주 런북: **`docs/runbooks/W5_WINDOW_2.md`**(Phase 0~6). #91/#92(Phase 2)는 close됐으므로 **Phase 3~5 + 추가 항목** 집중.
-
-| # | 항목 | 근거/런북 | Acceptance |
-|---|------|----------|-----------|
-| 1 | **#121 prod 외부 노출** | `W5_WINDOW_2.md` Phase 3 · nip.io ingress + `gen-nipio-selfsigned.sh` | `curl --cacert` argocd/dev nip.io 200 + 체인 유효 + webhook ping 200 → #121 close |
-| 2 | **#122 IU write-back E2E** | `W5_WINDOW_2.md` Phase 4 · `image-updater-pr.yml`(#127 경로) | ECR 재태그 → IU 감지 → PR 자동생성 → 머지 → 반영 ≤5분 + 롤백 1회 → #122 close |
-| 3 | **Step 11 시뮬레이션 3종** | `W5_WINDOW_2.md` Phase 5 · 전용 `incident-sim` 앱(ns synapse-sim) | crashloop/oom/sync 재현 → incidents 런북 따라 복구 |
-| 4 | **Step 11 team-lead 따라하기** | Phase 5 | team-lead가 런북만 보고 1택 독립 복구 1회 → Step 11 Done |
-| 5 | **Step 11 알람 경로 테스트** (경로✅·도착 후속) | Phase 5 · `on-call.md` amtool | amtool warning → route slack·webhook 형식 검증 완료. **`#synapse-gitops` 채널 미존재로 실제 미도착 → `#final-project-1-team`(C0B3JEU46R1)로 수정(PR #153)**. 도착 보장은 §4 webhook 후속 |
-| 6 | **HPA 동작 검증** | prod overlay `hpa.yaml` 5종 존재 · TASK Step 12 | 트래픽 변동 큰 2개 앱 부하 → replica 스케일아웃/인 관찰 |
-| 7 | **resource P95 튜닝** | `docs/runbooks/resource-sizing-review-w5.md` | Grafana P95×1.3 측정 → Java 5종 limit(512Mi tight) 재산정 → overlay patch. dev 축소(비용) |
-| 8 | **staging 환경 DB 분리** | 감사 `2026-06-08-w3-w4-incomplete-audit-design.md` §4 | staging가 dev RDS·DB(`synapse_platform`) 공유 → 환경 격리(전용 DB/인스턴스). **team-lead 비용 결정 선행** |
-
-## 4. 전제 · 블로커 (라이브 전 처리)
-
-- **클러스터 비용**: 진입 시 과금 ON → 종료 시 `bash scripts/bring-up.sh --destroy`(또는 HANDOFF_HUB Day4 destroy 판단과 조율).
-- **#121 ACM import**: IAM 권한 + 리전(ap-northeast-2) 사전 점검(`W5_WINDOW_2.md` Phase 0).
-- **#122 GITOPS_TOKEN**: 유효성 점검(PR write-back 필수).
-- **항목 7 선결**: Observability(Grafana/Prometheus) 가동 — bring-up `observability` phase 포함. 메트릭 수집 후 P95.
-- **항목 8 선결**: **team-lead 비용 결정** — 전용 인스턴스/DB 추가는 사이징·과금 영향. 미결정 시 항목 8 보류.
-- **항목 4 의존**: team-lead 가용 시간. 당일 불가 시 시뮬레이션·알람만 완료, 따라하기는 비동기 후속(Step 11 Done은 따라하기 시점).
-- **항목 5 알람 도착 후속**: `#synapse-gitops` 채널 부재 발견 → alertmanager channel을 `#final-project-1-team`로 수정(PR #153 머지). **실제 도착은 그 채널 Incoming Webhook URL을 AWS SM `synapse/monitoring/alertmanager`(`slack-webhook-url`)에 갱신해야**(incoming webhook은 채널 고정, channel 파라미터만으론 부족). 사용자 작업: ① Slack `#final-project-1-team` webhook 생성 → ② `aws secretsmanager put-secret-value --secret-id synapse/monitoring/alertmanager --secret-string '{"slack-webhook-url":"<URL>"}'` → ③ 다음 윈도우에서 amtool warning 도착 확인.
-
-## 5. 팀 결정 대기 (윈도우 무관)
-
-- **#126 bypass** — `docs/runbooks/126-deploy-writeback-bypass-analysis.md` 권고 옵션3(전용 자동화 ID). org 시크릿·shared 변경 수반이라 단독 불가. 팀 선택 후 실행.
-
-## 6. 레포 상태
-
-- **main HEAD**: `58e459c` (PR #142 머지)
-- **OPEN 이슈**: #121·#122(윈도우2) · #126(팀 결정). #91·#92·#120 close.
-- **윈도우 2 런북**: `docs/runbooks/W5_WINDOW_2.md`(정본 실행 절차)
-- **CI**: main 보호(PR + validate/diff-comment/parse). validate에 kubeconform/pip 캐싱 추가됨(PR #142).
-- **포털**: `/hub` 핸드오프 허브 뷰 — deploy-pages 다음 빌드에서 라이브.
-
-## 7. 비용
-
-~$0.41/hr (EKS+RDS+MSK+Redis+ES). 윈도우 종료 시 `bash scripts/bring-up.sh --destroy`. 유지: S3 state + DynamoDB lock. **항목 8(staging DB 분리)은 인스턴스/DB 추가 시 시간당 비용 증가** → team-lead 결정 전 미실행.
+- **OPEN 이슈**: #126·#144 · #155·#156·#157. #91·#92·#120·#121·#122 close.
+- **CI**: main 보호(PR + `validate`/diff-comment/parse).
+- **설계/플랜**: `docs/superpowers/specs/2026-06-09-w5-remaining-backlog-sha-semver-pin-design.md`, `docs/superpowers/plans/2026-06-09-w5-remaining-backlog-sha-semver-pin.md`.
+- **실행 PR**: #158(overlay 핀), 본 PR(추적 문서).
