@@ -257,7 +257,7 @@
 
 **Status**: [ ] Not Started / [x] In Progress / [ ] Done (문서 + 06-08 윈도우2 라이브: incident-sim 앱으로 crashloop/oom/sync 3종 재현·복구 + 알람 경로(amtool→slack #synapse-gitops) 검증. **Done 잔여 = team-lead 따라하기 1회**(비동기))
 <!-- 2026-06-08 윈도우2: incident-sim(ns synapse-sim) 시뮬 3종·알람 라이브 검증. 발견: set env override는 sync 미원복(3-way merge), OOM은 requests≤limit 제약. team-lead 따라하기만 잔여. -->
-<!-- 2026-06-09: 잔여 5건 정본 = docs/superpowers/HANDOFF_W5.md 표(#155 team-lead 따라하기·#156 staging DB·#126 ruleset·#144 learning-ai(3774e2e6 수정 bump됨, 라이브 확인만)·#157 SHA→semver 핀). -->
+<!-- 2026-06-09 라이브 완료: 잔여 5건 중 4건 CLOSED(#155 드릴·#156 staging전용RDS·#126 ruleset·#157 SHA→semver핀), #144만 OPEN(라이브가 앱팀 PR #63 fix 무효 입증—learning-ai 여전히 ssl_context CrashLoop, 앱팀 재수정 대기). 정본 = docs/superpowers/HANDOFF_W5.md. -->
 <!-- 2026-06-08: 장애 런북 5종(incidents/)·on-call·윈도우 2 런북(W5_WINDOW_2.md) 머지. 설계: docs/superpowers/specs/2026-06-08-w5-step11-runbook-window2-design.md -->
 
 ---
