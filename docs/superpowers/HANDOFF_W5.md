@@ -1,6 +1,6 @@
 # W5 핸드오프: synapse-gitops — 잔여 5건 처리 결과 (2026-06-09 라이브 완료)
 
-> **갱신**: 2026-06-09(라이브 윈도우 후) · **발표**: 2026-06-15
+> **갱신**: 2026-06-10(#144 close 정합) · **발표**: 2026-06-15
 > **정본 허브**: synapse-shared `HANDOFF_HUB.md`(team-lead 유지)
 
 ## 0. 경과
@@ -16,20 +16,16 @@
 | 1 | Step11 드릴 | #155 | ✅ **CLOSED** | operator 라이브 드릴(CrashLoop·OOM 재현·복구) |
 | 2 | staging DB 분리(항목8) | #156 | ✅ **CLOSED** | 전용 RDS `synapse-staging-postgres`(PR #160), 인스턴스 격리 검증 |
 | 3 | #126 ruleset 축소 | #126 | ✅ **CLOSED** | 옵션3 App전환 완료, Maintain bypass 수용(팀 결정) |
-| 4 | learning-ai dev 복구 | #144 | ⚠️ **OPEN** | **라이브가 앱팀 PR #63 fix 무효 입증** — 아래 §2 |
+| 4 | learning-ai dev 복구 | #144 | ✅ **CLOSED** | learning-svc PR #67 재수정(`9140e597`) — learning-ai 1/1 Running·RESTARTS 0·ssl_context 0건 (2026-06-09 2차 라이브) |
 | 5 | dev overlay SHA→semver 핀 | #157 | ✅ **CLOSED** | 핀(PR #158)+ECR 6앱 1.0.0 재태그+라이브 배포 검증 |
 
-## 2. ⚠️ #144 (유일 OPEN) — 앱팀 재수정 대기
+## 2. ✅ #144 (CLOSED) — 2차 라이브에서 재수정 검증
 
-라이브 검증에서 `learning-ai:1.0.0`(=`3774e2e6`, 앱팀 PR #63 빌드, digest `sha256:0a4dec…b8f479025942`)이 **동일 ssl_context 에러로 CrashLoop**:
-```
-notification_producer.py:61  AIOKafkaProducer(...) → ValueError: `ssl_context` is mandatory if security_protocol=='SSL'
-```
-에러 라인이 55→61로 이동(코드 변경됨)했으나 ssl_context가 여전히 producer에 전달 안 됨 → **PR #63 fix 불완전**.
+1차 라이브에서 `learning-ai:1.0.0`(=`3774e2e6`)이 동일 ssl_context CrashLoop → **앱팀 PR #63 fix 무효** 입증. 원인: `3774e2e6`은 `fix(avro) #64` 빌드라 ssl_context 수정 미포함(**코드 머지 ≠ 빌드 반영**).
 
-**다음 액션(앱팀)**: `ssl.create_default_context()`를 AIOKafkaProducer/Consumer에 **실제 전달** + **SSL 경로 E2E 테스트**(PLAINTEXT 아닌 실 SSL) → 새 이미지 빌드 → gitops bump → 라이브 재검증 → #144 close. 상세 버그리포트: #144 코멘트.
+**실수정**: `synapse-learning-svc` PR #67 — `app/kafka/ssl_support.py`(`kafka_ssl_context()`=SSL시 `create_ssl_context()`) + producer/consumer `ssl_context=` 전달 + TLS 단위테스트(앱팀이 빠뜨린 검증). CI green → admin 머지 → ECR `learning-ai:9140e597` 푸시 + gitops bump.
 
-**gitops 측**: overlay 핀(1.0.0) + ECR 재태그는 정상(의도 이미지 배포 확인). 문제는 이미지 자체.
+**2차 라이브**: `9140e597` 배포 → learning-ai 1/1 Running·RESTARTS 0·Healthy, ssl_context 에러 0건 → **#144 close**.
 
 ## 3. 라이브 윈도우 운영 메모 (재발 방지)
 
@@ -41,10 +37,10 @@ notification_producer.py:61  AIOKafkaProducer(...) → ValueError: `ssl_context`
 
 - **#144**: 앱팀 재수정(위 §2) → 다음 윈도우 재검증.
 - **engagement-svc-dev**: overlay가 phantom `1.0.1`(#122 데모 IU bump 잔재, ECR 부재)이라 ImagePullBackOff → `1.0.0` 정정 PR(#161). staging/prod 정상.
-- **learning-card-staging**: staging RDS 연결은 정상(DB 무관), 앱레벨 Degraded → 다음 윈도우 `kubectl logs` 조사.
+- **learning-card-staging**: staging RDS 연결은 정상(DB 무관), 앱레벨 Degraded → 다음 윈도우 `kubectl logs` 조사 (후속 A, 이슈 #164).
 
 ## 5. 레포 상태
 
-- **OPEN 이슈**: #144만. #126·#155·#156·#157·#91·#92·#120·#121·#122 close.
+- **OPEN 이슈**: 0건(#144 포함 W5 잔여 전부 close). 저우선 후속 A/B/C는 별도 이슈 추적(HANDOFF_2026-06-09-followups §2).
 - **main HEAD**: PR #160 머지분(staging 전용 RDS). + #161(engagement 정정) 진행.
 - **설계/플랜**: `docs/superpowers/specs/2026-06-09-{w5-remaining-backlog-sha-semver-pin,staging-dedicated-rds}-design.md`, `docs/superpowers/plans/2026-06-09-w5-remaining-backlog-sha-semver-pin.md`.

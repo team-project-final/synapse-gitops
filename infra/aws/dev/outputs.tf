@@ -45,6 +45,12 @@ output "rds_port" {
   value       = aws_db_instance.main.port
 }
 
+output "rds_username" {
+  description = "RDS master username (dev+staging 공통). phase_db_init psql 접속용."
+  value       = var.rds_username
+  sensitive   = true # var.rds_username이 sensitive → output도 명시 필요. terraform output -raw는 정상 동작.
+}
+
 # #156: staging 전용 RDS 엔드포인트(staging 오버레이 DATABASE_HOST 전환용).
 output "rds_staging_endpoint" {
   description = "Staging RDS PostgreSQL endpoint"

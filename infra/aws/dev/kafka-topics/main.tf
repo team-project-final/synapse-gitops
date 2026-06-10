@@ -2,17 +2,13 @@
 # 기존 bastion 수동 스크립트(create-kafka-topics.sh)를 terraform 선언으로 대체.
 # partitions=3 (aws_msk_configuration num.partitions=3 정합).
 
+# 토픽 단일 출처: infra/kafka/topics.txt (terraform + bring-up.sh 공유).
+# 기존 인라인 배열 → 파일에서 로드(빈줄·'#' 주석 제거).
 locals {
   topics = [
-    "platform.auth.user-registered-v1",
-    "knowledge.note.note-created-v1",
-    "knowledge.note.note-updated-v1",
-    "learning.card.review-completed-v1",
-    "learning.card.review-due-v1",
-    "engagement.gamification.level-up-v1",
-    "engagement.gamification.badge-earned-v1",
-    "platform.notification.notification-send-v1",
-    "learning.ai.cards-generated-v1", # deprecated(D-001 HTTP 전환) — 호환 위해 토픽만 존속, 제거는 W5 백로그 추적
+    for line in split("\n", file("${path.module}/../../../kafka/topics.txt")) :
+    trimspace(line)
+    if trimspace(line) != "" && !startswith(trimspace(line), "#")
   ]
 }
 

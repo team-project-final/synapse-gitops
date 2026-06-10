@@ -25,7 +25,7 @@ require() { command -v "$1" >/dev/null 2>&1 || {
 usage() {
   cat <<USAGE
 사용법: bring-up.sh [옵션]
-  --from <phase>   해당 phase부터 재개 (terraform|eks-auth|tunnel|argocd|eso|oidc-fix|alb-controller|kafka-config|manifests|metrics-server|image-updater|observability|status)
+  --from <phase>   해당 phase부터 재개 (terraform|eks-auth|tunnel|argocd|eso|oidc-fix|alb-controller|kafka-config|kafka-topics|db-init|manifests|metrics-server|image-updater|observability|status)
   --to <phase>     해당 phase까지만 실행 (예: --to manifests = metrics-server/observability 제외 dev-only)
   --verify         bring-up 대신 W3 잔여 3항목 검증
   --destroy        terraform destroy (비용 차단)
@@ -34,7 +34,7 @@ usage() {
 USAGE
 }
 
-PHASES=(terraform eks-auth tunnel argocd eso oidc-fix alb-controller kafka-config manifests metrics-server image-updater observability status)
+PHASES=(terraform eks-auth tunnel argocd eso oidc-fix alb-controller kafka-config kafka-topics db-init manifests metrics-server image-updater observability status)
 
 # ─── phase 함수 ───────────────────────────────────────────────────────────
 phase_terraform() {
@@ -154,6 +154,98 @@ phase_kafka_config() {
       --from-literal=KAFKA_BROKERS="$brokers" --dry-run=client -o yaml | kubectl apply -f -
   done
   ok "kafka-brokers ConfigMap 3 ns 적용"
+}
+
+phase_db_init() {
+  # 후속 C(#166): 서비스 DB 5종을 dev + staging RDS에 멱등 생성(psql \gexec).
+  # RDS는 private subnet → 클러스터 내 postgres Job으로 실행(bring-up 호스트 직접 도달 불가).
+  # 자격: dev+staging 공통 master(username=output, password=TF_VAR_rds_password). 기본 db 'synapse' 접속.
+  if $DRY_RUN; then echo "+ db-init: dev+staging RDS에 synapse_{platform,engagement,knowledge,learning,ai} 5종(postgres Job, \\gexec 멱등)"; return; fi
+  local user pass dev_ep stg_ep
+  user=$(terraform -chdir=$TFDIR output -raw rds_username)
+  pass="${TF_VAR_rds_password:?phase_db_init: TF_VAR_rds_password 필요(RDS master)}"
+  dev_ep=$(terraform -chdir=$TFDIR output -raw rds_endpoint)        # host:port
+  stg_ep=$(terraform -chdir=$TFDIR output -raw rds_staging_endpoint)
+  local dbs="synapse_platform synapse_engagement synapse_knowledge synapse_learning synapse_ai"
+  # \gexec 멱등 SQL 생성
+  local sql=""
+  local db
+  for db in $dbs; do
+    sql+="SELECT 'CREATE DATABASE ${db}' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname='${db}')\\gexec"$'\n'
+  done
+  local ep host port
+  for ep in "$dev_ep" "$stg_ep"; do
+    host="${ep%%:*}"
+    port="${ep##*:}"
+    [ "$host" = "$port" ] && port=5432
+    log "db-init → $host"
+    kubectl -n synapse-dev run "db-init-${host%%.*}" --rm -i --restart=Never \
+      --image=postgres:16 --timeout=180s \
+      --env="PGPASSWORD=$pass" --command -- \
+      psql "host=$host port=$port user=$user dbname=synapse sslmode=require" -v ON_ERROR_STOP=1 -c "$sql" \
+      || warn "db-init $host 실패(RDS 미기동/자격 가능) — 재시도: --from db-init"
+  done
+  ok "DB 5종 적용(dev+staging)"
+}
+
+phase_kafka_topics() {
+  # 후속 C(#166): MSK 토픽 9종을 클러스터 내 apache/kafka Job(SSL)으로 멱등 생성(--if-not-exists).
+  # MSK private subnet → 클러스터 내부 실행만 도달. 토픽 정본 = infra/kafka/topics.txt(ConfigMap 적재).
+  # 무인증 TLS-only(MSK SSL 서버인증) → client.properties=security.protocol=SSL.
+  if $DRY_RUN; then echo "+ kafka-topics: infra/kafka/topics.txt 9종(apache/kafka:3.9.0 Job, SSL, --if-not-exists, RF=2)"; return; fi
+  local brokers
+  brokers=$(terraform -chdir=$TFDIR output -raw msk_bootstrap_brokers_tls)
+  # 토픽 리스트를 ConfigMap으로 적재(파일 단일 출처)
+  kubectl create configmap kafka-topics-list -n synapse-dev \
+    --from-file=topics.txt=infra/kafka/topics.txt --dry-run=client -o yaml | kubectl apply -f -
+  # Job: client.properties + 각 토픽 --if-not-exists 생성 (CRLF 안전: \r 제거)
+  kubectl -n synapse-dev delete job kafka-topics-init --ignore-not-found
+  kubectl apply -f - <<YAML
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kafka-topics-init
+  namespace: synapse-dev
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: kafka-topics
+          image: apache/kafka:3.9.0
+          env:
+            - name: BROKERS
+              value: "$brokers"
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -eu
+              echo "security.protocol=SSL" > /tmp/client.properties
+              BIN=/opt/kafka/bin/kafka-topics.sh
+              while IFS= read -r line || [ -n "\$line" ]; do
+                t=\$(printf '%s' "\$line" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*\$//')
+                case "\$t" in ''|\#*) continue;; esac
+                echo "Creating \$t"
+                "\$BIN" --bootstrap-server "\$BROKERS" --command-config /tmp/client.properties \
+                  --create --if-not-exists --topic "\$t" \
+                  --partitions 3 --replication-factor 2 \
+                  --config min.insync.replicas=2 --config retention.ms=604800000
+              done < /etc/kafka-topics/topics.txt
+              echo "--- topics ---"
+              "\$BIN" --bootstrap-server "\$BROKERS" --command-config /tmp/client.properties --list
+          volumeMounts:
+            - name: topics
+              mountPath: /etc/kafka-topics
+      volumes:
+        - name: topics
+          configMap:
+            name: kafka-topics-list
+YAML
+  kubectl -n synapse-dev wait --for=condition=complete job/kafka-topics-init --timeout=180s \
+    || warn "kafka-topics-init 미완료(MSK 미기동/SG 가능) — 로그: kubectl -n synapse-dev logs job/kafka-topics-init; 재시도: --from kafka-topics"
+  ok "MSK 토픽 9종 적용(멱등)"
 }
 
 phase_manifests() {
