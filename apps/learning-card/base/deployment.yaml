@@ -60,7 +60,7 @@ spec:
             tcpSocket:
               port: 8080
             periodSeconds: 5
-            failureThreshold: 30   # 최대 ~150s 기동 허용(JVM 콜드스타트). 성공 후 liveness 활성
+            failureThreshold: 60   # 최대 ~300s 기동 허용(#164: 노드 경합 콜드스타트). 성공 후 liveness 활성
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
@@ -75,11 +75,11 @@ spec:
             periodSeconds: 5
           resources:
             requests:
-              cpu: 100m
-              memory: 256Mi
+              cpu: 250m      # #164: req 100m 스로틀로 콜드스타트가 startupProbe 초과 → 250m로 기동 CPU 확보
+              memory: 384Mi
             limits:
               cpu: 500m
-              memory: 512Mi
+              memory: 768Mi  # W5 resource-sizing "512Mi tight·OOM 리스크" 반영(Spring Boot 4 + JPA)
           # 이미지가 USER app(non-root)으로 빌드됨 → 컨테이너 보안 컨텍스트 강화(PodSecurity restricted 대응)
           securityContext:
             runAsNonRoot: true
