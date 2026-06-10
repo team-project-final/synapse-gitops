@@ -201,7 +201,7 @@ shared `deploy-service.yml`이 dev 오버레이에 **SHA를 write-back**(매 배
 
 ## 연계 후속
 - learning-card staging + 6앱 dev 오버레이 태그 일괄 재정렬은 본 결정 후.
-- **staging readiness 401**(`/actuator/health/readiness` 인증 요구) = 앱 레포 `synapse-learning-svc` 시큐리티(management endpoint permitAll) → 크로스레포 후속(#164 조치 3 중 app 측).
+- **staging readiness 401**(`/actuator/health/readiness` 인증 요구) = 앱 레포 시큐리티 → **synapse-learning-svc#74로 상세 핸드오프 이슈 생성 완료**(gitops에서 직접 처리 안 함).
 ```
 
 - [ ] **Step 2: 검증**
@@ -235,7 +235,7 @@ gh issue comment 164 --body "$(cat <<'EOF'
 - base 리소스: cpu request 100m→250m(스로틀 완화), mem 256→384Mi/limit 512→768Mi.
 - startupProbe failureThreshold 30→60(150s→300s).
 - staging 이미지 dev-latest→SHA 핀(ab67c3c2).
-잔여: staging readiness 401(앱 시큐리티, 크로스레포 synapse-learning-svc) · 라이브 기동 재검증(다음 윈도우). spec/plan: docs/superpowers/{specs,plans}/2026-06-10-learning-card-stability-and-behind-race*.
+잔여: staging readiness 401 → 앱 레포 핸드오프 **synapse-learning-svc#74**(상세 이슈) · 라이브 기동 재검증(다음 윈도우). spec/plan: docs/superpowers/{specs,plans}/2026-06-10-learning-card-stability-and-behind-race*.
 EOF
 )"
 ```
