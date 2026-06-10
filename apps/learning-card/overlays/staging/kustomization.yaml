@@ -63,4 +63,6 @@ patches:
 images:
   - name: ghcr.io/team-project-final/synapse-learning-card
     newName: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/learning-card
-    newTag: dev-latest
+    # #164: mutable dev-latest(dev와 다른 빌드 가능=조사 1차 가설) → 결정적 SHA 핀.
+    # staging은 IU 대상 아님(image-updater namePattern=synapse-*-dev). SHA 일괄 재정렬은 #165 전략 결정 후.
+    newTag: ab67c3c2be0aa64611c6c22e7bf1c9d0d519c116
