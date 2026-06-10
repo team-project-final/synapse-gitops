@@ -168,10 +168,11 @@ phase_db_init() {
   stg_ep=$(terraform -chdir=$TFDIR output -raw rds_staging_endpoint)
   local dbs="synapse_platform synapse_engagement synapse_knowledge synapse_learning synapse_ai"
   # \gexec 멱등 SQL 생성
+  # \gexec는 psql 메타명령 → -c(simple query)로는 미처리. SELECT 다음 줄에 \gexec, stdin으로 전달.
   local sql=""
   local db
   for db in $dbs; do
-    sql+="SELECT 'CREATE DATABASE ${db}' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname='${db}')\\gexec"$'\n'
+    sql+="SELECT 'CREATE DATABASE ${db}' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname='${db}')"$'\n'"\\gexec"$'\n'
   done
   local ep host port
   for ep in "$dev_ep" "$stg_ep"; do
@@ -179,10 +180,10 @@ phase_db_init() {
     port="${ep##*:}"
     [ "$host" = "$port" ] && port=5432
     log "db-init → $host"
-    kubectl -n synapse-dev run "db-init-${host%%.*}" --rm -i --restart=Never \
+    printf '%s' "$sql" | kubectl -n synapse-dev run "db-init-${host%%.*}" --rm -i --restart=Never \
       --image=postgres:16 --timeout=180s \
       --env="PGPASSWORD=$pass" --command -- \
-      psql "host=$host port=$port user=$user dbname=synapse sslmode=require" -v ON_ERROR_STOP=1 -c "$sql" \
+      psql "host=$host port=$port user=$user dbname=synapse sslmode=require" -v ON_ERROR_STOP=1 \
       || warn "db-init $host 실패(RDS 미기동/자격 가능) — 재시도: --from db-init"
   done
   ok "DB 5종 적용(dev+staging)"
