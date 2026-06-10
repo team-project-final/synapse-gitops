@@ -12,7 +12,7 @@
 - [x] staging 네임스페이스 분리 (`synapse-staging`)
 - [x] dev → staging 승격 트리거 결정 (auto-sync — main 머지 시)
 - [x] staging 리소스 산정 (replicas=2)
-- [~] staging 전용 도메인 — 결정됨(`staging-<app>.<도메인>`), ACM 인증서 확보 후 Ingress 적용
+- [x] staging 전용 도메인 — **nip.io 임시 도메인 방식 채택**(#121, 06-08): `infra/ingress/staging-ingress.yaml` 매니페스트 ready + nip.io 패턴(argocd/dev 라이브 증명). 실 도메인 확보 시 ACM 전환(`docs/argocd-tls-migration.md`)
 
 ### 1.2 staging overlay 작성
 - [x] apps/<app>/overlays/staging/kustomization.yaml × 5
@@ -28,10 +28,10 @@
 ### 1.4 적용 + 검증 + 문서화
 - [x] git push → 10개 Application (5앱 × 2환경) 자동 생성
 - [x] dev → staging 승격 (auto-sync 전환 — main 머지 시 자동)
-- [~] staging 헬스체크 — A2 실 EKS에서 **4/5 Healthy** (platform-svc Degraded = cross-repo 앱 레포). 도메인 헬스체크는 port-forward로 대체(ACM/도메인 확보 후 Ingress)
+- [x] staging 헬스체크 — **5/5 Healthy 06-08 라이브 달성** (`verify-argocd-deploy.sh staging 20/0/0 ALL PASSED`). platform-svc Degraded는 #92(datasource+flyway) PR #136으로 해소·close. 도메인 헬스체크는 nip.io 임시 도메인(#121)으로 대체
 - [x] 승격 절차 README 작성 (`dev-to-staging-promotion.md`)
 
-**Step 7 Status**: [ ] Not Started / [ ] In Progress / [x] Done (auto-sync·승격문서·Ingress매니페스트 완료, A2 라이브 4/5 검증. platform-svc 5/5는 app 레포 조건부)
+**Step 7 Status**: [ ] Not Started / [ ] In Progress / [x] Done (auto-sync·승격문서·Ingress매니페스트 완료. **staging 5/5 06-08 라이브 달성** — #92 해소(PR #136), `verify-argocd-deploy.sh staging 20/0/0 ALL PASSED`, #92 close)
 
 ---
 
