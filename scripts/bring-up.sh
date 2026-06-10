@@ -156,6 +156,38 @@ phase_kafka_config() {
   ok "kafka-brokers ConfigMap 3 ns 적용"
 }
 
+phase_db_init() {
+  # 후속 C(#166): 서비스 DB 5종을 dev + staging RDS에 멱등 생성(psql \gexec).
+  # RDS는 private subnet → 클러스터 내 postgres Job으로 실행(bring-up 호스트 직접 도달 불가).
+  # 자격: dev+staging 공통 master(username=output, password=TF_VAR_rds_password). 기본 db 'synapse' 접속.
+  if $DRY_RUN; then echo "+ db-init: dev+staging RDS에 synapse_{platform,engagement,knowledge,learning,ai} 5종(postgres Job, \\gexec 멱등)"; return; fi
+  local user pass dev_ep stg_ep
+  user=$(terraform -chdir=$TFDIR output -raw rds_username)
+  pass="${TF_VAR_rds_password:?phase_db_init: TF_VAR_rds_password 필요(RDS master)}"
+  dev_ep=$(terraform -chdir=$TFDIR output -raw rds_endpoint)        # host:port
+  stg_ep=$(terraform -chdir=$TFDIR output -raw rds_staging_endpoint)
+  local dbs="synapse_platform synapse_engagement synapse_knowledge synapse_learning synapse_ai"
+  # \gexec 멱등 SQL 생성
+  local sql=""
+  local db
+  for db in $dbs; do
+    sql+="SELECT 'CREATE DATABASE ${db}' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname='${db}')\\gexec"$'\n'
+  done
+  local ep host port
+  for ep in "$dev_ep" "$stg_ep"; do
+    host="${ep%%:*}"
+    port="${ep##*:}"
+    [ "$host" = "$port" ] && port=5432
+    log "db-init → $host"
+    kubectl -n synapse-dev run "db-init-${host%%.*}" --rm -i --restart=Never \
+      --image=postgres:16 --timeout=180s \
+      --env="PGPASSWORD=$pass" --command -- \
+      psql "host=$host port=$port user=$user dbname=synapse sslmode=require" -v ON_ERROR_STOP=1 -c "$sql" \
+      || warn "db-init $host 실패(RDS 미기동/자격 가능) — 재시도: --from db-init"
+  done
+  ok "DB 5종 적용(dev+staging)"
+}
+
 phase_manifests() {
   run "kubectl apply -f infra/external-secrets/cluster-secret-store.yaml"
   run "kubectl apply -f argocd/projects.yaml"
