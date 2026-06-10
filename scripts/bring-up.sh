@@ -188,6 +188,66 @@ phase_db_init() {
   ok "DB 5종 적용(dev+staging)"
 }
 
+phase_kafka_topics() {
+  # 후속 C(#166): MSK 토픽 9종을 클러스터 내 apache/kafka Job(SSL)으로 멱등 생성(--if-not-exists).
+  # MSK private subnet → 클러스터 내부 실행만 도달. 토픽 정본 = infra/kafka/topics.txt(ConfigMap 적재).
+  # 무인증 TLS-only(MSK SSL 서버인증) → client.properties=security.protocol=SSL.
+  if $DRY_RUN; then echo "+ kafka-topics: infra/kafka/topics.txt 9종(apache/kafka:3.9.0 Job, SSL, --if-not-exists, RF=2)"; return; fi
+  local brokers
+  brokers=$(terraform -chdir=$TFDIR output -raw msk_bootstrap_brokers_tls)
+  # 토픽 리스트를 ConfigMap으로 적재(파일 단일 출처)
+  kubectl create configmap kafka-topics-list -n synapse-dev \
+    --from-file=topics.txt=infra/kafka/topics.txt --dry-run=client -o yaml | kubectl apply -f -
+  # Job: client.properties + 각 토픽 --if-not-exists 생성 (CRLF 안전: \r 제거)
+  kubectl -n synapse-dev delete job kafka-topics-init --ignore-not-found
+  kubectl apply -f - <<YAML
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kafka-topics-init
+  namespace: synapse-dev
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: kafka-topics
+          image: apache/kafka:3.9.0
+          env:
+            - name: BROKERS
+              value: "$brokers"
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -eu
+              echo "security.protocol=SSL" > /tmp/client.properties
+              BIN=/opt/kafka/bin/kafka-topics.sh
+              while IFS= read -r line || [ -n "\$line" ]; do
+                t=\$(printf '%s' "\$line" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*\$//')
+                case "\$t" in ''|\#*) continue;; esac
+                echo "Creating \$t"
+                "\$BIN" --bootstrap-server "\$BROKERS" --command-config /tmp/client.properties \
+                  --create --if-not-exists --topic "\$t" \
+                  --partitions 3 --replication-factor 2 \
+                  --config min.insync.replicas=2 --config retention.ms=604800000
+              done < /etc/kafka-topics/topics.txt
+              echo "--- topics ---"
+              "\$BIN" --bootstrap-server "\$BROKERS" --command-config /tmp/client.properties --list
+          volumeMounts:
+            - name: topics
+              mountPath: /etc/kafka-topics
+      volumes:
+        - name: topics
+          configMap:
+            name: kafka-topics-list
+YAML
+  kubectl -n synapse-dev wait --for=condition=complete job/kafka-topics-init --timeout=180s \
+    || warn "kafka-topics-init 미완료(MSK 미기동/SG 가능) — 로그: kubectl -n synapse-dev logs job/kafka-topics-init; 재시도: --from kafka-topics"
+  ok "MSK 토픽 9종 적용(멱등)"
+}
+
 phase_manifests() {
   run "kubectl apply -f infra/external-secrets/cluster-secret-store.yaml"
   run "kubectl apply -f argocd/projects.yaml"
