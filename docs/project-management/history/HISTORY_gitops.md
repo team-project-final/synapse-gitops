@@ -547,7 +547,7 @@ W3/W4 미완료 항목 재추적(2026-06-08 감사 `specs/2026-06-08-w3-w4-incom
 - **실 도메인 = 임시 도메인 완결**: 실 도메인 구매(비용)는 비범위. nip.io 증명으로 FR 충족 인정. 실 도메인 확보 시 `docs/argocd-tls-migration.md` 절차로 ACM 발급→Ingress 전환(후속, 비차단).
 
 ### 산출물
-- 브랜치 `docs/w4-closeout-tempdomain-d043-signoff`, PR #\<PR>. 편집: `TASK_gitops.md`(Step 9/10 Status·실도메인 3항목·W4 윈도우 Status), 본 HISTORY.
+- 브랜치 `docs/w4-closeout-tempdomain-d043-signoff`, PR #168. 편집: `TASK_gitops.md`(Step 9/10 Status·실도메인 3항목·W4 윈도우 Status), 본 HISTORY.
 
 ---
 
