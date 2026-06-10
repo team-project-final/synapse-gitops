@@ -20,7 +20,7 @@
 - #165: `scripts/setup-branch-protection.sh` `strict` 완화 + 재적용 + SHA↔semver 결정 문서(팀 입력물)
 
 ### Out of Scope
-- staging readiness **401**(`/actuator/health/readiness` 인증요구) — 앱 레포(`synapse-learning-svc`) 시큐리티 → 결정문서/#164 코멘트로 크로스레포 위임
+- staging readiness **401**(`/actuator/health/readiness` 인증요구) — 앱 레포 시큐리티 → **synapse-learning-svc#74로 상세 핸드오프 이슈 생성 완료**(gitops 직접 처리 안 함, 크로스레포 원칙)
 - SHA↔semver 태깅 **구현**(b: deploy-service semver화 = 크로스레포 / c: IU digest = 추후 결정) — 본 스펙은 결정 문서만
 - Grafana nip.io 외부 curl — 다음 라이브 윈도우
 - 타 4개 Java 앱 리소스 일괄 조정 — 라이브서 probe 실패가 입증된 learning-card만(나머지는 DB 문제로 회복됨)
@@ -81,7 +81,7 @@ images:
   - (c) **IU 전략을 `digest`/`newest-build`로** — gitops 측(`image-updater.yaml` 어노테이션 + dev 오버레이 digest). mutable 태그 추적, semver 불필요.
 - **권장**: (c) IU digest — gitops 단독 적용 가능(크로스레포 불필요)·SHA write-back과 양립. 단 strict 완화(§3.1)로 BEHIND 레이스는 이미 해소되므로 (c)는 IU 자동업데이트 일관성 목적의 후속.
 - **연계**: §2.2 staging SHA 핀 + 6앱 dev 오버레이 태그 정렬은 이 결정 후 일괄.
-- staging readiness 401(앱 시큐리티)도 본 문서에 크로스레포 후속으로 기록.
+- staging readiness 401(앱 시큐리티)은 **synapse-learning-svc#74**(상세 핸드오프 이슈)로 분리 — 본 문서에서는 역링크만.
 
 ---
 
