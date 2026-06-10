@@ -551,6 +551,24 @@ W3/W4 미완료 항목 재추적(2026-06-08 감사 `specs/2026-06-08-w3-w4-incom
 
 ---
 
+## 2026-06-10 (W3 마감) — Observability 잔여 3항목 완료
+
+W3/W4/W5 추적 정합 후 유일하게 남았던 W3 Step 8(Observability) 잔여 3항목을 오프라인 구현(클러스터 destroy, 매니페스트 추가).
+
+### 무엇을 했는지
+- **ESO sync 실패 PrometheusRule** (W2 Step 5.4 이월, D-041) — `prometheus-rules.yaml`에 `external-secrets.rules` 그룹(ESOSyncErrors=`increase(externalsecret_sync_calls_error[15m])>0`, ESOSecretNotReady=`externalsecret_status_condition{condition="Ready",status="True"}==0`).
+- **앱별 상세 대시보드** — `grafana-dashboard-apps.yaml`(JVM/HTTP 6패널: req rate by status·p95·heap·threads/cpu·gc + namespace/service 템플릿 변수). bring-up `phase_observability` apply에 배선.
+- **Grafana 외부 노출** — `infra/ingress/nipio/grafana-ingress.yaml`(argocd nip.io 동일 패턴, `group.name: synapse-nipio` ALB 공유). 라이브 노출 검증은 차기 윈도우.
+
+### 의사결정
+- **메트릭명 정정**: WORKFLOW 플레이스홀더 `external_secrets_sync_calls_error` → 실제 ESO 메트릭 `externalsecret_sync_calls_error`(단수 prefix). 라이브 발화 전제 = ESO 메트릭 스크레이프(external-secrets helm `serviceMonitor.enabled` 또는 ESO ServiceMonitor) — rule 추가가 본 항목 범위.
+- **Grafana 노출 = nip.io**: W4 마감의 실 도메인=nip.io 결정과 일관. 매니페스트 추가로 항목 충족, 라이브는 argocd/dev와 동일.
+
+### 산출물
+- 브랜치 `feat/w3-observability-backlog`, PR #170. `prometheus-rules.yaml`·`grafana-dashboard-apps.yaml`·`nipio/grafana-ingress.yaml`·`bring-up.sh`(observability apply)·WORKFLOW_W3 Step 8.
+
+---
+
 ## 다음 항목 템플릿
 
 ### YYYY-MM-DD

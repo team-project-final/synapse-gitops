@@ -46,7 +46,7 @@
 ### 1.2 메트릭 스택 설치
 - [x] kube-prometheus-stack helm 적용 (A2 실 EKS Running)
 - [x] Grafana admin 비밀번호 → ExternalSecret (ESO, A2 동기화 확인)
-- [~] Grafana 외부 노출 — port-forward로 검증 (TLS/SSO는 ACM/도메인 후)
+- [x] Grafana 외부 노출 — **nip.io ingress 추가**(`infra/ingress/nipio/grafana-ingress.yaml`, argocd 동일 패턴, 라이브 노출 검증 차기 윈도우). port-forward 대체 검증 가능
 - [x] 5개 앱 ServiceMonitor 정의
 - [x] /actuator/prometheus 스크레이프 확인 (A2 타깃 대부분 UP)
 
@@ -54,7 +54,7 @@
 - [x] Loki + Promtail 설치 (A2 실 EKS Running)
 - [x] 로그 수집 (Promtail DaemonSet, EBS CSI 영속화)
 - [x] Grafana 대시보드 (Synapse 개요)
-- [ ] 앱별 상세 대시보드 — 선택, 미작성(W5 백로그)
+- [x] 앱별 상세 대시보드 — **추가**: `grafana-dashboard-apps.yaml`(JVM/HTTP 6패널 + namespace/service 템플릿 변수, bring-up 적용 배선)
 
 ### 1.4 알람 + 문서화
 - [x] PrometheusRule: Pod 다운 5분 → critical
@@ -63,9 +63,9 @@
 - [x] Alertmanager → Slack 라우팅 (실 webhook, A2 라우팅 확인)
 - [x] 알람 발화 → slack receiver 라우팅 확인 (채널 수신은 눈 확인)
 - [x] 대시보드/알람 README (`infra/monitoring/README.md`)
-- [ ] ESO sync 실패 PrometheusRule 추가 (`external_secrets_sync_calls_error{}` rate) — W2 Step 5.4에서 이월 (D-041)
+- [x] ESO sync 실패 PrometheusRule 추가 — **완료**: `prometheus-rules.yaml` `external-secrets.rules` 그룹(ESOSyncErrors·ESOSecretNotReady, 메트릭 `externalsecret_sync_calls_error`/`externalsecret_status_condition`). 라이브 발화는 ESO 메트릭 스크레이프 전제
 
-**Step 8 Status**: [ ] Not Started / [ ] In Progress / [x] Done (A2 실 EKS에서 스택 전체 검증 — metrics UP, Slack 라우팅, prometheus/grafana/alertmanager/loki Healthy)
+**Step 8 Status**: [ ] Not Started / [ ] In Progress / [x] Done (A2 실 EKS 스택 전체 검증 — metrics UP, Slack 라우팅, prometheus/grafana/alertmanager/loki Healthy. **잔여 3항목 2026-06-10 완료** — ESO sync 알람 rule·앱별 상세 대시보드·Grafana nip.io ingress)
 
 ---
 

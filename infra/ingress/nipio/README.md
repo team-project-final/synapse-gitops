@@ -5,8 +5,9 @@
 ## 파일
 - `argocd-server-ingress.yaml` — ArgoCD UI + webhook → `argocd-server` (path `/` Prefix가 UI와 `/api/webhook` 모두 커버. NLB 서비스에 추가되는 ALB ingress, backend-protocol HTTPS).
 - `dev-ingress.yaml` — dev gateway 단일 진입 → `gateway:80`. dev-<app> 세분은 gateway 경로 라우팅으로 충족.
+- `grafana-ingress.yaml` — Grafana 외부 노출 → `kube-prometheus-stack-grafana:80`(ns monitoring). W3 Step 8 "Grafana 외부 노출" 충족(라이브 검증은 차기 윈도우).
 
-두 ingress는 `group.name: synapse-nipio`로 **ALB 1개를 공유** → IP 1개 → nip.io 베이스 일관.
+세 ingress는 `group.name: synapse-nipio`로 **ALB 1개를 공유** → IP 1개 → nip.io 베이스 일관.
 
 ## 라이브 치환 (W5 clearance window, Phase 3)
 1. ingress apply (cert-arn 미설정 상태로 ALB 프로비저닝 트리거).
