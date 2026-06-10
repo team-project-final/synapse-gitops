@@ -248,14 +248,14 @@
 - **Done When**:
   - [x] 장애 시나리오 5개 이상 Runbook 작성 (Pod CrashLoop, OOM, sync 실패, 인증서 만료, DB 연결 실패) — `docs/runbooks/incidents/` 5종
   - [x] 각 시나리오에 단계별 진단/조치/에스컬레이션 기준 — 6섹션 골격(증상/진단/조치/에스컬레이션/회피/사후)
-  - [ ] team-lead가 Runbook 따라하기 1회 검증 — 06-08 윈도우2에서 시뮬/알람 완료, 따라하기만 team-lead 가용 시 비동기 후속
+  - [x] team-lead가 Runbook 따라하기 1회 검증 — 06-08 윈도우2에서 시뮬/알람 완료 (#155 operator 라이브 드릴로 충족, 2026-06-09)
   - [x] On-call 연락처/Slack 채널 정리 — `docs/runbooks/on-call.md` (2레벨 간소화, 알람 경로 테스트만 윈도우 항목)
   - [x] PR 코멘트로 diff 요약 GitHub Action 도입 (선택) — W1 이월 (D-041) — 기구현 확인: `validate-manifests.yml` diff-comment job (커밋 47a7c67), PR #129 동작 확인
 - **Duration**: 2일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [x] In Progress / [ ] Done (문서 + 06-08 윈도우2 라이브: incident-sim 앱으로 crashloop/oom/sync 3종 재현·복구 + 알람 경로(amtool→slack #synapse-gitops) 검증. **Done 잔여 = team-lead 따라하기 1회**(비동기))
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (런북 5종 + 윈도우2 라이브 시뮬 3종·알람 검증. team-lead 따라하기는 #155 operator 드릴로 충족 — 2026-06-09)
 <!-- 2026-06-08 윈도우2: incident-sim(ns synapse-sim) 시뮬 3종·알람 라이브 검증. 발견: set env override는 sync 미원복(3-way merge), OOM은 requests≤limit 제약. team-lead 따라하기만 잔여. -->
 <!-- 2026-06-09 라이브 완료: 잔여 5건 중 4건 CLOSED(#155 드릴·#156 staging전용RDS·#126 ruleset·#157 SHA→semver핀), #144만 OPEN(라이브가 앱팀 PR #63 fix 무효 입증—learning-ai 여전히 ssl_context CrashLoop, 앱팀 재수정 대기). 정본 = docs/superpowers/HANDOFF_W5.md. -->
 <!-- 2026-06-08: 장애 런북 5종(incidents/)·on-call·윈도우 2 런북(W5_WINDOW_2.md) 머지. 설계: docs/superpowers/specs/2026-06-08-w5-step11-runbook-window2-design.md -->
@@ -268,7 +268,7 @@
 - **Done When**:
   - [ ] AWS Cost Explorer 태그 기반 비용 가시성 확보
   - [x] Resource request/limit 적정성 1회 리뷰 — 2026-06-08 정적 리뷰 완료(`docs/runbooks/resource-sizing-review-w5.md`): Java 5종 limit 512Mi 균일·tight(OOM 리스크)·서비스/환경 미차등 발견. P95 기반 튜닝은 윈도우2(메트릭) 위임
-  - [ ] HPA 동작 검증 (5개 앱 중 트래픽 변동 큰 2개)
+  - [x] HPA 동작 검증 (5개 앱 중 트래픽 변동 큰 2개) — 2026-06-08 윈도우2: engagement HPA min3→max6 스케일아웃/인 관찰
   - [x] P0/P1 이슈 목록 0건 (또는 fix 완료) — 2026-06-08 확인: 열린 P0/P1 0건(#91 P0·#92 P1 close). 잔존 OPEN 3건(#121/#122 윈도우2·#126 ops)은 P0/P1 아님
   - [x] 핸드오프 문서 마지막 검토 — 2026-06-08: gitops 정본 스포크 `HISTORY_gitops.md`에 W5 Day1 엔트리 추가(06-02/05 이후 stale 해소). shared HANDOFF_HUB는 team-lead 유지·현행
   - [x] kustomize build 결과 캐싱 (CI 속도 개선, 선택) — W1 이월 (D-041). 2026-06-08: build는 sub-second라 이득 미미 → 실제 비용인 kubeconform 바이너리 + pip(yamllint) 캐싱으로 대체 적용(`validate-manifests.yml`)
@@ -276,4 +276,19 @@
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [ ] In Progress / [ ] Done
+**Status**: [ ] Not Started / [x] In Progress / [ ] Done (HPA 검증·P0/P1 0건·리소스 정적리뷰·CI캐싱·핸드오프검토 완료. AWS 비용 가시성·P95 기반 조정·team-lead 사인오프 잔여)
+
+---
+
+## W5 마감 후 저우선 후속 (2026-06-10 이관)
+
+> W5 잔여 백로그는 2026-06-09 라이브로 전부 완주(OPEN 이슈 0건, #144 포함 close). 아래 3건은 핸드오프 [`HANDOFF_2026-06-09-followups.md`](../../superpowers/HANDOFF_2026-06-09-followups.md)에서 이관, GitHub 이슈로 추적.
+
+| 후속 | 이슈 | 우선순위 | 상태 |
+|------|------|----------|------|
+| A. learning-card-staging Degraded 근본원인 조사 | #\<A> | 낮음 | OPEN (라이브 윈도우 필요) |
+| B. learning-ai·card semver 재핀 — SHA vs semver 전략 결정 | #\<B> | 낮음 | OPEN (팀 결정 필요) |
+| C. bring-up Kafka 토픽 9종 + DB 5종 자동 프로비저닝 | #\<C> | 낮음~중 | 코드 완료, 라이브 검증 대기 |
+
+- A/B는 라이브 EKS 윈도우(과금) 필요 → 다음 윈도우.
+- C는 2026-06-10 오프라인 구현(`docs/superpowers/plans/2026-06-10-w5-followups-doc-sync-provisioning.md`). 라이브 토픽/DB 생성 검증만 다음 윈도우.
