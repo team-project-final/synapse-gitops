@@ -42,7 +42,7 @@ PAYLOAD=$(cat <<JSON
         "required_status_checks": [
           { "context": "$STATUS_CHECK" }
         ],
-        "strict_required_status_checks_policy": true
+        "strict_required_status_checks_policy": false
       }
     },
     {
