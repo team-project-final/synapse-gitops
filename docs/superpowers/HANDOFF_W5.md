@@ -37,7 +37,7 @@
 
 - **#144**: 앱팀 재수정(위 §2) → 다음 윈도우 재검증.
 - **engagement-svc-dev**: overlay가 phantom `1.0.1`(#122 데모 IU bump 잔재, ECR 부재)이라 ImagePullBackOff → `1.0.0` 정정 PR(#161). staging/prod 정상.
-- **learning-card-staging**: staging RDS 연결은 정상(DB 무관), 앱레벨 Degraded → 다음 윈도우 `kubectl logs` 조사 (후속 A, 이슈 #\<A>).
+- **learning-card-staging**: staging RDS 연결은 정상(DB 무관), 앱레벨 Degraded → 다음 윈도우 `kubectl logs` 조사 (후속 A, 이슈 #164).
 
 ## 5. 레포 상태
 

@@ -286,9 +286,9 @@
 
 | 후속 | 이슈 | 우선순위 | 상태 |
 |------|------|----------|------|
-| A. learning-card-staging Degraded 근본원인 조사 | #\<A> | 낮음 | OPEN (라이브 윈도우 필요) |
-| B. learning-ai·card semver 재핀 — SHA vs semver 전략 결정 | #\<B> | 낮음 | OPEN (팀 결정 필요) |
-| C. bring-up Kafka 토픽 9종 + DB 5종 자동 프로비저닝 | #\<C> | 낮음~중 | 코드 완료, 라이브 검증 대기 |
+| A. learning-card-staging Degraded 근본원인 조사 | #164 | 낮음 | OPEN (라이브 윈도우 필요) |
+| B. learning-ai·card semver 재핀 — SHA vs semver 전략 결정 | #165 | 낮음 | OPEN (팀 결정 필요) |
+| C. bring-up Kafka 토픽 9종 + DB 5종 자동 프로비저닝 | #166 | 낮음~중 | 코드 완료, 라이브 검증 대기 |
 
 - A/B는 라이브 EKS 윈도우(과금) 필요 → 다음 윈도우.
 - C는 2026-06-10 오프라인 구현(`docs/superpowers/plans/2026-06-10-w5-followups-doc-sync-provisioning.md`). 라이브 토픽/DB 생성 검증만 다음 윈도우.
