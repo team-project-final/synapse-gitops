@@ -1,0 +1,104 @@
+# grafana_dashboard 라벨로 kube-prometheus-stack grafana sidecar가 자동 임포트.
+# 앱별 상세(JVM/HTTP) — Synapse 개요(synapse-overview)의 드릴다운. Spring micrometer 메트릭 기반.
+# 템플릿 변수 namespace/service로 5개 Spring 앱 선택(learning-ai는 Python이라 JVM 패널 N/A).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: synapse-app-detail-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  synapse-app-detail.json: |
+    {
+      "title": "Synapse 앱 상세 (JVM/HTTP)",
+      "uid": "synapse-app-detail",
+      "schemaVersion": 39,
+      "timezone": "browser",
+      "refresh": "30s",
+      "templating": {
+        "list": [
+          {
+            "name": "datasource",
+            "type": "datasource",
+            "query": "prometheus",
+            "current": {}
+          },
+          {
+            "name": "namespace",
+            "type": "query",
+            "datasource": {"type": "prometheus", "uid": "${datasource}"},
+            "query": "label_values(up{namespace=~\"synapse-.*\"}, namespace)",
+            "refresh": 2,
+            "sort": 1
+          },
+          {
+            "name": "service",
+            "type": "query",
+            "datasource": {"type": "prometheus", "uid": "${datasource}"},
+            "query": "label_values(up{namespace=\"$namespace\"}, app_kubernetes_io_name)",
+            "refresh": 2,
+            "sort": 1
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Up",
+          "type": "stat",
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "gridPos": {"h": 5, "w": 4, "x": 0, "y": 0},
+          "targets": [{"expr": "max(up{namespace=\"$namespace\",app_kubernetes_io_name=\"$service\"})"}]
+        },
+        {
+          "id": 2,
+          "title": "Request Rate by status (5m)",
+          "type": "timeseries",
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "gridPos": {"h": 8, "w": 10, "x": 4, "y": 0},
+          "targets": [{"expr": "sum by (status) (rate(http_server_requests_seconds_count{namespace=\"$namespace\",app_kubernetes_io_name=\"$service\"}[5m]))", "legendFormat": "{{status}}"}]
+        },
+        {
+          "id": 3,
+          "title": "HTTP p95 Latency (5m)",
+          "type": "timeseries",
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "gridPos": {"h": 8, "w": 10, "x": 14, "y": 0},
+          "fieldConfig": {"defaults": {"unit": "s"}},
+          "targets": [{"expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{namespace=\"$namespace\",app_kubernetes_io_name=\"$service\"}[5m])))", "legendFormat": "p95"}]
+        },
+        {
+          "id": 4,
+          "title": "JVM Heap Used",
+          "type": "timeseries",
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "gridPos": {"h": 8, "w": 8, "x": 0, "y": 8},
+          "fieldConfig": {"defaults": {"unit": "bytes"}},
+          "targets": [
+            {"expr": "sum(jvm_memory_used_bytes{namespace=\"$namespace\",app_kubernetes_io_name=\"$service\",area=\"heap\"})", "legendFormat": "used"},
+            {"expr": "sum(jvm_memory_max_bytes{namespace=\"$namespace\",app_kubernetes_io_name=\"$service\",area=\"heap\"})", "legendFormat": "max"}
+          ]
+        },
+        {
+          "id": 5,
+          "title": "JVM Threads / CPU",
+          "type": "timeseries",
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "gridPos": {"h": 8, "w": 8, "x": 8, "y": 8},
+          "targets": [
+            {"expr": "jvm_threads_live_threads{namespace=\"$namespace\",app_kubernetes_io_name=\"$service\"}", "legendFormat": "threads"},
+            {"expr": "process_cpu_usage{namespace=\"$namespace\",app_kubernetes_io_name=\"$service\"}", "legendFormat": "cpu"}
+          ]
+        },
+        {
+          "id": 6,
+          "title": "GC Pause Rate (5m)",
+          "type": "timeseries",
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "gridPos": {"h": 8, "w": 8, "x": 16, "y": 8},
+          "fieldConfig": {"defaults": {"unit": "s"}},
+          "targets": [{"expr": "sum by (action) (rate(jvm_gc_pause_seconds_sum{namespace=\"$namespace\",app_kubernetes_io_name=\"$service\"}[5m]))", "legendFormat": "{{action}}"}]
+        }
+      ]
+    }

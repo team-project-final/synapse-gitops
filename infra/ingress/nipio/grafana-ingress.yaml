@@ -1,0 +1,30 @@
+# Grafana 외부 노출 — argocd-server-ingress.yaml와 동일 nip.io + self-signed ACM 패턴.
+# 동일 ALB 그룹(synapse-nipio) 재사용 → argocd/dev와 단일 ALB 공유.
+# 서비스: kube-prometheus-stack-grafana (port 80, HTTP). Grafana는 평문 → ALB가 TLS 종료.
+# 라이브: gen-nipio-selfsigned.sh 출력 CERT_ARN/ALB_IP로 <ACM_ARN>·<ALB_IP> 치환.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana-nipio
+  namespace: monitoring
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/group.name: synapse-nipio
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/healthcheck-path: /api/health
+    alb.ingress.kubernetes.io/certificate-arn: <ACM_ARN>
+spec:
+  rules:
+    - host: grafana.<ALB_IP>.nip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kube-prometheus-stack-grafana
+                port:
+                  number: 80

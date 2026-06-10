@@ -34,6 +34,25 @@ spec:
             severity: critical
           annotations:
             summary: "{{ $labels.app_kubernetes_io_name }} 5xx 비율 5% 초과"
+    # W2 Step 5.4 이월(D-041): ESO 동기화 실패 가시화.
+    # ESO 컨트롤러 메트릭 prefix = externalsecret_ (단수). 라이브 발화 전제: ESO 메트릭 스크레이프
+    #   (external-secrets helm `serviceMonitor.enabled=true` 또는 ESO 서비스 대상 ServiceMonitor).
+    - name: external-secrets.rules
+      rules:
+        - alert: ESOSyncErrors
+          expr: increase(externalsecret_sync_calls_error[15m]) > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "ESO 동기화 실패 — {{ $labels.namespace }}/{{ $labels.name }} (15m 내 sync error)"
+        - alert: ESOSecretNotReady
+          expr: externalsecret_status_condition{condition="Ready",status="True"} == 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "ExternalSecret Ready 아님 — {{ $labels.namespace }}/{{ $labels.name }} (15분 지속)"
     - name: velero.rules
       rules:
         - alert: VeleroBackupFailed
