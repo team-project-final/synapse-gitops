@@ -11,7 +11,9 @@ set -euo pipefail
 
 REPO="${REPO:-team-project-final/synapse-gitops}"
 REVIEWS="${REVIEWS:-0}"
-STATUS_CHECK="${STATUS_CHECK:-Validate Kubernetes Manifests}"
+# 필수 status check 컨텍스트 = Actions 잡 컨텍스트(잡 id `validate`). 워크플로명("Validate
+# Kubernetes Manifests")이 아님 — 워크플로명으로 두면 매칭 안 돼 PR이 항상 BLOCKED(bypass 강요).
+STATUS_CHECK="${STATUS_CHECK:-validate}"
 RULESET_NAME="${RULESET_NAME:-main-protection}"
 
 log() { echo -e "\033[1;34m[*]\033[0m $*"; }
