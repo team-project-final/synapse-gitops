@@ -193,14 +193,16 @@
   - [x] PR-merge → staging 자동 sync → prod 수동 승인 흐름 검증 (라이브 OutOfSync → gitops-admin 수동 sync, FR-404)
   - [x] **첫 prod 배포 5/5 Healthy** — 2026-06-01 라이브 재현: synapse-prod 15/15 파드, 5개 앱 Synced/Healthy (FR-404). 도메인 200은 readiness probe Healthy(=/actuator/health 200)로 대체(실 도메인 미적용)
   <!-- 2026-06-01 라이브 재현(D-043): 인프라 증설(노드 t3.large×4 / RDS db.t3.small)로 FR-404 달성. 단 2건 워크어라운드 — ① platform-svc는 prod 프로파일이 Hibernate validate라 빈 synapse_prod에 스키마 시드 필요 ② db.t3.small이 dev+staging+prod 동시 연결 부족 → 데모 위해 dev/staging 축소. 상세: docs/runbooks/w4-prod-live-reproduction-runbook.md -->
-  - [ ] ACM 인증서 ARN 매핑 + DNS 레코드 (argocd + 5앱 prod 도메인) — W1 이월 (D-041). 실 도메인 부재 — port-forward/probe로 대체 검증
-  - [ ] 외부 도메인으로 ArgoCD UI HTTPS 접속 + TLS valid — W1 이월 (D-041). 실 도메인 부재
-  - [ ] webhook endpoint 외부 도달 확인 — W1 이월 (D-041). 실 도메인 부재
+  - [x] ACM 인증서 ARN 매핑 + DNS 레코드 (argocd + 5앱 prod 도메인) — **nip.io 임시 도메인으로 완결**: self-signed ACM import + nip.io ingress (#121, PR #123, 06-08 윈도우2)
+  - [x] 외부 도메인으로 ArgoCD UI HTTPS 접속 + TLS valid — **완결**: `curl --cacert` argocd 200, 체인 `Verify return code 0` (#121, 06-08 라이브)
+  - [x] webhook endpoint 외부 도달 확인 — **완결**: `/api/webhook` 200 (#121, 06-08 라이브)
+  <!-- 2026-06-10: 실 도메인 3항목을 nip.io 임시 도메인 라이브 증명(#121)으로 완결 처리(team-lead 결정). 실 도메인 확보 시 ACM 발급→Ingress 매핑은 docs/argocd-tls-migration.md 절차로 즉시 전환 가능. -->
+
 - **Duration**: 2일
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [ ] In Progress / [x] Done (FR-401~404 전부 라이브 증명 — 2026-06-01 prod 5/5 Healthy. 실 도메인 3항목만 W1 이월 잔존(port-forward 대체). team-lead 합의 대기 — D-043)
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (FR-401~404 전부 라이브 증명 — 2026-06-01 prod 5/5 Healthy. 실 도메인 3항목은 nip.io 임시 도메인 라이브(#121)으로 완결. **D-043 team-lead 사인오프 완료 — 2026-06-10, velka 겸임**)
 <!-- 2026-06-05: 실 도메인 3항목(#121)은 nip.io 임시 도메인으로 진행 — nip.io ingress+self-signed(PR #123) + ALB 컨트롤러 부트스트랩(PR #124). 라이브 외부도달·webhook은 차기 윈도우. ↓ W4→W5 진입 차단 클리어 §, gitops#121 -->
 
 ---
@@ -217,7 +219,7 @@
 - **Assignee**: @VelkaressiaBlutkrone
 - **Reviewer**: @team-lead
 
-**Status**: [ ] Not Started / [ ] In Progress / [x] Done (롤백 405/406 라이브 검증(2026-06-01) + 백업/복구 407/408 + 매니페스트/런북/알람 Done. team-lead 사인오프 대기 — D-043)
+**Status**: [ ] Not Started / [ ] In Progress / [x] Done (롤백 405/406 라이브 검증(2026-06-01) + 백업/복구 407/408 + 매니페스트/런북/알람 Done. **D-043 team-lead 사인오프 완료 — 2026-06-10, velka 겸임**)
 
 ---
 
@@ -231,10 +233,10 @@
 - [x] **#121 외부 노출 (ACM/DNS/Ingress/webhook) — 06-08 윈도우2 라이브 close** — nip.io ingress + self-signed ACM import. `curl --cacert` argocd 200·dev/actuator/health 200·webhook 200, 체인 `Verify return code 0`. 라이브 수정: ALB IAM v2.7.2→v3.4.0(PR #145)·ingress backend HTTPS→HTTP(argocd insecure).
 - [x] **#122 Image Updater write-back E2E — 06-08 윈도우2 라이브 close** — engagement-svc 1.0.0→1.0.1→롤백. 반영 45s·롤백 19s. App 토큰 PR 자동생성(#126). 라이브 수정 4건(PR #148): ECR인증 HOME=/tmp·kustomize.image-name·idempotent·yamllint.
 - [x] **#91 dev/staging 5/5 — 06-08 라이브 달성·close** — EKS 재apply → `verify-argocd-deploy.sh` **dev 16/0/0 · staging 20/0/0 ALL PASSED** + 롤백 124s(06-02, <3분). 이전 차단 gateway-dev(JWT 매핑, PR #136)·platform-svc-staging(#92) 모두 Healthy(shared HANDOFF_HUB §1).
-- [x] **#92 platform-svc-staging — 06-08 라이브 해소·close** — ① datasource(`application-staging.yml` main `${DB_URL}`) + ② flyway 충돌(공유 DB) 모두 PR #136으로 해소. 06-08 EKS 재apply `verify-argocd-deploy.sh staging 20/0/0 ALL PASSED`, platform-svc staging Healthy(shared HANDOFF_HUB §1). 잔존 관찰=staging가 dev RDS·DB 공유(§4 감사, 환경격리는 별도).
+- [x] **#92 platform-svc-staging — 06-08 라이브 해소·close** — ① datasource(`application-staging.yml` main `${DB_URL}`) + ② flyway 충돌(공유 DB) 모두 PR #136으로 해소. 06-08 EKS 재apply `verify-argocd-deploy.sh staging 20/0/0 ALL PASSED`, platform-svc staging Healthy(shared HANDOFF_HUB §1). §4 감사 발견(staging가 dev RDS·DB 공유)은 #156 staging 전용 RDS(PR #160)로 해소(2026-06-09).
 - 검증 후 `terraform destroy`로 과금 차단.
 
-**Status**: 진행 중 — #120 **Done·close**. **#91·#92 06-08 라이브 달성·close**(EKS 재apply → dev 16/0/0·staging 20/0/0 ALL PASSED, gateway JWT·platform DB 분리 PR #136, shared HANDOFF_HUB §1). #121/#122 gitops 코드 main 머지(PR #123/#124), 라이브 검증만 차기 on-demand 윈도우(`W5_WINDOW_2.md`).
+**Status**: **완료 — 차단 5건 전부 close**. #120·#91·#92 06-08 라이브 달성·close(EKS 재apply → dev 16/0/0·staging 20/0/0 ALL PASSED, gateway JWT·platform DB 분리 PR #136). **#121·#122 06-08 윈도우2 라이브 close**(nip.io 외부노출 curl 200·webhook 200 / IU write-back E2E 45s·롤백 19s). §4 신규발견(staging가 dev RDS·DB 공유)은 **#156 staging 전용 RDS(PR #160)로 해소(2026-06-09)**.
 
 ---
 
