@@ -25,7 +25,7 @@ require() { command -v "$1" >/dev/null 2>&1 || {
 usage() {
   cat <<USAGE
 사용법: bring-up.sh [옵션]
-  --from <phase>   해당 phase부터 재개 (terraform|eks-auth|tunnel|argocd|eso|oidc-fix|alb-controller|kafka-config|manifests|metrics-server|image-updater|observability|status)
+  --from <phase>   해당 phase부터 재개 (terraform|eks-auth|tunnel|argocd|eso|oidc-fix|alb-controller|kafka-config|kafka-topics|db-init|manifests|metrics-server|image-updater|observability|status)
   --to <phase>     해당 phase까지만 실행 (예: --to manifests = metrics-server/observability 제외 dev-only)
   --verify         bring-up 대신 W3 잔여 3항목 검증
   --destroy        terraform destroy (비용 차단)
@@ -34,7 +34,7 @@ usage() {
 USAGE
 }
 
-PHASES=(terraform eks-auth tunnel argocd eso oidc-fix alb-controller kafka-config manifests metrics-server image-updater observability status)
+PHASES=(terraform eks-auth tunnel argocd eso oidc-fix alb-controller kafka-config kafka-topics db-init manifests metrics-server image-updater observability status)
 
 # ─── phase 함수 ───────────────────────────────────────────────────────────
 phase_terraform() {
