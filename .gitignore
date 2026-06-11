@@ -24,6 +24,13 @@ secrets/
 # nip.io 임시 인증서 (private keys — 커밋 금지)
 .nipio-certs/
 
+# === 라이브 윈도우/진단 실행 산출물 (#175) ===
+# bring-up·destroy 로그, 임시 진단 스크립트(루트 한정 — scripts/ 정본은 영향 없음)
+*.out
+/grafana-*.sh
+/verify*.sh
+/bringup*.sh
+
 # === Terraform ===
 infra/aws/dev/tfplan
 infra/aws/dev/*.log
