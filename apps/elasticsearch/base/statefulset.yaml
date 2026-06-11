@@ -20,8 +20,10 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: elasticsearch
-          # TODO(FS-D): nori 플러그인 커스텀 이미지 — 현재는 공식 이미지 사용
-          image: docker.elastic.co/elasticsearch/elasticsearch:9.2.1
+          # analysis-nori 포함 커스텀 이미지 — knowledge가 notes-v1을 nori_tokenizer로
+          # 생성하므로 stock 이미지(nori 없음)는 검색 인덱스 생성 500(#174).
+          # 빌드·push는 synapse-shared#53(Dockerfile=shared docker/elasticsearch).
+          image: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/elasticsearch:nori-9.2.1
           env:
             - name: discovery.type
               value: single-node
