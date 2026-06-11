@@ -61,7 +61,7 @@ spec:
             tcpSocket:
               port: 8080
             periodSeconds: 5
-            failureThreshold: 30   # 최대 ~150s 기동 허용(JVM 콜드스타트). 성공 후 liveness 활성
+            failureThreshold: 60   # 최대 ~300s 기동 허용(콜드스타트·노드 경합). 성공 후 liveness 활성 (#164 동일)
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
@@ -76,11 +76,11 @@ spec:
             periodSeconds: 5
           resources:
             requests:
-              cpu: 100m
-              memory: 256Mi
+              cpu: 250m      # #164: req 100m 스로틀로 콜드스타트가 startupProbe 예산 초과 → 250m로 기동 CPU 확보
+              memory: 384Mi
             limits:
               cpu: 500m
-              memory: 512Mi
+              memory: 768Mi  # Spring Boot OOM 헤드룸(learning-card와 동일 사이징)
           securityContext:
             runAsNonRoot: true
             runAsUser: 101    # 이미지의 app 유저(adduser → uid 101). runAsNonRoot 검증에 숫자 UID 필요
