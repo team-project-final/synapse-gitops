@@ -15,6 +15,17 @@ prometheus:
         cpu: "1"
         memory: 2Gi
 
+# EKS는 컨트롤플레인(controller-manager·scheduler·etcd)을 AWS가 매니지드로 운영하며
+# 메트릭 endpoint를 노출하지 않음 → 차트 기본 enabled 룰이 KubeControllerManagerDown·
+# KubeSchedulerDown 등을 영구 firing(false-positive, #194). 해당 컴포넌트 ServiceMonitor·룰을 끔.
+# (kube-proxy는 EKS 노드에서 실제 동작·메트릭 노출하므로 유지.)
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeEtcd:
+  enabled: false
+
 grafana:
   admin:
     existingSecret: grafana-admin
