@@ -57,4 +57,6 @@ patches:
 images:
   - name: ghcr.io/team-project-final/synapse-engagement-svc
     newName: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/engagement-svc
-    newTag: dev-latest
+    # #191: engagement는 semver만 push(dev-latest 미생성) → ImagePullBackOff. ECR 실재 semver로 정정.
+    # 1.0.1 = actuator health permitAll 수정(engagement#43, dev와 동일).
+    newTag: 1.0.1
