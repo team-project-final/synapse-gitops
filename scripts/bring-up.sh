@@ -292,19 +292,23 @@ phase_es_reindex() {
   ok "ES analysis-nori 설치 확인"
 
   # 2) notes-v1이 존재하나 nori 매핑이 아니면(이전 윈도우 잔재) 삭제 → 다음 인덱싱/검색에서 nori로 재생성.
+  #    존재 판정은 HTTP 상태코드로 — 404 본문에 "index":"notes-v1"이 들어가 _mapping 본문 grep은 오탐.
   #    ES 이미지 curl 의존 회피 위해 임시 curl pod 사용(verify_all과 동일 패턴).
-  mapping=$(kubectl -n "$ns" run tmp-es-mapping --rm -i --restart=Never --image=curlimages/curl --command --timeout=60s -- \
-    curl -s "http://elasticsearch:9200/notes-v1/_mapping" 2>/dev/null || echo "")
-  if echo "$mapping" | grep -q '"notes-v1"'; then
+  local code
+  code=$(kubectl -n "$ns" run tmp-es-head --rm -i --restart=Never --image=curlimages/curl --command --timeout=60s -- \
+    curl -s -o /dev/null -w '%{http_code}' "http://elasticsearch:9200/notes-v1" 2>/dev/null | tr -dc '0-9')
+  if [ "$code" = "200" ]; then
+    mapping=$(kubectl -n "$ns" run tmp-es-mapping --rm -i --restart=Never --image=curlimages/curl --command --timeout=60s -- \
+      curl -s "http://elasticsearch:9200/notes-v1/_mapping" 2>/dev/null || echo "")
     if echo "$mapping" | grep -q nori; then
       ok "notes-v1 이미 nori 적용 — 유지"
     else
-      warn "notes-v1 존재하나 nori 미적용(stale) → 삭제(다음 연산에서 nori로 재생성)"
+      warn "notes-v1 존재하나 nori 미적용(stale) → 삭제(다음 인덱싱/검색에서 nori로 재생성)"
       kubectl -n "$ns" run tmp-es-del --rm -i --restart=Never --image=curlimages/curl --command --timeout=60s -- \
         curl -s -X DELETE "http://elasticsearch:9200/notes-v1" >/dev/null 2>&1 || true
     fi
   else
-    log "notes-v1 미존재 — 첫 인덱싱/검색에서 knowledge가 nori로 생성(ephemeral 정상)"
+    log "notes-v1 미존재(HTTP ${code:-?}) — 첫 인덱싱/검색에서 knowledge가 nori로 생성(ephemeral 정상)"
   fi
 }
 
@@ -413,12 +417,16 @@ verify_search() {
     echo "analysis-nori: 미설치 ❌ (stock 이미지 — statefulset 이미지 확인)"
   fi
   # 2) notes-v1 nori 매핑(존재 시) — ES xpack 비활성이라 무인증 조회.
-  mapping=$(kubectl -n "$ns" run tmp-verify-esmap --rm -i --restart=Never --image=curlimages/curl --command --timeout=60s -- \
-    curl -s "http://elasticsearch:9200/notes-v1/_mapping" 2>/dev/null || echo "")
-  if echo "$mapping" | grep -q '"notes-v1"'; then
+  #    존재 판정은 HTTP 상태코드로(404 본문에 "notes-v1" 포함되어 _mapping grep 오탐 방지).
+  local code
+  code=$(kubectl -n "$ns" run tmp-verify-eshead --rm -i --restart=Never --image=curlimages/curl --command --timeout=60s -- \
+    curl -s -o /dev/null -w '%{http_code}' "http://elasticsearch:9200/notes-v1" 2>/dev/null | tr -dc '0-9')
+  if [ "$code" = "200" ]; then
+    mapping=$(kubectl -n "$ns" run tmp-verify-esmap --rm -i --restart=Never --image=curlimages/curl --command --timeout=60s -- \
+      curl -s "http://elasticsearch:9200/notes-v1/_mapping" 2>/dev/null || echo "")
     echo "notes-v1: $(echo "$mapping" | grep -q nori && echo 'nori 적용 ✅' || echo 'nori 미적용 ❌(stale)')"
   else
-    echo "notes-v1: 미생성 (앱 활동/인증검색 전 정상 — 첫 연산에서 nori로 생성)"
+    echo "notes-v1: 미생성(HTTP ${code:-?}) — 앱 활동/인증검색 전 정상(첫 연산에서 nori로 생성)"
   fi
   # 3) 검색 API 200 E2E는 @CurrentUserAuth(인증) 필요 → 게이트웨이 토큰으로 수동 확인.
   echo "→ 인증 검색 E2E: 게이트웨이 경유 \`GET /api/v1/notes/search?q=...\` 200 수동 확인(토큰 필요)."
