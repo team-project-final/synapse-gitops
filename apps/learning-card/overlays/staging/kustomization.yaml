@@ -65,4 +65,5 @@ images:
     newName: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/learning-card
     # #164: mutable dev-latest(dev와 다른 빌드 가능=조사 1차 가설) → 결정적 SHA 핀.
     # staging은 IU 대상 아님(image-updater namePattern=synapse-*-dev). SHA 일괄 재정렬은 #165 전략 결정 후.
-    newTag: ab67c3c2be0aa64611c6c22e7bf1c9d0d519c116
+    # #191: 기존 ab67c3c2 SHA가 ECR에 미존재(미빌드) → ImagePullBackOff. dev와 동일한 ECR 실재 SHA로 정정.
+    newTag: e5e27ee2c37c5e9eea6f931cf702439e2e2d0d4a
