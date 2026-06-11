@@ -377,8 +377,63 @@ YAML
   echo "→ Slack 채널 #synapse-gitops에서 TestSlackDelivery 수신 여부를 눈으로 확인하세요."
 }
 
+# destroy 전 orphan LB 선정리.
+# aws-load-balancer-controller가 Ingress(infra/ingress/*, nipio/* — 전부 internet-facing)/
+# LoadBalancer-Service로 만든 ALB·ENI·공인IP는 terraform state 밖이다. 곧장 terraform destroy
+# 하면 이 orphan 때문에 subnet "DependencyViolation"·IGW "mapped public address(es)"로
+# ~20분 행 끝에 실패한다(2026-06-10 재현, destroy.out). k8s LB 객체 선삭제 + ELB 소멸 대기로 차단.
+predestroy_lb_cleanup() {
+  local vpc=""
+  vpc=$(terraform -chdir=$TFDIR output -raw vpc_id 2>/dev/null || true)
+  if [ -z "$vpc" ]; then
+    warn "vpc_id 미확인(state 비어있음?) — LB 선정리 생략"
+    return 0
+  fi
+  log "destroy 선정리: VPC $vpc 의 ALB/NLB 제거(orphan ENI/EIP 차단)"
+
+  # 1) 클러스터 접근(private endpoint → SSM 터널). 실패해도 AWS 레벨 대기로 폴백.
+  if $DRY_RUN; then
+    echo "+ tunnel_up; kubectl delete ingress/svc(LoadBalancer); ELB 소멸 대기; orphan ENI reap"
+    return 0
+  fi
+  if source scripts/lib/eks-tunnel.sh && tunnel_up; then
+    # Ingress/LoadBalancer-Service 삭제 → 컨트롤러가 ALB/NLB 디프로비저닝(finalizer로 동기 대기).
+    run "kubectl delete ingress -A --all --ignore-not-found --timeout=180s || true"
+    run "kubectl delete svc -A --field-selector spec.type=LoadBalancer --ignore-not-found --timeout=180s || true"
+    tunnel_down
+  else
+    warn "터널/kubectl 도달 실패 — k8s LB 객체 선삭제 생략(AWS 레벨 대기로 진행)"
+    tunnel_down
+  fi
+
+  # 2) ELB(v2/classic)가 VPC에서 완전 삭제될 때까지 대기(컨트롤러 비동기 백스톱, 최대 ~5분).
+  local i n
+  for i in $(seq 1 20); do
+    n=$( {
+      aws elbv2 describe-load-balancers --region "$AWS_REGION" \
+        --query "length(LoadBalancers[?VpcId=='$vpc'])" --output text 2>/dev/null || echo 0
+      aws elb describe-load-balancers --region "$AWS_REGION" \
+        --query "length(LoadBalancerDescriptions[?VPCId=='$vpc'])" --output text 2>/dev/null || echo 0
+    } | awk '{s+=$1} END{print s+0}')
+    [ "$n" = "0" ] && { ok "VPC LB 0개 — destroy 진행"; break; }
+    log "남은 LB ${n}개 — 컨트롤러 디프로비저닝 대기(${i}/20)"
+    sleep 15
+  done
+
+  # 3) 폴백: 남은 미부착(available) ELB ENI 강제 삭제(컨트롤러 다운/이미 삭제 케이스).
+  local eni
+  for eni in $(aws ec2 describe-network-interfaces --region "$AWS_REGION" \
+    --filters "Name=vpc-id,Values=$vpc" "Name=status,Values=available" \
+    --query "NetworkInterfaces[?starts_with(Description, 'ELB ')].NetworkInterfaceId" \
+    --output text 2>/dev/null || true); do
+    warn "orphan ELB ENI 삭제: $eni"
+    aws ec2 delete-network-interface --region "$AWS_REGION" --network-interface-id "$eni" 2>/dev/null || true
+  done
+}
+
 phase_destroy() {
   warn "terraform destroy — dev 인프라 전체 삭제(비용 차단). S3 state/DynamoDB lock은 유지."
+  predestroy_lb_cleanup
   run "terraform -chdir=$TFDIR destroy -auto-approve -input=false"
 }
 
