@@ -64,6 +64,7 @@ patches:
 images:
 - name: ghcr.io/team-project-final/synapse-engagement-svc
   newName: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/engagement-svc
-  # was 1.0.1 — #122 데모 IU 자동 bump(302af89) 잔재. 해당 1.0.1 이미지가 ECR에서 사라져
-  # ImagePullBackOff. ECR 실재 semver 태그 1.0.0(=dev-latest 동일 digest)로 정정.
-  newTag: 1.0.0
+  # 1.0.1 = engagement-svc#43 수정(actuator health permitAll → liveness 401 SIGTERM 루프 해소) 빌드.
+  # ECR digest sha256:41227b86 실재. (이전 1.0.0은 actuator 401로 CrashLoop, 동일 태그 재빌드는 노드 캐시
+  # IfNotPresent로 미반영 → 새 패치 태그로 bump.)
+  newTag: 1.0.1
