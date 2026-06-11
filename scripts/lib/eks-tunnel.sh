@@ -5,6 +5,12 @@ AWS_REGION="${AWS_REGION:-ap-northeast-2}"
 CLUSTER_NAME="${CLUSTER_NAME:-synapse-dev}"
 TUNNEL_LOCAL_PORT="${TUNNEL_LOCAL_PORT:-6443}"
 TUNNEL_KUBECONFIG="${TUNNEL_KUBECONFIG:-/tmp/kubeconfig-synapse-tunnel.yaml}"
+# Git Bash(MINGW): Windows kubectl.exe는 MSYS 경로(/tmp/..)를 못 읽어 KUBECONFIG을 무시하고
+# 기본 localhost:8080으로 폴백("API 도달 실패"). cygpath -m으로 forward-slash Windows 경로 변환
+# (Git Bash·kubectl.exe 양쪽 호환). 네이티브 Linux/WSL에선 MSYSTEM 미설정이라 그대로 둔다.
+if [ -n "${MSYSTEM:-}" ] && command -v cygpath >/dev/null 2>&1; then
+  TUNNEL_KUBECONFIG="$(cygpath -m "$TUNNEL_KUBECONFIG")"
+fi
 _TUNNEL_PID=""
 
 tunnel_up() {
