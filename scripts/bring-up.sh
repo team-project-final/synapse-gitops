@@ -250,10 +250,17 @@ YAML
 }
 
 phase_manifests() {
+  # gp3 기본 StorageClass 선행(ES·observability 등 PVC 의존). 없으면 PVC가 unbound로 Pending → 워크로드 미기동.
+  run "kubectl apply -f infra/monitoring/storageclass-gp3.yaml"
+  run "kubectl patch storageclass gp2 -p '{\"metadata\":{\"annotations\":{\"storageclass.kubernetes.io/is-default-class\":\"false\"}}}' 2>/dev/null || true"
   run "kubectl apply -f infra/external-secrets/cluster-secret-store.yaml"
   run "kubectl apply -f argocd/projects.yaml"
   run "kubectl apply -f argocd/applicationset.yaml"
   run "kubectl apply -f argocd/applicationset-staging.yaml"
+  # 워크로드 앱(ApplicationSet)이 의존하는 infra standalone App. ES/schema-registry는
+  # ApplicationSet 목록에 없어 별도 적용 필요(미적용 시 knowledge=ES없음·avro 깨짐, es-reindex NotFound).
+  run "kubectl apply -f argocd/elasticsearch.yaml"
+  run "kubectl apply -f argocd/schema-registry.yaml"
   if $DRY_RUN; then return; fi
   kubectl wait --for=condition=Ready clustersecretstore/aws-secrets-manager --timeout=120s || warn "ClusterSecretStore 미Ready"
   kubectl -n synapse-dev wait --for=condition=Ready externalsecret --all --timeout=180s || warn "일부 ExternalSecret 미Synced"
@@ -263,9 +270,16 @@ phase_es_reindex() {
   # #174: nori 커스텀 이미지 반영 보장 + notes-v1을 nori로 정합화.
   # ephemeral 클러스터(매 윈도우 새 ES)에선 보통 no-op지만, EBS 유지/이전 윈도우 잔재
   # (nori 없는 notes-v1)를 방어한다. ES는 xpack.security 비활성이라 :9200 직접 접근(무인증).
-  local ns="synapse-dev" es_pod mapping
+  local ns="synapse-dev" es_pod mapping i
   if $DRY_RUN; then echo "+ es-reindex: nori 플러그인 가드 + stale notes-v1 삭제"; return; fi
 
+  # manifests 직후엔 ArgoCD reconcile이 비동기라 ES StatefulSet이 아직 없을 수 있다(레이스).
+  # 생성될 때까지 대기, 끝내 없으면(앱 미배포) graceful skip — 윈도우 전체를 막지 않는다.
+  for i in $(seq 1 30); do
+    kubectl -n "$ns" get statefulset/elasticsearch >/dev/null 2>&1 && break
+    [ "$i" = 30 ] && { warn "ES StatefulSet 미생성(ArgoCD sync 지연) — es-reindex 건너뜀(verify에서 재확인)"; return 0; }
+    sleep 10
+  done
   run "kubectl -n $ns rollout status statefulset/elasticsearch --timeout=300s"
   es_pod=$(kubectl -n $ns get pod -l app.kubernetes.io/name=elasticsearch -o jsonpath='{.items[0].metadata.name}')
 
@@ -327,8 +341,7 @@ phase_image_updater() {
 
 phase_observability() {
   run "kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -"
-  run "kubectl apply -f infra/monitoring/storageclass-gp3.yaml"
-  run "kubectl patch storageclass gp2 -p '{\"metadata\":{\"annotations\":{\"storageclass.kubernetes.io/is-default-class\":\"false\"}}}' 2>/dev/null || true"
+  # gp3 StorageClass는 phase_manifests로 선이동(ES 등 PVC가 더 일찍 필요).
   for s in synapse/monitoring/grafana synapse/monitoring/alertmanager; do
     if ! aws secretsmanager describe-secret --secret-id "$s" --region "$AWS_REGION" >/dev/null 2>&1; then
       warn "AWS SM 시크릿 없음: $s → aws secretsmanager create-secret로 1회 등록 필요(실 Slack/Grafana)"
