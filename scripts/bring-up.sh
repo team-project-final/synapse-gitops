@@ -25,7 +25,7 @@ require() { command -v "$1" >/dev/null 2>&1 || {
 usage() {
   cat <<USAGE
 사용법: bring-up.sh [옵션]
-  --from <phase>   해당 phase부터 재개 (terraform|eks-auth|tunnel|argocd|eso|oidc-fix|alb-controller|kafka-config|kafka-topics|db-init|manifests|metrics-server|image-updater|observability|status)
+  --from <phase>   해당 phase부터 재개 (terraform|eks-auth|tunnel|argocd|eso|oidc-fix|alb-controller|kafka-config|kafka-topics|db-init|manifests|es-reindex|metrics-server|image-updater|observability|status)
   --to <phase>     해당 phase까지만 실행 (예: --to manifests = metrics-server/observability 제외 dev-only)
   --verify         bring-up 대신 W3 잔여 3항목 검증
   --destroy        terraform destroy (비용 차단)
@@ -34,7 +34,7 @@ usage() {
 USAGE
 }
 
-PHASES=(terraform eks-auth tunnel argocd eso oidc-fix alb-controller kafka-config kafka-topics db-init manifests metrics-server image-updater observability status)
+PHASES=(terraform eks-auth tunnel argocd eso oidc-fix alb-controller kafka-config kafka-topics db-init manifests es-reindex metrics-server image-updater observability status)
 
 # ─── phase 함수 ───────────────────────────────────────────────────────────
 phase_terraform() {
@@ -259,6 +259,41 @@ phase_manifests() {
   kubectl -n synapse-dev wait --for=condition=Ready externalsecret --all --timeout=180s || warn "일부 ExternalSecret 미Synced"
 }
 
+phase_es_reindex() {
+  # #174: nori 커스텀 이미지 반영 보장 + notes-v1을 nori로 정합화.
+  # ephemeral 클러스터(매 윈도우 새 ES)에선 보통 no-op지만, EBS 유지/이전 윈도우 잔재
+  # (nori 없는 notes-v1)를 방어한다. ES는 xpack.security 비활성이라 :9200 직접 접근(무인증).
+  local ns="synapse-dev" es_pod mapping
+  if $DRY_RUN; then echo "+ es-reindex: nori 플러그인 가드 + stale notes-v1 삭제"; return; fi
+
+  run "kubectl -n $ns rollout status statefulset/elasticsearch --timeout=300s"
+  es_pod=$(kubectl -n $ns get pod -l app.kubernetes.io/name=elasticsearch -o jsonpath='{.items[0].metadata.name}')
+
+  # 1) nori 플러그인 가드 — 없으면 stock 이미지(synapse/elasticsearch:nori-9.2.1 아님) → 즉시 실패.
+  #    라이브에서 잘못된 이미지로 조용히 검색 깨지는 것을 차단(#174 근본원인).
+  if ! kubectl -n "$ns" exec "$es_pod" -- bin/elasticsearch-plugin list 2>/dev/null | grep -q analysis-nori; then
+    err "ES에 analysis-nori 미설치 — statefulset 이미지가 nori 커스텀인지 확인(#174, shared#53)"
+    exit 1
+  fi
+  ok "ES analysis-nori 설치 확인"
+
+  # 2) notes-v1이 존재하나 nori 매핑이 아니면(이전 윈도우 잔재) 삭제 → 다음 인덱싱/검색에서 nori로 재생성.
+  #    ES 이미지 curl 의존 회피 위해 임시 curl pod 사용(verify_all과 동일 패턴).
+  mapping=$(kubectl -n "$ns" run tmp-es-mapping --rm -i --restart=Never --image=curlimages/curl --command --timeout=60s -- \
+    curl -s "http://elasticsearch:9200/notes-v1/_mapping" 2>/dev/null || echo "")
+  if echo "$mapping" | grep -q '"notes-v1"'; then
+    if echo "$mapping" | grep -q nori; then
+      ok "notes-v1 이미 nori 적용 — 유지"
+    else
+      warn "notes-v1 존재하나 nori 미적용(stale) → 삭제(다음 연산에서 nori로 재생성)"
+      kubectl -n "$ns" run tmp-es-del --rm -i --restart=Never --image=curlimages/curl --command --timeout=60s -- \
+        curl -s -X DELETE "http://elasticsearch:9200/notes-v1" >/dev/null 2>&1 || true
+    fi
+  else
+    log "notes-v1 미존재 — 첫 인덱싱/검색에서 knowledge가 nori로 생성(ephemeral 정상)"
+  fi
+}
+
 phase_metrics_server() {
   # HPA 선행 조건: metrics-server 없이는 HPA TARGETS가 <unknown>을 반환해 스케일링 불가.
   # prod overlays(apps/*/overlays/prod/hpa.yaml) 적용 전 필수. (WS4-2)
@@ -345,10 +380,35 @@ verify_all() {
     jq -r '.data.activeTargets[] | select(.labels.namespace|test("synapse-")) | "\(.labels.job)\t\(.health)"' |
     tee -a "$report" || warn "타깃 조회 실패(앱 미배포/메트릭 미노출 가능)"
 
+  echo "## ES nori / 검색 (#174)" | tee -a "$report"
+  verify_search | tee -a "$report"
+
   echo "## Slack 도달" | tee -a "$report"
   verify_slack | tee -a "$report"
 
   ok "검증 리포트: $report"
+}
+
+verify_search() {
+  local ns="synapse-dev" es_pod mapping
+  es_pod=$(kubectl -n "$ns" get pod -l app.kubernetes.io/name=elasticsearch -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+  if [ -z "$es_pod" ]; then echo "ES pod 없음 — 검증 불가"; return; fi
+  # 1) nori 플러그인 설치(#174 근본원인 회귀 가드)
+  if kubectl -n "$ns" exec "$es_pod" -- bin/elasticsearch-plugin list 2>/dev/null | grep -q analysis-nori; then
+    echo "analysis-nori: 설치됨 ✅"
+  else
+    echo "analysis-nori: 미설치 ❌ (stock 이미지 — statefulset 이미지 확인)"
+  fi
+  # 2) notes-v1 nori 매핑(존재 시) — ES xpack 비활성이라 무인증 조회.
+  mapping=$(kubectl -n "$ns" run tmp-verify-esmap --rm -i --restart=Never --image=curlimages/curl --command --timeout=60s -- \
+    curl -s "http://elasticsearch:9200/notes-v1/_mapping" 2>/dev/null || echo "")
+  if echo "$mapping" | grep -q '"notes-v1"'; then
+    echo "notes-v1: $(echo "$mapping" | grep -q nori && echo 'nori 적용 ✅' || echo 'nori 미적용 ❌(stale)')"
+  else
+    echo "notes-v1: 미생성 (앱 활동/인증검색 전 정상 — 첫 연산에서 nori로 생성)"
+  fi
+  # 3) 검색 API 200 E2E는 @CurrentUserAuth(인증) 필요 → 게이트웨이 토큰으로 수동 확인.
+  echo "→ 인증 검색 E2E: 게이트웨이 경유 \`GET /api/v1/notes/search?q=...\` 200 수동 확인(토큰 필요)."
 }
 
 verify_slack() {
