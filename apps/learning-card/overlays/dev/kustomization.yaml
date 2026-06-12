@@ -61,4 +61,4 @@ images:
     # image-updater A안: semver update-strategy 호환 위해 semver 베이스라인으로 핀 (was 3774e2e6…SHA).
     # ECR에 1.0.0 태그 존재 필요 — 다음 라이브 윈도우에서 SHA→1.0.0 재태그
     # (aws ecr batch-get-image | put-image, 동일 digest) 선결. 미선결 시 sync 후 ImagePullBackOff.
-    newTag: 2a29e221185e53cdb46ca37ac351d0016f61118b
+    newTag: ea2d02703f32a08b05586c422dd505fe94607e1a
