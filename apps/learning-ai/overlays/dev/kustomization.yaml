@@ -55,4 +55,4 @@ images:
     # image-updater A안: semver 베이스라인 핀 (was 3774e2e6…SHA).
     # ECR 1.0.0은 #144(aiokafka ssl_context) 수정 이미지 3774e2e6(앱팀 PR #63 머지·deploy bump됨)에 재태그할 것.
     # #144 close는 다음 윈도우 dev 파드 CrashLoop→Running 확인 후.
-    newTag: ea2d02703f32a08b05586c422dd505fe94607e1a
+    newTag: bc6ce97b6db1abb03adfbffa81a555bda1510d0c
