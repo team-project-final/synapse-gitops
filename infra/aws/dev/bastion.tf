@@ -108,6 +108,14 @@ resource "aws_instance" "bastion" {
   iam_instance_profile   = aws_iam_instance_profile.bastion.name
   vpc_security_group_ids = [aws_security_group.bastion.id]
 
+  # user_data가 cluster_name을 문자열로만 참조해 암묵 의존성이 없음 → bastion이 EKS·IAM 정책보다
+  # 먼저 부팅해 cloud-init의 update-kubeconfig가 권한 오류로 죽는 레이스(#182, 06-11 02:44 실측:
+  # 인라인 정책은 존재했으나 cloud-init 시점에 미전파). 명시 의존 + 아래 재시도로 이중 방어.
+  depends_on = [
+    aws_eks_cluster.main,
+    aws_iam_role_policy.bastion_eks,
+  ]
+
   metadata_options {
     http_endpoint = "enabled"
     http_tokens   = "required"
@@ -131,7 +139,15 @@ resource "aws_instance" "bastion" {
     curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
     # kubeconfig for ec2-user (ssm-user는 첫 SSM 세션 시 자동 생성)
-    runuser -l ec2-user -c "aws eks update-kubeconfig --name ${local.cluster_name} --region ${var.aws_region}"
+    # IAM 전파 지연·EKS 미가용 대비 재시도(최대 30회×30s) — 단발 실패가 set -e로
+    # cloud-init 전체를 죽여 bring-up 자동화가 중단됐던 #182 재발 방지.
+    for i in $(seq 1 30); do
+      if runuser -l ec2-user -c "aws eks update-kubeconfig --name ${local.cluster_name} --region ${var.aws_region}"; then
+        break
+      fi
+      echo "update-kubeconfig 실패(시도 $i/30) — 30s 후 재시도"
+      sleep 30
+    done
   EOF
 
   tags = { Name = "${local.project}-${local.environment}-bastion" }
