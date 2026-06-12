@@ -487,7 +487,15 @@ predestroy_lb_cleanup() {
   if source scripts/lib/eks-tunnel.sh && tunnel_up; then
     # Ingress/LoadBalancer-Service 삭제 → 컨트롤러가 ALB/NLB 디프로비저닝(finalizer로 동기 대기).
     run "kubectl delete ingress -A --all --ignore-not-found --timeout=180s || true"
-    run "kubectl delete svc -A --field-selector spec.type=LoadBalancer --ignore-not-found --timeout=180s || true"
+    # ⚠️ Service는 spec.type field-selector 미지원(BadRequest, 2026-06-12 destroy 실측) → jsonpath 열거.
+    local lb_svcs
+    lb_svcs=$(kubectl get svc -A -o jsonpath='{range .items[?(@.spec.type=="LoadBalancer")]}{.metadata.namespace}{" "}{.metadata.name}{"\n"}{end}' 2>/dev/null || true)
+    if [ -n "$lb_svcs" ]; then
+      while read -r ns name; do
+        [ -z "$ns" ] && continue
+        run "kubectl delete svc -n $ns $name --ignore-not-found --timeout=180s || true"
+      done <<< "$lb_svcs"
+    fi
     tunnel_down
   else
     warn "터널/kubectl 도달 실패 — k8s LB 객체 선삭제 생략(AWS 레벨 대기로 진행)"
@@ -517,12 +525,42 @@ predestroy_lb_cleanup() {
     warn "orphan ELB ENI 삭제: $eni"
     aws ec2 delete-network-interface --region "$AWS_REGION" --network-interface-id "$eni" 2>/dev/null || true
   done
+
+  # 4) ALB 컨트롤러가 만든 SG(k8s-*)는 state 밖 → 잔존 시 VPC DependencyViolation으로
+  #    destroy가 ~20분 행 끝에 실패(2026-06-12 실측: k8s-traffic-*·k8s-synapsenipio-*).
+  #    상호참조 룰을 먼저 비우고 삭제.
+  local sg
+  for sg in $(aws ec2 describe-security-groups --region "$AWS_REGION" \
+    --filters "Name=vpc-id,Values=$vpc" \
+    --query "SecurityGroups[?GroupName!='default' && starts_with(GroupName, 'k8s-')].GroupId" \
+    --output text 2>/dev/null || true); do
+    warn "orphan 컨트롤러 SG 삭제: $sg"
+    local perms
+    perms=$(aws ec2 describe-security-groups --region "$AWS_REGION" --group-ids "$sg" \
+      --query 'SecurityGroups[0].IpPermissions' --output json 2>/dev/null || echo '[]')
+    [ "$perms" != "[]" ] && aws ec2 revoke-security-group-ingress --region "$AWS_REGION" \
+      --group-id "$sg" --ip-permissions "$perms" 2>/dev/null || true
+    aws ec2 delete-security-group --region "$AWS_REGION" --group-id "$sg" 2>/dev/null || true
+  done
+}
+
+# destroy 후 CSI orphan EBS 정리 — EBS CSI가 동적 프로비저닝한 PV 볼륨은 state 밖이라
+# 클러스터 삭제 후 available 상태로 잔존·과금(2026-06-12 실측: loki·elasticsearch PV 2개).
+postdestroy_ebs_reap() {
+  local vol
+  for vol in $(aws ec2 describe-volumes --region "$AWS_REGION" \
+    --filters "Name=status,Values=available" "Name=tag-key,Values=kubernetes.io/cluster/${CLUSTER_NAME}" \
+    --query 'Volumes[].VolumeId' --output text 2>/dev/null || true); do
+    warn "orphan CSI EBS 삭제: $vol"
+    aws ec2 delete-volume --region "$AWS_REGION" --volume-id "$vol" 2>/dev/null || true
+  done
 }
 
 phase_destroy() {
   warn "terraform destroy — dev 인프라 전체 삭제(비용 차단). S3 state/DynamoDB lock은 유지."
   predestroy_lb_cleanup
   run "terraform -chdir=$TFDIR destroy -auto-approve -input=false"
+  postdestroy_ebs_reap
 }
 
 main() {
