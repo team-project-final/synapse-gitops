@@ -17,8 +17,10 @@ spec:
           annotations:
             summary: "{{ $labels.namespace }}/{{ $labels.pod }} 5분 이상 다운"
         - alert: SynapseHighMemory
+          # container!="" 필수 — cAdvisor가 pod cgroup 합산 시리즈(container="")를 별도 노출해
+          # 무필터 sum은 사용량이 정확히 2배로 잡힘(12건 동시 false-positive, #194 라이브 실측).
           expr: |
-            sum by (pod,namespace) (container_memory_working_set_bytes{namespace=~"synapse-.*"})
+            sum by (pod,namespace) (container_memory_working_set_bytes{namespace=~"synapse-.*",container!=""})
             / sum by (pod,namespace) (kube_pod_container_resource_limits{namespace=~"synapse-.*",resource="memory"}) > 0.9
           for: 10m
           labels:

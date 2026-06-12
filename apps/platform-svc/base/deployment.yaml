@@ -77,10 +77,13 @@ spec:
           resources:
             requests:
               cpu: 100m
-              memory: 256Mi
+              # 12h P95 실측 466~495Mi(#194) — request가 실사용보다 낮으면 노드 과커밋 압박.
+              memory: 384Mi
             limits:
               cpu: 500m
-              memory: 512Mi
+              # 12h P95 495Mi/512Mi=96.7%로 OOM 임계 직전. 런북 공식 P95×1.3≈644Mi → 768Mi
+              # (learning-card 선례와 동일 단위). 실측 근거: #194 2026-06-12 라이브.
+              memory: 768Mi
           # 이미지가 USER app(non-root)으로 빌드됨 → 컨테이너 보안 컨텍스트 강화(PodSecurity restricted 대응)
           securityContext:
             runAsNonRoot: true
