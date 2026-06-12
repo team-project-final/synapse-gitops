@@ -190,10 +190,11 @@ phase_db_init() {
 }
 
 phase_kafka_topics() {
-  # 후속 C(#166): MSK 토픽 9종을 클러스터 내 apache/kafka Job(SSL)으로 멱등 생성(--if-not-exists).
+  # 후속 C(#166): MSK 토픽을 클러스터 내 apache/kafka Job(SSL)으로 멱등 생성(--if-not-exists).
   # MSK private subnet → 클러스터 내부 실행만 도달. 토픽 정본 = infra/kafka/topics.txt(ConfigMap 적재).
   # 무인증 TLS-only(MSK SSL 서버인증) → client.properties=security.protocol=SSL.
-  if $DRY_RUN; then echo "+ kafka-topics: infra/kafka/topics.txt 9종(apache/kafka:3.9.0 Job, SSL, --if-not-exists, RF=2)"; return; fi
+  # #199: 공유 MSK 환경 교차 격리 — 각 베이스 토픽을 ""(레거시)·dev.·staging.·prod. 4종 프리픽스로 생성.
+  if $DRY_RUN; then echo "+ kafka-topics: infra/kafka/topics.txt × {레거시,dev.,staging.,prod.} 프리픽스(apache/kafka:3.9.0 Job, SSL, --if-not-exists, RF=2)"; return; fi
   local brokers
   brokers=$(terraform -chdir=$TFDIR output -raw msk_bootstrap_brokers_tls)
   # 토픽 리스트를 ConfigMap으로 적재(파일 단일 출처)
@@ -225,15 +226,21 @@ spec:
               set -eu
               echo "security.protocol=SSL" > /tmp/client.properties
               BIN=/opt/kafka/bin/kafka-topics.sh
+              # #199: dev·staging이 공유 MSK를 같은 컨슈머그룹으로 소비 → 파티션 환경 교차 분산(이벤트 누수).
+              # 토픽명에 환경 프리픽스(dev./staging./prod.)로 완전 격리. 빈 프리픽스(레거시 미접두)는
+              # 서비스가 KAFKA_TOPIC_PREFIX를 채택하기 전까지 마이그레이션 기간 병존(이후 정리).
+              for PFX in "" "dev." "staging." "prod."; do
               while IFS= read -r line || [ -n "\$line" ]; do
                 t=\$(printf '%s' "\$line" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*\$//')
                 case "\$t" in ''|\#*) continue;; esac
-                echo "Creating \$t"
+                full="\${PFX}\${t}"
+                echo "Creating \$full"
                 "\$BIN" --bootstrap-server "\$BROKERS" --command-config /tmp/client.properties \
-                  --create --if-not-exists --topic "\$t" \
+                  --create --if-not-exists --topic "\$full" \
                   --partitions 3 --replication-factor 2 \
                   --config min.insync.replicas=2 --config retention.ms=604800000
               done < /etc/kafka-topics/topics.txt
+              done
               echo "--- topics ---"
               "\$BIN" --bootstrap-server "\$BROKERS" --command-config /tmp/client.properties --list
           volumeMounts:
@@ -246,7 +253,7 @@ spec:
 YAML
   kubectl -n synapse-dev wait --for=condition=complete job/kafka-topics-init --timeout=180s \
     || warn "kafka-topics-init 미완료(MSK 미기동/SG 가능) — 로그: kubectl -n synapse-dev logs job/kafka-topics-init; 재시도: --from kafka-topics"
-  ok "MSK 토픽 9종 적용(멱등)"
+  ok "MSK 토픽 적용(멱등, 환경 프리픽스 레거시+dev/staging/prod)"
 }
 
 phase_manifests() {

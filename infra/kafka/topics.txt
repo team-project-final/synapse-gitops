@@ -1,7 +1,13 @@
 # infra/kafka/topics.txt
-# MSK/EKS 토픽 정본(단일 출처). terraform(kafka-topics/main.tf)과 bring-up.sh phase_kafka_topics가 공유.
+# MSK/EKS 토픽 정본(단일 출처, 베이스명). terraform(kafka-topics/main.tf)과 bring-up.sh phase_kafka_topics가 공유.
 # 기준: shared EVENT_CONTRACT_STANDARD §2. 로컬 docker-compose(create-topics.sh, PLAINTEXT)는 별도 트랙.
-# 1줄당 토픽 1개. '#' 주석/빈줄 무시.
+# 1줄당 토픽 1개(베이스명). '#' 주석/빈줄 무시.
+# #199: dev·staging이 공유 MSK를 같은 컨슈머그룹으로 소비해 파티션이 환경 교차 분산→이벤트 누수.
+#   → 실제 토픽명은 환경 프리픽스가 붙는다: <env>.<베이스명> (env=dev|staging|prod). 앱은 KAFKA_TOPIC_PREFIX
+#     (learning-ai=LEARNING_AI_KAFKA_TOPIC_PREFIX, gitops 오버레이가 주입)를 발행/구독 토픽명 앞에 붙인다.
+#   bring-up phase_kafka_topics가 각 베이스 토픽을 ""(레거시 미접두)·dev.·staging.·prod. 4종으로 생성한다.
+#   terraform kafka-topics는 현재 베이스(=레거시 "") 토픽만 생성 → 환경 프리픽스 토픽은 bring-up Job이 담당.
+#   서비스가 프리픽스를 전수 채택하면 ""(레거시) 토픽은 정리 대상.
 platform.auth.user-registered-v1
 knowledge.note.note-created-v1
 knowledge.note.note-updated-v1
