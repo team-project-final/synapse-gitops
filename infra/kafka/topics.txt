@@ -5,6 +5,10 @@
 platform.auth.user-registered-v1
 knowledge.note.note-created-v1
 knowledge.note.note-updated-v1
+# knowledge 검색 인덱싱 내부 토픽(NoteSearchSyncRequested.TOPIC 하드코딩 정본) + DLQ(DeadLetterPublishingRecoverer가 .dlq 접미 발행).
+# 누락 시 outbox→ES 인덱싱 체인 단절(UNKNOWN_TOPIC_OR_PARTITION) → 검색 결과 0건 (#174 E2E에서 발견).
+knowledge.note.note-search-sync-v1
+knowledge.note.note-search-sync-v1.dlq
 learning.card.review-completed-v1
 learning.card.review-due-v1
 engagement.gamification.level-up-v1

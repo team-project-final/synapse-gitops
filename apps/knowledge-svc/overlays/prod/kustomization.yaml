@@ -58,6 +58,24 @@ patches:
       - op: add
         path: /data/SPRING_KAFKA_SECURITY_PROTOCOL
         value: "SSL"
+      # 검색 인덱서 idempotency store(Redis) (#198). 단일 ElastiCache 공유 — prod는 platform prod와
+      # 동일하게 DATABASE=1로 논리 분리(dev/staging=기본 0).
+      - op: add
+        path: /data/SPRING_DATA_REDIS_HOST
+        value: "master.synapse-dev-redis.v6lpdh.apn2.cache.amazonaws.com"
+      - op: add
+        path: /data/SPRING_DATA_REDIS_PORT
+        value: "6379"
+      - op: add
+        path: /data/SPRING_DATA_REDIS_SSL_ENABLED
+        value: "true"
+      - op: add
+        path: /data/SPRING_DATA_REDIS_DATABASE
+        value: "1"
+      # 청킹/임베딩 AI 클라이언트 — 미설정 시 localhost:8090 폴백 (#198).
+      - op: add
+        path: /data/SEARCH_AI_BASE_URL
+        value: "http://learning-ai"
   - target:
       kind: ExternalSecret
       name: knowledge-svc-external-secret
@@ -74,6 +92,9 @@ patches:
       - op: replace
         path: /spec/data/2/remoteRef/key
         value: synapse/prod/platform-svc/jwt-public-key
+      - op: replace
+        path: /spec/data/3/remoteRef/key
+        value: synapse/prod/platform-svc/redis-auth-token
   - target:
       kind: Deployment
       name: knowledge-svc
