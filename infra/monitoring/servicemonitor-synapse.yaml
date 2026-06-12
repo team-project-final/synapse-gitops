@@ -17,9 +17,13 @@ spec:
       - key: app.kubernetes.io/part-of
         operator: In
         values: [synapse]
+      # actuator prometheus 비대상 제외(#207): learning-ai(별도 SM /metrics)·frontend(nginx 정적)·
+      # elasticsearch(exporter 미구성)·schema-registry(JMX exporter 미구성) — 포함 시 스크랩 실패로
+      # TargetDown/SynapsePodDown 상시 firing. ES/SR exporter 도입 시 재포함.
+      # gateway는 Spring이라 유지 — exposure에 prometheus 추가는 gateway 레포 트랙(#207 제안 2).
       - key: app.kubernetes.io/name
         operator: NotIn
-        values: [learning-ai]
+        values: [learning-ai, frontend, elasticsearch, schema-registry]
   endpoints:
     - port: http
       path: /actuator/prometheus
