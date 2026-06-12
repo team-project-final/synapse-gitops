@@ -71,6 +71,9 @@ patches:
       - op: replace
         path: /spec/data/1/remoteRef/key
         value: synapse/prod/knowledge-svc/s3-access-key
+      - op: replace
+        path: /spec/data/2/remoteRef/key
+        value: synapse/prod/platform-svc/jwt-public-key
   - target:
       kind: Deployment
       name: knowledge-svc

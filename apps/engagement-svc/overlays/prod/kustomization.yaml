@@ -61,6 +61,9 @@ patches:
       - op: replace
         path: /spec/data/0/remoteRef/key
         value: synapse/prod/engagement-svc/db-password
+      - op: replace
+        path: /spec/data/1/remoteRef/key
+        value: synapse/prod/platform-svc/jwt-public-key
   - target:
       kind: Deployment
       name: engagement-svc
