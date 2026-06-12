@@ -1,0 +1,6 @@
+*.tfvars
+!terraform.tfvars.example
+*.tfstate
+*.tfstate.backup
+.terraform/
+# .terraform.lock.hcl 은 커밋 — 다른 PC에서 terraform init 시 provider 버전/해시 일치 보장(HashiCorp 권장)
