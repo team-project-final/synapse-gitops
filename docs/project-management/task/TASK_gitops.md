@@ -288,9 +288,19 @@
 
 | 후속 | 이슈 | 우선순위 | 상태 |
 |------|------|----------|------|
-| A. learning-card-staging Degraded 근본원인 조사 | #164 | 낮음 | OPEN (라이브 윈도우 필요) |
-| B. learning-ai·card semver 재핀 — SHA vs semver 전략 결정 | #165 | 낮음 | OPEN (팀 결정 필요) |
-| C. bring-up Kafka 토픽 9종 + DB 5종 자동 프로비저닝 | #166 | 낮음~중 | 코드 완료, 라이브 검증 대기 |
+| A. learning-card-staging Degraded 근본원인 조사 | #164 | 낮음 | ✅ **CLOSED 2026-06-12** (콜드스타트 안정화 PR #172 양 환경 검증 — dev 1/1·staging 2/2 RESTARTS 0. 잔여 readiness 401은 learning-svc#74 owner) |
+| B. learning-ai·card semver 재핀 — SHA vs semver 전략 결정 | #165 | 낮음 | OPEN (팀 결정 대기 — 2026-06-12 제안 제출: dev=IU SHA 핀/staging=검증 SHA 수동 승격/semver=릴리스 스냅샷) |
+| C. bring-up Kafka 토픽 + DB 자동 프로비저닝 | #166 | 낮음~중 | ✅ **CLOSED 2026-06-10** (라이브 검증 — db-init `\gexec` stdin 수정 PR #171) |
 
-- A/B는 라이브 EKS 윈도우(과금) 필요 → 다음 윈도우.
-- C는 2026-06-10 오프라인 구현(`docs/superpowers/plans/2026-06-10-w5-followups-doc-sync-provisioning.md`). 라이브 토픽/DB 생성 검증만 다음 윈도우.
+- 토픽 정본은 이후 search-sync(+.dlq) 2종 추가로 **11종**(`infra/kafka/topics.txt`, #198/PR #200).
+
+## 라이브 윈도우 후속 (2026-06-11~12 발견, 이슈 추적)
+
+| 후속 | 이슈 | 우선순위 | 상태 |
+|------|------|----------|------|
+| bastion bring-up 무인화(IAM 레이스)+ECR 8종 IaC | #182 | 중 | 코드 완료(PR #202, ECR import/apply 완료) — **다음 윈도우 무인 완주 검증만 잔여** |
+| EKS 윈도우 teardown 조율 | #183 | 높음(과금) | 24h 소크 사인오프(06-12 17:15) 후 `bring-up.sh --destroy`(#178 실증 겸) |
+| dev/staging MSK 컨슈머 그룹 공유 — 이벤트 환경교차 | #199 | 중(데모 리스크) | OPEN (팀 결정: group-id env 접미사 / 토픽 프리픽스 / 전용 MSK) |
+| deploy-service.yml 봇 App 토큰 전환 | shared#31 | P2 | 블록 (shared 선행) |
+
+- 2026-06-12 세션에서 close된 신규 발견: **#196**(JWT 공개키 드리프트+미주입 → 인증 401 전면, PR #197)·**#198**(검색 인덱싱 3중 단절, PR #200)·**#194**(HighMemory 이중합산 오탐+platform 768Mi, PR #201). 상세 `docs/superpowers/HANDOFF_2026-06-12.md`.
