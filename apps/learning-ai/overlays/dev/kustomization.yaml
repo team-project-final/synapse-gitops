@@ -42,6 +42,10 @@ patches:
       - op: add
         path: /data/LEARNING_AI_KAFKA_SECURITY_PROTOCOL
         value: "SSL"
+      # Kafka 토픽 환경 프리픽스 (#199): dev·staging 공유 MSK 환경 교차 격리 — 앱이 모든 발행/구독 토픽명 앞에 붙인다.
+      - op: add
+        path: /data/LEARNING_AI_KAFKA_TOPIC_PREFIX
+        value: "dev."
   - target:
       kind: ExternalSecret
       name: learning-ai-external-secret

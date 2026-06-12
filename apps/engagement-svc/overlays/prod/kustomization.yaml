@@ -30,6 +30,10 @@ patches:
       - op: replace
         path: /data/SPRING_PROFILES_ACTIVE
         value: "prod"
+      # Kafka 토픽 환경 프리픽스 (#199): dev·staging 공유 MSK 환경 교차 격리 — 앱이 모든 발행/구독 토픽명 앞에 붙인다.
+      - op: add
+        path: /data/KAFKA_TOPIC_PREFIX
+        value: "prod."
       - op: add
         path: /data/DATABASE_HOST
         value: "synapse-dev-postgres.c7emuq20mhyy.ap-northeast-2.rds.amazonaws.com"
