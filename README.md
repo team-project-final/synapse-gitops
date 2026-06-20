@@ -62,6 +62,11 @@ PR이 올라오면 `.github/workflows/validate-manifests.yml`이 자동 실행:
 2. **kustomize build** — 모든 `apps/*/overlays/*/kustomization.yaml` 빌드
 3. **kubeconform** — 빌드 결과를 Kubernetes 스키마(+ CRD 카탈로그)로 검증
 
+Phase D 릴리즈 하드닝 계약은 로컬에서 먼저 확인할 수 있다:
+```powershell
+.\scripts\verify-phase-d-release-hardening.ps1
+```
+
 로컬 재현: [CONTRIBUTING.md](CONTRIBUTING.md#로컬-검증-pr-올리기-전-필수) 참조.
 
 main은 보호되어 있어 CI 통과 + 리뷰 후에만 머지된다. (`scripts/setup-branch-protection.sh`)

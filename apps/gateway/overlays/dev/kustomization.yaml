@@ -40,7 +40,5 @@ patches:
 images:
   - name: ghcr.io/team-project-final/synapse-gateway
     newName: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/gateway
-    # image-updater A안: semver update-strategy 호환 위해 semver 베이스라인으로 핀 (was 9e4f190a…SHA).
-    # ECR에 1.0.0 태그 존재 필요 — 다음 라이브 윈도우에서 SHA→1.0.0 재태그
-    # (aws ecr batch-get-image | put-image, 동일 digest) 선결. 미선결 시 sync 후 ImagePullBackOff.
-    newTag: 5e2c73b3dff33e679b85c297d3860f97e850ce51
+    # Phase D: dev Image Updater uses semver, so the live tag must stay semver.
+    newTag: 1.0.0
