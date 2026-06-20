@@ -51,7 +51,7 @@
 ### 1.2 리소스 적정화
 - [x] resources.requests/limits 적정값으로 5개 앱 조정 <!-- P95 실측 기반: learning-card 250m/768Mi(PR #172, 06-10)·platform-svc 768Mi=P95×1.3(PR #201, 06-12). 나머지 앱은 P95 90% 미만으로 현행 유지 판단 -->
 - [x] HPA 정의 (CPU 또는 메모리 기반, 트래픽 변동 큰 2개 앱) <!-- 2026-06-08 윈도우2: engagement HPA min3→max6 스케일아웃/인 관찰 -->
-- [ ] PDB 정의 (prod 환경 최소 가용성)
+- [x] PDB 정의 (prod 환경 최소 가용성) <!-- 2026-06-21 Phase D: 5개 prod PDB minAvailable=2로 W5 runbook 기준 정렬 + 검증 스크립트 추가 -->
 - [ ] 미사용 리소스 정리
 
 ### 1.3 안정화 + 회귀 검증

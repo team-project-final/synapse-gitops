@@ -80,7 +80,5 @@ patches:
 images:
   - name: ghcr.io/team-project-final/synapse-knowledge-svc
     newName: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/knowledge-svc
-    # image-updater A안: semver update-strategy 호환 위해 semver 베이스라인으로 핀 (was dev-latest).
-    # ECR에 1.0.0 태그 존재 필요 — 다음 라이브 윈도우에서 기존 태그→1.0.0 재태그
-    # (aws ecr batch-get-image | put-image, 동일 digest) 선결. 미선결 시 sync 후 ImagePullBackOff.
-    newTag: 5d9480245a8d54d780f55e8c96230f56b96e752e
+    # Phase D: dev Image Updater uses semver, so the live tag must stay semver.
+    newTag: 1.0.0

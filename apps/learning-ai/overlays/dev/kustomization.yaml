@@ -56,7 +56,5 @@ patches:
 images:
   - name: ghcr.io/team-project-final/synapse-learning-ai
     newName: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/learning-ai
-    # image-updater A안: semver 베이스라인 핀 (was 3774e2e6…SHA).
-    # ECR 1.0.0은 #144(aiokafka ssl_context) 수정 이미지 3774e2e6(앱팀 PR #63 머지·deploy bump됨)에 재태그할 것.
-    # #144 close는 다음 윈도우 dev 파드 CrashLoop→Running 확인 후.
-    newTag: 89707a97d0f7417de3e8c109693c5b4e60e3e29a
+    # Phase D: dev Image Updater uses semver, so the live tag must stay semver.
+    newTag: 1.0.0

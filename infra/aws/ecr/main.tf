@@ -31,22 +31,22 @@ variable "aws_region" {
 # 서비스 7종 + elasticsearch(nori 커스텀, shared#53). team-lead 수동 선생성분(2026-06-11,
 # MUTABLE·scanOnPush)을 IaC 편입 — 기존 레포는 `terraform import`로 흡수(아래 README).
 locals {
-  repositories = [
-    "synapse/elasticsearch",
-    "synapse/engagement-svc",
-    "synapse/frontend",
-    "synapse/gateway",
-    "synapse/knowledge-svc",
-    "synapse/learning-ai",
-    "synapse/learning-card",
-    "synapse/platform-svc",
-  ]
+  repositories = {
+    "synapse/elasticsearch"  = "elasticsearch"
+    "synapse/engagement-svc" = "engagement-svc"
+    "synapse/frontend"       = "frontend"
+    "synapse/gateway"        = "gateway"
+    "synapse/knowledge-svc"  = "knowledge-svc"
+    "synapse/learning-ai"    = "learning-ai"
+    "synapse/learning-card"  = "learning-card"
+    "synapse/platform-svc"   = "platform-svc"
+  }
 }
 
 resource "aws_ecr_repository" "this" {
-  for_each = toset(local.repositories)
+  for_each = local.repositories
 
-  name = each.value
+  name = each.key
   # IU(image-updater) write-back·dev-latest 운용이 mutable 태그 전제(#165 결정 전까지 유지).
   image_tag_mutability = "MUTABLE"
 
@@ -60,8 +60,10 @@ resource "aws_ecr_repository" "this" {
   }
 
   tags = {
-    Project   = "synapse"
-    ManagedBy = "terraform"
+    Project     = "synapse"
+    Environment = "shared"
+    Service     = each.value
+    ManagedBy   = "terraform"
   }
 }
 

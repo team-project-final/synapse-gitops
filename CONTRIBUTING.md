@@ -30,6 +30,9 @@ pip install yamllint
 
 ### 검증 명령
 ```bash
+# 0) Phase D release-hardening contract check (PowerShell)
+pwsh -File scripts/verify-phase-d-release-hardening.ps1
+
 # 1) YAML lint
 yamllint -c .yamllint apps/ argocd/ infra/
 
