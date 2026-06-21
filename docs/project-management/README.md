@@ -2,6 +2,10 @@
 
 이 폴더는 `workflow-dashboard`로 자동 sync되는 일정/진척 문서를 보관합니다.
 
+> **Phase D Sync**: 중앙 기준은 [2026-06-21 GitOps 및 릴리즈 하드닝 실행 리포트](../../../documents/docs/project-management/reports/phase-d-gitops-release-hardening-2026-06-21.md)다. PR #211은 머지됐고 로컬 Phase D 계약 검증은 통과했지만, live AWS/EKS/ArgoCD 증거와 dashboard track drift 해소 전까지 추가 완료 처리는 보류한다.
+> **Phase E Sync**: 중앙 기준은 [2026-06-21 통합 QA 및 문서 마감 실행 리포트](../../../documents/docs/project-management/reports/phase-e-qa-docs-closeout-2026-06-21.md)다. gitops는 dashboard 204/211 상태이므로 cost/stability, metrics gap, 24h signoff, destroy decision 증거가 붙은 항목만 완료 처리한다.
+> **Phase F Sync**: 중앙 기준은 [2026-06-21 PM Dashboard / 문서 동기화 실행 리포트](../../../documents/docs/project-management/reports/phase-f-pm-dashboard-doc-sync-2026-06-21.md)다. gitops dry-run은 205/211, 현재 dashboard JSON은 204/211이라 live sync 전 1개 추가 완료 check의 증거 확인이 필요하다.
+
 ## 구조
 
 ```
