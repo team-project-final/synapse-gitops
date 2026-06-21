@@ -63,4 +63,4 @@ images:
   - name: ghcr.io/team-project-final/synapse-learning-card
     newName: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/learning-card
     # Phase D: dev Image Updater uses semver, so the live tag must stay semver.
-    newTag: 1.0.0
+    newTag: 6ba063bc254b43725460b90d040882285e636c13
