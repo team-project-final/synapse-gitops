@@ -81,4 +81,4 @@ images:
   - name: ghcr.io/team-project-final/synapse-knowledge-svc
     newName: 963773969059.dkr.ecr.ap-northeast-2.amazonaws.com/synapse/knowledge-svc
     # Phase D: dev Image Updater uses semver, so the live tag must stay semver.
-    newTag: 1.0.0
+    newTag: 6cdcf347d1eb19f1be064226bc194b92c080d708
