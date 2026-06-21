@@ -2,9 +2,9 @@
 
 이 폴더는 `workflow-dashboard`로 자동 sync되는 일정/진척 문서를 보관합니다.
 
-> **Phase D Sync**: 중앙 기준은 [2026-06-21 GitOps 및 릴리즈 하드닝 실행 리포트](../../../documents/docs/project-management/reports/phase-d-gitops-release-hardening-2026-06-21.md)다. PR #211은 머지됐고 로컬 Phase D 계약 검증은 통과했지만, live AWS/EKS/ArgoCD 증거와 dashboard track drift 해소 전까지 추가 완료 처리는 보류한다.
-> **Phase E Sync**: 중앙 기준은 [2026-06-21 통합 QA 및 문서 마감 실행 리포트](../../../documents/docs/project-management/reports/phase-e-qa-docs-closeout-2026-06-21.md)다. gitops는 dashboard 204/211 상태이므로 cost/stability, metrics gap, 24h signoff, destroy decision 증거가 붙은 항목만 완료 처리한다.
-> **Phase F Sync**: 중앙 기준은 [2026-06-21 PM Dashboard / 문서 동기화 실행 리포트](../../../documents/docs/project-management/reports/phase-f-pm-dashboard-doc-sync-2026-06-21.md)다. gitops dry-run은 205/211, 현재 dashboard JSON은 204/211이라 live sync 전 1개 추가 완료 check의 증거 확인이 필요하다.
+> **Phase D Sync**: 중앙 기준은 [2026-06-21 GitOps 및 릴리즈 하드닝 실행 리포트](../../../documents/docs/project-management/reports/phase-d-gitops-release-hardening-2026-06-21.md)다. PR #211은 머지됐고 로컬 Phase D 계약 검증은 통과했지만, live AWS/EKS/ArgoCD 증거 전까지 남은 check는 완료 처리하지 않는다.
+> **Phase E Sync**: 중앙 기준은 [2026-06-21 통합 QA 및 문서 마감 실행 리포트](../../../documents/docs/project-management/reports/phase-e-qa-docs-closeout-2026-06-21.md)다. gitops는 dashboard 205/211 상태이므로 cost/stability, metrics gap, 24h signoff, destroy decision 증거가 붙은 항목만 완료 처리한다.
+> **Phase F Sync**: 중앙 기준은 [2026-06-21 PM Dashboard / 문서 동기화 실행 리포트](../../../documents/docs/project-management/reports/phase-f-pm-dashboard-doc-sync-2026-06-21.md)와 [Dashboard / PM 문서 Count Drift 원인 감사](../../../documents/docs/project-management/reports/phase-f-dashboard-drift-audit-2026-06-21.md)다. `workflow-dashboard`는 `gitops -> team-lead` alias를 적용했고, PDB 정의 check를 증거 기반으로 205/211 live sync했다.
 
 ## 구조
 
@@ -37,7 +37,7 @@ WORKFLOW 파서가 인식하는 패턴 (정확히 지켜야 카운트됨):
 
 - Step 헤더: `## Step <숫자>: <이름>`
 - Phase 헤더: `### <숫자>.<숫자> <이름>` (예: `### 1.1 사전 분석`)
-- 체크 항목: `- [ ] 항목` (미완료) / `- [x] 항목` (완료)
+- 체크 항목: `- [ ] 항목` (미완료) / `- [x] 항목` (완료) / `- [~] 항목` (부분완료)
 
 PRD 파서가 인식하는 패턴:
 
